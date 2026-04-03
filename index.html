@@ -959,56 +959,11 @@ const CONFIG_FILE_ID = '1gDCKYWlgv4odLAnDjc2Y_2TwB59iAIdf';
 const ZONAS_MIA = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
 const ZONA_CODES = {ZARAGOZA:'ZA',CALATAYUD:'CA',TERUEL:'TE',ALCAÑIZ:'AL',SORIA:'SO',MONZÓN:'MO',HUESCA:'HU',JACA:'JA',ALAGÓN:'AG',NOROESTE:'NO'};
 
-const BAREMOS_DEFAULT = [
-  {cod:'WTL016',desc:'DIAGNÓSTICO E INTERVENCIÓN TMT',pts:9.82,fav:true},
-  {cod:'WTL014',desc:'SUSTITUCIÓN EQUIPO TELEMANDO CD',pts:4.50,fav:true},
-  {cod:'WTL015',desc:'SUSTITUCIÓN EQUIPO TELEMANDO AÉREO',pts:6.05,fav:true},
-  {cod:'WTL011',desc:'PROGRAMACIÓN BD REMOTA Y CC',pts:7.70,fav:true},
-  {cod:'WTL012',desc:'COORDINACIÓN, VERIFICACIÓN Y PRUEBAS',pts:18.00,fav:true},
-  {cod:'WTL013',desc:'ADECUACIÓN BD / FIRMWARE',pts:3.75,fav:true},
-  {cod:'WTL021',desc:'ACTUACIÓN MÍNIMA TELECONTROL',pts:9.00,fav:true},
-  {cod:'WTL022',desc:'VERIFICACIÓN Y CORRECCIÓN CONFIG. RGDAT',pts:2.05,fav:true},
-  {cod:'WTL001',desc:'MONT. ARMARIO CONTROL INTEGRADO CD',pts:28.04,fav:false},
-  {cod:'WTL002',desc:'MONT. ARMARIO UP EN CD',pts:33.78,fav:false},
-  {cod:'WTL003',desc:'MONTAJE CUADRO PROTECCIÓN ALTERNA',pts:13.07,fav:false},
-  {cod:'WTL004',desc:'MONTAJE ARMARIO TELECONTROL AÉREO',pts:32.85,fav:false},
-  {cod:'WTL005',desc:'DESMONTAJE ARMARIO CONVENCIONAL',pts:18.00,fav:false},
-  {cod:'WTL006',desc:'MONT. KIT MOTORIZACIÓN/SEÑALIZACIÓN',pts:7.50,fav:false},
-  {cod:'WTL007',desc:'MONTAJE RGDAT EN CELDA CD',pts:6.75,fav:false},
-  {cod:'WTL008',desc:'MONTAJE UCI EN CELDA CD',pts:9.00,fav:false},
-  {cod:'WTL009',desc:'DETECTOR PASO FALTA TEL. CTL. CONV.',pts:11.20,fav:false},
-  {cod:'WTL010',desc:'SUMINISTRO Y MONTAJE FINAL DE CARRERA',pts:6.57,fav:false},
-  {cod:'WTL017',desc:'MONT. Y PUESTA EN SERVICIO EQ. COM. TL',pts:16.70,fav:false},
-  {cod:'WTL018',desc:'SUPLEMENTO ALARGO ANTENA HASTA 10M',pts:2.00,fav:false},
-  {cod:'WTL019',desc:'FACTURACIÓN TRABAJOS ESPECIALES',pts:1.00,fav:false},
-  {cod:'WTL020',desc:'COMPLEMENTO PROGRAMADOS FUERA JORNADA',pts:0.30,fav:false},
-  {cod:'WTL023',desc:'CARGA TOTAL INVENTARIO TELECONTROL MT',pts:1.00,fav:false},
-  {cod:'WTL024',desc:'CARGA PARCIAL INVENTARIO TELECONTROL MT',pts:0.66,fav:false},
-  {cod:'WTL000',desc:'SUPLEMENTO POR COLINDANCIA',pts:1.00,fav:false},
-];
+const BAREMOS_DEFAULT = []; // Loaded from Drive
 
-const FRASES_DEFAULT = [
-  'AVERIA TELEMANDO. AL LLEGAR A LA INSTALACION NO SE OBSERVAN ANOMALIAS, TODO OK. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'AVERIA TELEMANDO. FINAL VIDA UTIL. SE SUSTITUYEN BATERIAS. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'PUESTA EN SERVICIO TELEMANDO. SE CARGA BBDD Y AJUSTES RELE. PRUEBAS PUNTO A PUNTO Y REALES CON CENTRO DE CONTROL OK.',
-  'PUESTA EN SERVICIO TELEMANDO. SE CARGA BBDD Y AJUSTES RELE. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'AVERIA TELEMANDO. FUERA DE SERVICIO. SE RESETEAN EQUIPOS Y ARRANCA CORRECTAMENTE. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'AVERIA TELEMANDO. RECTIFICADOR BLOQUEADO. SE RESETEA Y ARRANCA CORRECTAMENTE. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'ADECUACION POR MIGRACION DE COMUNICACIONES. SE CARGA NUEVA BBDD EN COORDINACIÓN CON GESTIÓN DE DATOS Y COMUNICACIONES. PRUEBAS PUNTO A PUNTO CON CCMT OK.',
-  'CAMPAÑA BATERÍAS, TRABAJO PROGRAMADO PARA SUSTITUCIÓN DE BATERÍAS POR FECHA. PRUEBAS PUNTO A PUNTO CON CCMT OK.',
-  'AVERIA TELEMANDO. SE CARGAN AJUSTES DE RELE. PRUEBAS PUNTO A PUNTO CON CENTRO DE CONTROL OK.',
-  'AVERÍA TELEMANDO. FALLO DPD. SE REVISA INSTALACIÓN SE CARGAN AJUSTES DE PASO DE FALTA SEGÚN INDICA TECNICO. PRUEBAS PUNTO A PUNTO CON CCMT OK.',
-  'AVERÍA TELEMANDO. REMOTA FUERA DE SERVICIO. MÓDEM BLOQUEADO. DESPUÉS DE RESETEAR ARRANCA CORRECTAMENTE Y COMUNICA SIN PROBLEMAS.',
-  'TRABAJO ANULADO EN CAMPO. BASE DE DATOS MAL GENERADA.',
-  'INTERVENCIÓN PROGRAMADA PARA CARGA DE AJUSTES DPD Y REVISION TELEMANDO.',
-  'AVERÍA TELEMANDO. LARS. SE CARGAN AJUSTES DE RELE PROPORCIONADOS POR TÉCNICO. PRUEBAS PUNTO A PUNTO CON CCMT OK.',
-];
+const FRASES_DEFAULT = []; // Loaded from Drive
 
-const MATERIALES_DEFAULT = [
-  'BATERÍAS 160068 X4','BATERÍAS 160069 X2','BATERÍAS 160231','BATERÍAS 160331',
-  'BATERIA 1 X (12V 40AH)','REMOTA SETIS 510131','RECTIFICADOR GLOBAL 510255',
-  'MATERIAL SUMINISTRADO POR ENDESA',
-];
+const MATERIALES_DEFAULT = []; // Loaded from Drive
 
 // ═══════════════════════════════════════════════════
 //  ESTADO
@@ -2359,10 +2314,17 @@ async function leerHistorialDrive() {
 
     // Read in two batches to avoid API limits
     const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S1500`,'GET');
+    console.log('Historial batch1:', res1?.values?.length, 'rows');
+    if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
     const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:S3100`,'GET');
+    console.log('Historial batch2:', res2?.values?.length, 'rows');
 
     const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
-    if(!allRows.length) { console.error('No values from historial'); return false; }
+    if(!allRows.length) {
+      toast('HISTORIAL VACÍO O SIN ACCESO','err');
+      console.error('No values from historial. res1:', JSON.stringify(res1));
+      return false;
+    }
 
     S.intervenciones = allRows.map((row,i)=>({
       intId: 'INT-'+String(i+1).padStart(5,'0'),
@@ -2384,7 +2346,11 @@ async function leerHistorialDrive() {
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
     return true;
-  } catch(e) { console.error('Error leyendo historial:',e); return false; }
+  } catch(e) {
+    console.error('Error leyendo historial:',e);
+    toast('ERROR HISTORIAL: '+e.message,'err');
+    return false;
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -2405,7 +2371,11 @@ async function leerRemotasDrive() {
     setLS('t2-ct', S.centros);
     checkAlertasInicio();
     return true;
-  } catch(e) { console.error('Error leyendo remotas:',e); return false; }
+  } catch(e) {
+    console.error('Error leyendo remotas:',e);
+    toast('ERROR REMOTAS: '+e.message,'err');
+    return false;
+  }
 }
 
 // escribirIntervDrive = alias of guardarEnSheets
