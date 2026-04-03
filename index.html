@@ -10,7 +10,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --rojo:#cc0000; --rojo-dark:#990000; --rojo-light:#fff0f0; --rojo-border:#ffcccc;
@@ -98,7 +98,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
 .stat-card{background:var(--blanco);border-radius:var(--r);padding:13px;box-shadow:var(--sombra);border-left:3px solid var(--rojo);}
-.stat-n{font-size:30px;font-weight:700;color:var(--rojo);line-height:1;font-family:'JetBrains Mono',monospace;}
+.stat-n{font-size:30px;font-weight:700;color:var(--rojo);line-height:1;font-family:Consolas,monospace;}
 .stat-l{font-size:11px;color:var(--gris3);margin-top:3px;font-weight:500;}
 
 /* LIST ITEM */
@@ -109,7 +109,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .li.naranja{border-left-color:var(--naranja);}
 .li.gris{border-left-color:var(--gris4);}
 .li-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;}
-.li-id{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--rojo);}
+.li-id{font-family:Consolas,monospace;font-weight:700;font-size:14px;color:var(--rojo);}
 .li-fecha{font-size:11px;color:var(--gris3);}
 .li-alias{font-weight:600;font-size:13px;margin-bottom:3px;}
 .li-meta{font-size:11px;color:var(--gris3);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
@@ -137,7 +137,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 
 /* BAREMO/MATERIAL ADDED */
 .added-item{display:flex;align-items:center;justify-content:space-between;background:var(--gris7);border:1px solid var(--gris5);border-radius:var(--rs);padding:8px 11px;margin-bottom:6px;}
-.added-info{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
+.added-info{font-family:Consolas,monospace;font-size:13px;font-weight:600;}
 .added-info span{color:var(--rojo);}
 .added-sub{font-size:10px;color:var(--gris3);margin-top:1px;}
 .added-rm{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:20px;padding:0 2px;line-height:1;flex-shrink:0;}
@@ -146,7 +146,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .qty-wrap{display:flex;align-items:center;gap:7px;}
 .qty-btn{width:32px;height:32px;background:var(--gris6);border:1.5px solid var(--gris5);border-radius:7px;color:var(--negro);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .qty-btn:active{background:var(--gris5);}
-.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:Consolas,monospace;}
 
 /* CHECK */
 .check-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;}
@@ -195,7 +195,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 /* PWD SCREEN */
 .pwd-screen{position:fixed;inset:0;background:var(--negro2);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;}
 .pwd-screen.on{display:flex !important;}
-.pwd-logo{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
+.pwd-logo{font-family:Consolas,monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
 .pwd-title{color:var(--blanco);font-size:18px;font-weight:600;margin-bottom:6px;}
 .pwd-sub{color:var(--gris3);font-size:13px;margin-bottom:28px;text-align:center;}
 .pwd-input{width:100%;max-width:260px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:var(--r);color:var(--blanco);font-family:'Inter',sans-serif;font-size:16px;padding:12px;outline:none;text-align:center;margin-bottom:12px;text-transform:none;}
@@ -206,7 +206,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .planif-head{padding:12px 13px;display:flex;justify-content:space-between;align-items:flex-start;}
 .planif-info{flex:1;}
 .planif-fecha-hora{font-size:11px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
-.planif-centro{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;}
+.planif-centro{font-family:Consolas,monospace;font-weight:700;font-size:15px;}
 .planif-alias{font-size:13px;font-weight:600;margin:2px 0;}
 .planif-trabajo{font-size:11px;color:var(--gris3);margin-bottom:4px;}
 .planif-actions{display:flex;gap:6px;padding:0 13px 12px;}
@@ -220,12 +220,12 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 /* STATS PAGE */
 .stats-period{background:var(--negro2);border-radius:var(--r);padding:14px;margin-bottom:10px;color:var(--blanco);}
 .stats-period-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gris4);margin-bottom:10px;}
-.stats-big{font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
+.stats-big{font-family:Consolas,monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
 .stats-big-label{font-size:12px;color:var(--gris4);margin-top:3px;}
 .stats-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;}
 .stats-row:last-child{border-bottom:none;}
 .stats-row-label{color:var(--gris4);}
-.stats-row-val{font-weight:700;color:var(--blanco);font-family:'JetBrains Mono',monospace;}
+.stats-row-val{font-weight:700;color:var(--blanco);font-family:Consolas,monospace;}
 
 /* FILE DROP */
 .file-drop{border:2px dashed var(--gris5);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:8px;}
@@ -945,7 +945,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 <!-- PASSWORD -->
 <!-- SPLASH SCREEN -->
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
-  <div style="font-family:'JetBrains Mono',monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
+  <div style="font-family:Consolas,monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
   <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:48px;">TELEMAN2</div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
@@ -979,6 +979,11 @@ const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
 const REMOTAS_ID     = '1xIlHDuF8cGvBLY3TOxe5Rdf47y75FU_E-COHd3L5Dt8';
 const PLANTILLA_ID   = '1FLJRarCijwEsJM53xrqzotBSdXmHO-I7NDgySCfSPsM';
 const ZONAS_MIA = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
+// Exact match for zone detection
+function esMiZona(area) {
+  const a = (area||'').toUpperCase().trim();
+  return ZONAS_MIA.some(z => a === z);
+}
 const ZONA_CODES = {ZARAGOZA:'ZA',CALATAYUD:'CA',TERUEL:'TE',ALCAÑIZ:'AL',SORIA:'SO',MONZÓN:'MO',HUESCA:'HU',JACA:'JA',ALAGÓN:'AG',NOROESTE:'NO'};
 
 const BAREMOS_DEFAULT = []; // Loaded from Drive
@@ -1516,14 +1521,14 @@ function renderBaremosOptions() {
   let html = '<div style="font-size:10px;font-weight:700;color:var(--rojo);letter-spacing:1px;padding:4px 0 6px;">⭐ HABITUALES</div>';
   favs.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
+      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
   html += '<div style="font-size:10px;font-weight:700;color:var(--gris3);letter-spacing:1px;padding:8px 0 6px;border-top:1px solid var(--gris5);margin-top:4px;">TODOS</div>';
   rest.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
+      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
@@ -1597,7 +1602,7 @@ function renderMaterialesOptions() {
     const cod = m.cod||m;
     const desc = m.desc||'';
     html += `<div class="picker-item" onclick="selMaterialPicker(${i})">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:13px;">${desc}</span>
     </div>`;
   });
@@ -2007,8 +2012,8 @@ function renderCentros(f='') {
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="empty-t">SIN INSTALACIONES</div><div class="empty-s">Importa tu Excel desde Ajustes</div></div>`;return;}
 
   // Group by zone — mine first
-  const misCentros=list.filter(c=>ZONAS_MIA.some(z=>(c.Area||'').toUpperCase().includes(z)));
-  const norteCentros=list.filter(c=>!ZONAS_MIA.some(z=>(c.Area||'').toUpperCase().includes(z)));
+  const misCentros=list.filter(c=>esMiZona(c.Area));
+  const norteCentros=list.filter(c=>!esMiZona(c.Area));
 
   if(!f) {
     // Grouped by zone
@@ -2211,7 +2216,7 @@ function renderMaterilesConfig() {
   el.innerHTML = S.materiales.map((m,i) => {
     const cod = m.cod||m; const desc = m.desc||'';
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:Consolas,monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:12px;">${desc}</span>
       <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeMaterialConfig(${i})">×</button>
     </div>`;
@@ -2247,7 +2252,7 @@ function removeMaterialConfig(i) {
 function renderBaremosEditList() {
   document.getElementById('baremosEditList').innerHTML=S.baremos.map((b,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
-      <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--rojo);min-width:55px;">${b.cod}</span>
+      <span style="font-family:Consolas;font-size:12px;color:var(--rojo);min-width:55px;">${b.cod}</span>
       <span style="flex:1;font-size:11px;">${b.desc}</span>
       <input type="number" value="${b.pts}" step="0.01" style="width:60px;background:var(--gris7);border:1px solid var(--gris5);border-radius:4px;padding:4px;font-size:12px;text-align:right;text-transform:none;" onchange="updateBaremoPts(${i},this.value)">
       <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px;" onclick="removeBaremoConfig(${i})">×</button>
@@ -2779,7 +2784,7 @@ function updateBorradorBadge() {
 function checkAlertasInicio() {
   if(!S.centros.length) return;
   const viejas=S.centros.filter(c=>{
-    if(!ZONAS_MIA.some(z=>(c.Area||'').toUpperCase().includes(z))) return false;
+    if(!esMiZona(c.Area)) return false;
     const d=parseFecha(c.Fechasus);
     return d&&(Date.now()-d)/(1000*60*60*24*365)>5;
   });
