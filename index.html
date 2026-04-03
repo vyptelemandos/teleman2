@@ -668,9 +668,12 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
     <div class="div"></div>
-    <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:12px;">
+    <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:8px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
       Sincronizar todo desde Drive
+    </button>
+    <button class="btn btn-gray" onclick="resetearDatosLocales()" style="margin-bottom:12px;color:var(--rojo);">
+      🗑 Borrar datos locales y reiniciar
     </button>
     <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--gris4);">Teleman2 v2.0</div>
 
@@ -2380,6 +2383,25 @@ async function leerRemotasDrive() {
 
 // escribirIntervDrive = alias of guardarEnSheets
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
+
+function resetearDatosLocales() {
+  const keys = ['t2-iv','t2-ct','t2-bo','t2-bar','t2-fr','t2-mat','t2-tec','t2-modelos','t2-config-ts'];
+  keys.forEach(k => localStorage.removeItem(k));
+  // Reset state
+  S.intervenciones = [];
+  S.centros = [];
+  S.borradores = {};
+  S.baremos = [];
+  S.frases = [];
+  S.materiales = [];
+  // Re-render everything empty
+  renderStats();
+  renderRecent();
+  renderBorradoresInicio();
+  renderBaremosOptions();
+  renderMaterialesOptions();
+  toast('DATOS LOCALES BORRADOS. SINCRONIZA CON DRIVE.','ok');
+}
 
 async function sincronizarTodo() {
   if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
