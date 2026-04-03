@@ -1362,7 +1362,7 @@ function checkPwd() {
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
       document.getElementById('scrollArea').scrollTop=0;
-      setTimeout(()=>{ renderMaterilesConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); loadConfig(); },50);
+      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); loadConfig(); },50);
     } else if(S.pwdTarget==='stats') {
       renderStatsPage();
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1850,7 +1850,7 @@ function switchTab(tab) {
     statsContent.style.display='none'; cfgContent.style.display='block';
     tabCfg.style.background='var(--rojo)'; tabCfg.style.color='white';
     tabStats.style.background='transparent'; tabStats.style.color='var(--gris4)';
-    setTimeout(()=>{ renderMaterilesConfig(); renderBaremosEditList(); renderFrasesConfig(); loadConfig(); },50);
+    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); loadConfig(); },50);
   }
 }
 
@@ -2137,6 +2137,40 @@ function renderStatsPage() {
 // ═══════════════════════════════════════════════════
 //  BAREMOS CONFIG
 // ═══════════════════════════════════════════════════
+function renderTecnicosConfig() {
+  const el = document.getElementById('tecnicosConfig');
+  if(!el) return;
+  const tecnicos = getLS('t2-tec') || ['FRAN TALAVERA','SAMUEL ACERO','ALBERTO ANDRÉS'];
+  if(!tecnicos.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin técnicos configurados.</p>'; return; }
+  el.innerHTML = tecnicos.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
+      <span style="flex:1;font-size:13px;font-weight:500;">${t}</span>
+      <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeTecnicoConfig(${i})">×</button>
+    </div>`).join('');
+}
+
+function addTecnicoConfig() {
+  const nombre = document.getElementById('newTecNombre').value.trim().toUpperCase();
+  if(!nombre) { toast('INTRODUCE EL NOMBRE','err'); return; }
+  const tecnicos = getLS('t2-tec') || ['FRAN TALAVERA','SAMUEL ACERO','ALBERTO ANDRÉS'];
+  if(tecnicos.includes(nombre)) { toast('YA EXISTE ESE TÉCNICO','warn'); return; }
+  tecnicos.push(nombre);
+  setLS('t2-tec', tecnicos);
+  document.getElementById('newTecNombre').value = '';
+  renderTecnicosConfig();
+  actualizarSelectTecnicos(tecnicos);
+  writeConfigValue('Tecnicos', nombre);
+  toast('TÉCNICO AÑADIDO ✓','ok');
+}
+
+function removeTecnicoConfig(i) {
+  const tecnicos = getLS('t2-tec') || [];
+  tecnicos.splice(i, 1);
+  setLS('t2-tec', tecnicos);
+  renderTecnicosConfig();
+  actualizarSelectTecnicos(tecnicos);
+}
+
 function renderMaterilesConfig() {
   const el = document.getElementById('materialesConfig');
   if(!el) return; // Ajustes not visible yet, skip
