@@ -2354,8 +2354,9 @@ async function leerHistorialDrive() {
   try {
     const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1:BC1`,'GET');
     const headers = hRes?.values?.[0] || [];
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BC10000`,'GET');
-    if(!res?.values) return false;
+    // Read in batches to avoid timeout - first 3000 rows columns A-S
+    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S3500`,'GET');
+    if(!res?.values) { console.error('No values from historial'); return false; }
     const get = (row,...names) => {
       for(const n of names) {
         const idx = headers.findIndex(h=>(h||'').toUpperCase()===n.toUpperCase());
@@ -2424,11 +2425,21 @@ async function sincronizarTodo() {
 
   toast('CARGANDO HISTORIAL...','warn');
   const okH = await leerHistorialDrive();
-  if(okH) renderHistorial();
+  if(okH) {
+    renderHistorial();
+    renderStats();
+    renderRecent();
+    document.getElementById('histSub').textContent = `${S.intervenciones.length} INTERVENCIONES`;
+  }
 
   toast('CARGANDO INSTALACIONES...','warn');
   const okR = await leerRemotasDrive();
-  if(okR) { renderCentros(); checkAlertasInicio(); }
+  if(okR) {
+    renderCentros();
+    filtrarCentros();
+    checkAlertasInicio();
+    document.getElementById('centrosSub').textContent = `${S.centros.length} INSTALACIONES`;
+  }
 
   if(okH && okR) toast('SINCRONIZACIÓN COMPLETADA ✓','ok');
   else if(!okH) toast('ERROR CARGANDO HISTORIAL','err');
