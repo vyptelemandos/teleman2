@@ -1222,18 +1222,12 @@ function runSplash() {
           }
         });
         window._oauthClient = client;
-        // Try silent first
-        client.requestAccessToken({prompt: 'none'});
-        // Show connect button after 2 seconds if still not connected
-        setTimeout(() => {
-          if(!S.auth) {
-            setProgress(25, 'TOCA PARA CONECTAR CON GOOGLE');
-            document.getElementById('splashConnectBtn').style.display = 'block';
-          }
-        }, 2000);
+        // Show button immediately
+        setProgress(25, 'TOCA PARA CONECTAR');
+        document.getElementById('splashConnectBtn').style.display = 'block';
       } catch(e) {
         console.error('Auth error:', e);
-        setProgress(25, 'TOCA PARA CONECTAR CON GOOGLE');
+        setProgress(25, 'TOCA PARA CONECTAR');
         document.getElementById('splashConnectBtn').style.display = 'block';
       }
     };
