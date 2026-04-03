@@ -1591,12 +1591,12 @@ function renderMaterialesOptions() {
     el.innerHTML='<p style="font-size:12px;color:var(--gris4);padding:8px 0;">Sin materiales. Sincroniza desde Drive.</p>';
     return;
   }
-  el.innerHTML = S.materiales.map(m => {
+  el.innerHTML = S.materiales.map((m,i) => {
     const cod = m.cod || m;
     const desc = m.desc || '';
-    return `<div class="picker-item" onclick="selMaterialPicker(${JSON.stringify({cod,desc})})">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
-      <span style="flex:1;font-size:13px;">${desc}</span>
+    return `<div class="picker-item" data-idx="${i}" onclick="selMaterialPicker(${i})">
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;flex-shrink:0;">${cod}</span>
+      <span style="flex:1;font-size:12px;padding-left:8px;">${desc}</span>
     </div>`;
   }).join('');
 }
@@ -1608,10 +1608,10 @@ function showMatManual() {
   document.getElementById('matManualDesc').focus();
 }
 
-function selMaterialPicker(mat) {
+function selMaterialPicker(idx) {
   document.querySelectorAll('#matPickerList .picker-item').forEach(el=>el.classList.remove('picker-selected'));
-  event.currentTarget.classList.add('picker-selected');
-  S._selectedMaterial = mat;
+  document.querySelector(`#matPickerList [data-idx="${idx}"]`)?.classList.add('picker-selected');
+  S._selectedMaterial = S.materiales[idx];
   document.getElementById('matManualWrap').style.display='none';
   document.getElementById('matQtyWrap').style.display='block';
   document.getElementById('matAddBtnWrap').style.display='block';
