@@ -1146,35 +1146,82 @@ function runSplash() {
   const bar = document.getElementById('splashBar');
   const msg = document.getElementById('splashMsg');
   if(!splash) return;
-  const doSplash = async () => {
-    const setProgress = (pct, txt) => {
-      bar.style.width = pct + '%';
-      msg.textContent = txt;
-    };
-    setProgress(10, 'CARGANDO DATOS LOCALES...');
-    await new Promise(r=>setTimeout(r,300));
-    setProgress(30, 'LEYENDO HISTORIAL...');
-    await new Promise(r=>setTimeout(r,300));
-    setProgress(55, 'CARGANDO INSTALACIONES...');
-    await new Promise(r=>setTimeout(r,300));
-    if(S.auth) {
-      setProgress(65, 'SINCRONIZANDO CONFIGURACIÓN...');
-      await sincronizarConfig();
-      setProgress(78, 'CARGANDO HISTORIAL...');
-      await leerHistorialDrive();
-      setProgress(90, 'CARGANDO INSTALACIONES...');
-      await leerRemotasDrive();
-      await new Promise(r=>setTimeout(r,200));
-    } else {
-      setProgress(70, 'SIN CONEXIÓN — USANDO DATOS LOCALES');
-      await new Promise(r=>setTimeout(r,500));
-    }
-    setProgress(100, 'LISTO ✓');
-    await new Promise(r=>setTimeout(r,400));
-    splash.style.opacity = '0';
-    splash.style.transition = 'opacity 0.4s ease';
-    setTimeout(() => splash.style.display = 'none', 400);
+
+  const setProgress = (pct, txt) => {
+    bar.style.width = pct + '%';
+    msg.textContent = txt;
   };
+
+  const finishSplash = () => {
+    setProgress(100, 'LISTO ✓');
+    setTimeout(() => {
+      splash.style.opacity = '0';
+      splash.style.transition = 'opacity 0.4s ease';
+      setTimeout(() => splash.style.display = 'none', 400);
+    }, 400);
+  };
+
+  const syncAll = async () => {
+    setProgress(60, 'SINCRONIZANDO CONFIGURACIÓN...');
+    await sincronizarConfig();
+    setProgress(75, 'CARGANDO HISTORIAL...');
+    await leerHistorialDrive();
+    setProgress(90, 'CARGANDO INSTALACIONES...');
+    await leerRemotasDrive();
+    finishSplash();
+  };
+
+  const doSplash = async () => {
+    setProgress(10, 'INICIANDO...');
+    await new Promise(r=>setTimeout(r,200));
+
+    const cfg = getLS('t2-cfg') || {};
+    if(!cfg.clientId) {
+      setProgress(50, 'CONFIGURA GOOGLE DRIVE EN MI ÁREA');
+      await new Promise(r=>setTimeout(r,1200));
+      finishSplash();
+      return;
+    }
+
+    setProgress(25, 'CONECTANDO CON GOOGLE...');
+
+    const connectAndSync = () => {
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: cfg.clientId,
+          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+          callback: async (resp) => {
+            if(resp.error) {
+              setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
+              await new Promise(r=>setTimeout(r,800));
+              finishSplash();
+              return;
+            }
+            S.auth = resp.access_token;
+            document.getElementById('syncDot').className = 'sync-dot ok';
+            document.getElementById('syncLabel').textContent = 'Drive ✓';
+            await syncAll();
+          }
+        });
+        // prompt:'none' tries silent auth first, falls back to popup if needed
+        client.requestAccessToken({prompt: 'none'});
+      } catch(e) {
+        console.error('Auth error:', e);
+        finishSplash();
+      }
+    };
+
+    if(window.google?.accounts?.oauth2) {
+      connectAndSync();
+    } else {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = connectAndSync;
+      s.onerror = () => { setProgress(40, 'ERROR CARGANDO GOOGLE'); finishSplash(); };
+      document.head.appendChild(s);
+    }
+  };
+
   setTimeout(doSplash, 300);
 }
 
