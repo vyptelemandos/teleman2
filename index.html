@@ -938,7 +938,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
-  <div id="splashMsg" style="font-size:12px;color:var(--gris3);letter-spacing:0.5px;">CARGANDO...</div>
+  <div id="splashMsg" style="font-size:12px;color:var(--gris3);letter-spacing:0.5px;margin-bottom:24px;">CARGANDO...</div>
+  <button id="splashConnectBtn" onclick="splashConnect()" style="display:none;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px 32px;font-family:'Inter',sans-serif;font-weight:700;font-size:15px;cursor:pointer;width:220px;">
+    Conectar con Google
+  </button>
 </div>
 
 <div class="pwd-screen" id="pwdScreen">
@@ -1142,6 +1145,14 @@ async function deleteConfigValue(sheet, value) {
   );
 }
 
+function splashConnect() {
+  if(window._oauthClient) {
+    document.getElementById('splashConnectBtn').style.display = 'none';
+    document.getElementById('splashMsg').textContent = 'CONECTANDO...';
+    window._oauthClient.requestAccessToken({prompt: ''});
+  }
+}
+
 function runSplash() {
   const splash = document.getElementById('splashScreen');
   const bar = document.getElementById('splashBar');
@@ -1186,12 +1197,18 @@ function runSplash() {
 
     setProgress(25, 'CONECTANDO CON GOOGLE...');
 
+    // Store client for button use
+    window._splashCfg = cfg;
+    window._syncAll = syncAll;
+    window._finishSplash = finishSplash;
+
     const connectAndSync = () => {
       try {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: cfg.clientId,
           scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
           callback: async (resp) => {
+            document.getElementById('splashConnectBtn').style.display = 'none';
             if(resp.error) {
               setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
               await new Promise(r=>setTimeout(r,800));
@@ -1204,11 +1221,20 @@ function runSplash() {
             await syncAll();
           }
         });
-        // prompt:'none' tries silent auth first, falls back to popup if needed
+        window._oauthClient = client;
+        // Try silent first
         client.requestAccessToken({prompt: 'none'});
+        // Show connect button after 2 seconds if still not connected
+        setTimeout(() => {
+          if(!S.auth) {
+            setProgress(25, 'TOCA PARA CONECTAR CON GOOGLE');
+            document.getElementById('splashConnectBtn').style.display = 'block';
+          }
+        }, 2000);
       } catch(e) {
         console.error('Auth error:', e);
-        finishSplash();
+        setProgress(25, 'TOCA PARA CONECTAR CON GOOGLE');
+        document.getElementById('splashConnectBtn').style.display = 'block';
       }
     };
 
