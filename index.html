@@ -918,26 +918,65 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 
 <div class="overlay" id="modalNuevoCentro">
   <div class="modal"><div class="modal-handle"></div>
-    <div class="modal-head"><div class="modal-title">Nueva instalación</div><button class="modal-close" onclick="closeModal('modalNuevoCentro')">×</button></div>
+    <div class="modal-head"><div class="modal-title" id="ncModalTitle">Nueva instalación</div><button class="modal-close" onclick="closeModal('modalNuevoCentro')">×</button></div>
     <div class="modal-body">
       <div class="fr2">
         <div class="fg"><label class="fl">Nº Centro *</label><input class="fi" id="nc-nombre" type="text" placeholder="Z99999"></div>
-        <div class="fg"><label class="fl">Tipo</label><select class="fs" id="nc-tipo"><option>CD</option><option>AÉREO</option></select></div>
+        <div class="fg"><label class="fl">Tipo</label><select class="fs" id="nc-tipo"><option>CD</option><option>DMU</option></select></div>
       </div>
       <div class="fg"><label class="fl">Alias *</label><input class="fi" id="nc-alias" type="text" placeholder="NOMBRE DEL CENTRO"></div>
       <div class="fr2">
-        <div class="fg"><label class="fl">Área/Zona</label><select class="fs" id="nc-area"><option value="">--</option><option>ZARAGOZA</option><option>CALATAYUD</option><option>TERUEL</option><option>ALCAÑIZ</option><option>SORIA</option></select></div>
+        <div class="fg"><label class="fl">Área/Zona</label>
+          <select class="fs" id="nc-area"><option value="">--</option><option>Zaragoza</option><option>Calatayud</option><option>Teruel</option><option>Alcañiz</option><option>Soria</option><option>Alagón</option><option>Monzón</option><option>Huesca</option><option>Noroeste</option><option>AAESA</option></select>
+        </div>
         <div class="fg"><label class="fl">Municipio</label><input class="fi" id="nc-municipio" type="text" placeholder="MUNICIPIO"></div>
       </div>
       <div class="fg"><label class="fl">Dirección</label><input class="fi" id="nc-dir" type="text" placeholder="DIRECCIÓN"></div>
-      <div class="fg"><label class="fl">Coordenadas (lat, lng)</label><input class="fi" id="nc-coord" type="text" placeholder="41.6488, -0.8891" style="text-transform:none;"></div>
-      <div class="fr2">
-        <div class="fg"><label class="fl">RTU Marca</label><input class="fi" id="nc-rtumarca" type="text" placeholder="SEMI"></div>
-        <div class="fg"><label class="fl">RTU Modelo</label><input class="fi" id="nc-rtumod" type="text" placeholder="SETIS..."></div>
+      <div class="fg"><label class="fl">Ubicación</label>
+        <select class="fs" id="nc-ubicacion"><option value="">--</option><option>PUERTA</option><option>SUB. ORMAZABAL</option><option>SUBTERRANEO</option><option>Torre</option></select>
       </div>
-      <div class="fg"><label class="fl">Baterías (modelo)</label><input class="fi" id="nc-bat" type="text" placeholder="LVL18-12 (12V 18Ah)"></div>
-      <div class="fg"><label class="fl">Tipo baterías</label><input class="fi" id="nc-battipo" type="text" placeholder="TIPO B (4 X 18 AH)"></div>
-      <button class="btn btn-red" onclick="altaCentro()">Dar de alta</button>
+      <div class="fg"><label class="fl">Coordenadas GPS</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="fi" id="nc-coord" type="text" placeholder="41.6488, -0.8891" style="text-transform:none;flex:1;">
+          <button class="btn btn-dark btn-sm" style="flex-shrink:0;" onclick="obtenerGPS('nc-coord')">📍 GPS</button>
+          <button class="btn btn-gray btn-sm" style="flex-shrink:0;" onclick="abrirMapsCoord('nc-coord')">🗺</button>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Vía comunicación</label>
+        <select class="fs" id="nc-viacom"><option value="">--</option><option>101 CABLE</option><option>101 DMR</option><option>101 GPRS</option><option>101 PaP</option><option>101 RMO</option><option>101 VSAT</option><option>104 BGAN</option><option>104 DMR</option><option>104 GPRS</option><option>104 PLC</option><option>104 PaP</option><option>104 VSAT</option><option>DATOS RTU</option><option>TRAME</option></select>
+      </div>
+      <div class="fg"><label class="fl">COMADRESS</label><input class="fi" id="nc-comadress" type="text" placeholder="COMADRESS" style="text-transform:none;"></div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">RTU Marca</label>
+          <select class="fs" id="nc-rtumarca"><option value="">--</option><option>SEMI</option><option>COL GIOVANNI</option><option>SCHNEIDER</option><option>DUCATI (METRELEC)</option><option>IGRID</option><option>TELVENT</option><option>ADVANCED DEVICES</option><option>ABB</option><option>INAEL</option><option>MESA-SCHNEIDER</option><option>DUCATI</option><option>SELTA</option><option>FARELL I.</option><option>GEPCE</option></select>
+        </div>
+        <div class="fg"><label class="fl">RTU Modelo</label>
+          <select class="fs" id="nc-rtumod"><option value="">--</option><option>SETIS CPU.48.IM.48 v4</option><option>SETIS I24MD4 v2</option><option>UP INDOOR 2015 UE8</option><option>UP INDOOR 2012 UE8</option><option>UP OUTDOOR 2015</option><option>UP INDOOR 2020</option><option>T200P</option><option>iRTU</option><option>IRTUCOMPACT</option><option>CPT</option><option>SAITEL 2000DP</option></select>
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Controlador Marca</label>
+          <select class="fs" id="nc-ctrlmarca"><option value="">--</option><option>ORMAZABAL</option><option>SCHNEIDER</option><option>COL GIOVANNI</option><option>DUCATI</option><option>MESA</option><option>INAEL</option><option>RGDAT</option><option>TESMEC</option><option>THYTRONIC</option><option>General Electric</option><option>NO PROCEDE</option></select>
+        </div>
+        <div class="fg"><label class="fl">Controlador Modelo</label>
+          <select class="fs" id="nc-ctrlmod"><option value="">--</option><option>Ekor RCI</option><option>T200I</option><option>RGDAT GSTP001 INDOOR</option><option>RGDAT GSTP001-INDOOR</option><option>CCP1</option><option>CCT</option><option>NO PROCEDE</option></select>
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label class="fl">Bat. Marca</label>
+          <select class="fs" id="nc-batmarca"><option value="">--</option><option>LIVEN</option><option>YUASA</option><option>FIAMM</option><option>LEOCH</option><option>ENERBAT</option><option>CEGASA</option><option>FAAM</option><option>KAISE</option><option>HEYCAR</option><option>FIRST POWER</option><option>EMISA</option></select>
+        </div>
+        <div class="fg"><label class="fl">Bat. Tipo</label>
+          <select class="fs" id="nc-battipo"><option value="">--</option><option>TIPO A (4 X 12 AH)</option><option>TIPO B (4 X 18 AH)</option><option>TIPO C (1 X 24 AH)</option><option>TIPO D (1 X 40 AH)</option><option>TIPO E (2 X 24 AH)</option><option>SB</option><option>E125 (125 V)</option></select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Bat. Modelo</label><input class="fi" id="nc-batmod" type="text" placeholder="Ej: LVL18-12"></div>
+      <div class="fg"><label class="fl">Fecha sustitución baterías</label><input class="fi" id="nc-fechasus" type="date" style="text-transform:none;"></div>
+      <div class="fg"><label class="fl">Rectificador Marca</label>
+        <select class="fs" id="nc-recmarca"><option value="">--</option><option>ORMAZABAL</option><option>COL GIOVANNI</option><option>DUCATI (METRELEC)</option><option>INAEL</option><option>ADVANCED DEVICES</option><option>BENNING</option><option>INGETEAM</option><option>EMISA</option><option>AEG POWER SYSTEM</option></select>
+      </div>
+      <div class="fg"><label class="fl">Comentario</label><textarea class="ft" id="nc-comentario" style="min-height:56px;" oninput="toUpper(this)"></textarea></div>
+      <button class="btn btn-red" onclick="altaCentro()">Guardar instalación</button>
     </div>
   </div>
 </div>
@@ -2053,53 +2092,111 @@ function showCentro(nombre) {
   const batDate=parseFecha(c.Fechasus);
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
   const anosStr=batDate?`${Math.floor((Date.now()-batDate)/(1000*60*60*24*365))} años`:'';
-  const rows=[
-    ['ALIAS',c.Alias],['ÁREA',c.Area],['MUNICIPIO',c.Municipio],
-    ['DIRECCIÓN',c.Direccion],['TIPO',c.Tipo],['VÍA COM.',c.Via_Com],
-    ['RTU MARCA',c.RTU_marca],['RTU MODELO',c.RTU_Mod],
-    ['CONTROLADOR',`${c.Controlador_Marca||''} ${c.Controlador_Modelo||''}`.trim()],
-    ['BATERÍAS',`${c.Bat_Marca||''} ${c.Bat_Modelo||''}`.trim()],
-    ['TIPO BATERÍAS',c.Bat_Tipo],
-    ['FECHA BAT.',batDate?`${new Date(batDate).toLocaleDateString('es-ES')} (${anosStr})`:'—'],
-    ['RECTIFICADOR',c.Rec_Marca],['COMADRESS',c.COMADRESS],
-    ['COMENTARIO',c.Comentario],
-  ];
-  let html=rows.filter(([,v])=>v).map(([l,v])=>`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v}</div></div>`).join('');
-  if(c.Coord) html+=`<div class="dr"><div class="dr-l">COORDENADAS</div><div class="dr-v"><a href="https://maps.google.com/?q=${c.Coord}" target="_blank" style="color:var(--rojo);">Abrir en Maps 📍</a></div></div>`;
+  const dr=(l,v)=>v?`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v}</div></div>`:'';
+  let html='';
+  html+=dr('ALIAS',c.Alias);
+  html+=dr('ÁREA',c.Area);
+  html+=dr('TIPO',c.Tipo);
+  html+=dr('MUNICIPIO',c.Municipio);
+  html+=dr('DIRECCIÓN',c.Direccion);
+  html+=dr('UBICACIÓN',c['Ubicación']);
+  if(c.Coord) html+=`<div class="dr"><div class="dr-l">GPS</div><div class="dr-v"><a href="https://maps.google.com/?q=${c.Coord}" target="_blank" style="color:var(--rojo);">📍 Abrir en Maps</a></div></div>`;
+  html+=dr('VÍA COM.',c.Via_Com);
+  html+=dr('COMADRESS',c.COMADRESS);
+  html+=`<div class="div"></div>`;
+  html+=dr('RTU MARCA',c.RTU_marca);
+  html+=dr('RTU MODELO',c.RTU_Mod);
+  html+=dr('CONTROLADOR',`${c.Controlador_Marca||''} ${c.Controlador_Modelo||''}`.trim());
+  html+=`<div class="div"></div>`;
+  html+=dr('BAT. MARCA',c.Bat_Marca);
+  html+=dr('BAT. MODELO',c.Bat_Modelo);
+  html+=dr('BAT. TIPO',c.Bat_Tipo);
+  html+=dr('FECHA BAT.',batDate?`${new Date(batDate).toLocaleDateString('es-ES')} (${anosStr})`:'');
+  html+=dr('RECTIFICADOR',c.Rec_Marca);
+  html+=dr('COMENTARIO',c.Comentario);
   if(batViej) html+=`<div class="alert alert-warn" style="margin-top:10px;">🔋 Baterías con ${anosStr}. Valorar sustitución.<br><button class="btn btn-red btn-sm" style="margin-top:8px;width:auto;" onclick="actualizarFechaBateria('${nombre}')">Actualizar fecha batería</button></div>`;
-  html+=`<div class="div"></div><button class="btn btn-dark" onclick="editarCentro('${nombre}')">✏️ Editar datos</button>`;
+  html+=`<div class="div"></div>`;
+  html+=`<button class="btn btn-dark" onclick="editarCentro('${nombre}')">✏️ Editar datos</button>`;
   document.getElementById('mCentroBody').innerHTML=html;
   openModal('modalCentro');
 }
 
 function actualizarFechaBateria(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
-  c.Fechasus=new Date().toISOString();
+  c.Fechasus = new Date().toISOString().slice(0,10);
   setLS('t2-ct',S.centros);
-  if(S.auth&&S.sheetId) toast('FECHA BATERÍA ACTUALIZADA EN BBDD','ok');
-  else toast('FECHA BATERÍA ACTUALIZADA LOCALMENTE','ok');
+  if(S.auth) {
+    escribirCentroEnDrive(c, true);
+    toast('FECHA BATERÍA ACTUALIZADA EN DRIVE ✓','ok');
+  } else {
+    toast('FECHA BATERÍA ACTUALIZADA LOCALMENTE','ok');
+  }
   closeModal('modalCentro');
+}
+
+async function escribirCentroEnDrive(c, esEdicion) {
+  if(!S.auth) return;
+  try {
+    if(esEdicion) {
+      // Find row with this centro name
+      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!B:B`,'GET');
+      if(!res?.values) return;
+      const rowIdx = res.values.findIndex(r=>r[0]===c.Nombre);
+      if(rowIdx<0) return;
+      const row = rowIdx+1;
+      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
+    } else {
+      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
+    }
+  } catch(e) { console.error('Error escribiendo centro en Drive:', e); }
 }
 
 function editarCentro(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
-  sv('nc-nombre',c.Nombre||''); sv('nc-alias',c.Alias||''); sv('nc-area',c.Area||'');
-  sv('nc-municipio',c.Municipio||''); sv('nc-dir',c.Direccion||''); sv('nc-coord',c.Coord||'');
+  sv('nc-nombre',c.Nombre||''); sv('nc-alias',c.Alias||'');
+  sv('nc-area',c.Area||''); sv('nc-municipio',c.Municipio||'');
+  sv('nc-dir',c.Direccion||''); sv('nc-coord',c.Coord||'');
+  sv('nc-ubicacion',c.Ubicación||''); sv('nc-viacom',c.Via_Com||'');
+  sv('nc-comadress',c.COMADRESS||'');
   sv('nc-rtumarca',c.RTU_marca||''); sv('nc-rtumod',c.RTU_Mod||'');
-  sv('nc-bat',c.Bat_Modelo||''); sv('nc-battipo',c.Bat_Tipo||'');
+  sv('nc-ctrlmarca',c.Controlador_Marca||''); sv('nc-ctrlmod',c.Controlador_Modelo||'');
+  sv('nc-batmarca',c.Bat_Marca||''); sv('nc-batmod',c.Bat_Modelo||'');
+  sv('nc-battipo',c.Bat_Tipo||''); sv('nc-recmarca',c.Rec_Marca||'');
+  sv('nc-comentario',c.Comentario||'');
+  if(c.Fechasus) {
+    const d = parseFecha(c.Fechasus);
+    if(d) document.getElementById('nc-fechasus').value = new Date(d).toISOString().slice(0,10);
+  }
+  const t = document.getElementById('nc-tipo'); if(t) t.value=c.Tipo||'CD';
+  const ncTitle = document.getElementById('ncModalTitle');
+  if(ncTitle) ncTitle.textContent = 'Editar: '+nombre;
   closeModal('modalCentro');
   openModal('modalNuevoCentro');
 }
 
 function altaCentro() {
-  const nombre=vu('nc-nombre');
+  const nombre = vu('nc-nombre');
   if(!nombre){toast('NÚMERO DE CENTRO OBLIGATORIO','err');return;}
-  const idx=S.centros.findIndex(x=>String(x.Nombre||x.nombre||'')===nombre);
-  const c={Nombre:nombre,Alias:vu('nc-alias'),Tipo:v('nc-tipo'),Area:vu('nc-area'),Municipio:vu('nc-municipio'),Direccion:vu('nc-dir'),Coord:v('nc-coord'),RTU_marca:vu('nc-rtumarca'),RTU_Mod:vu('nc-rtumod'),Bat_Modelo:vu('nc-bat'),Bat_Tipo:vu('nc-battipo'),Fechasus:''};
+  const idx = S.centros.findIndex(x=>String(x.Nombre||x.nombre||'')===nombre);
+  const c = {
+    Nombre: nombre, Alias: vu('nc-alias'), Tipo: v('nc-tipo'),
+    Area: v('nc-area'), Municipio: vu('nc-municipio'),
+    Direccion: vu('nc-dir'), Coord: v('nc-coord'),
+    'Ubicación': v('nc-ubicacion'), Via_Com: v('nc-viacom'),
+    COMADRESS: v('nc-comadress'),
+    RTU_marca: v('nc-rtumarca'), RTU_Mod: v('nc-rtumod'),
+    Controlador_Marca: v('nc-ctrlmarca'), Controlador_Modelo: v('nc-ctrlmod'),
+    Bat_Marca: v('nc-batmarca'), Bat_Modelo: vu('nc-batmod'),
+    Bat_Tipo: v('nc-battipo'), Rec_Marca: v('nc-recmarca'),
+    Fechasus: v('nc-fechasus'), Comentario: vu('nc-comentario'),
+  };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
   setLS('t2-ct',S.centros);
+  if(S.auth) escribirCentroEnDrive(c, idx>=0);
   closeModal('modalNuevoCentro'); renderCentros();
-  toast(idx>=0?'CENTRO ACTUALIZADO':'CENTRO DADO DE ALTA','ok');
+  toast(idx>=0?'CENTRO ACTUALIZADO ✓':'CENTRO DADO DE ALTA ✓','ok');
 }
 
 function sincronizarCentros() {
