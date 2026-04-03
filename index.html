@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Teleman2">
 <link rel="manifest" href="manifest.json">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -1257,6 +1258,40 @@ try {
 window.onload = () => {
   // Run splash screen
   runSplash();
+  // Auto-connect Drive immediately
+  const cfg = getLS('t2-cfg') || {};
+  if(cfg.clientId) {
+    const tryAuth = () => {
+      if(window.google?.accounts?.oauth2) {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: cfg.clientId,
+          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+          callback: async (resp) => {
+            if(!resp.error) {
+              S.auth = resp.access_token;
+              document.getElementById('syncDot').className = 'sync-dot ok';
+              document.getElementById('syncLabel').textContent = 'Drive ✓';
+              document.getElementById('splashMsg').textContent = 'SINCRONIZANDO...';
+              document.getElementById('splashBar').style.width = '60%';
+              await sincronizarConfig();
+              document.getElementById('splashBar').style.width = '75%';
+              document.getElementById('splashMsg').textContent = 'CARGANDO HISTORIAL...';
+              await leerHistorialDrive();
+              document.getElementById('splashBar').style.width = '90%';
+              document.getElementById('splashMsg').textContent = 'CARGANDO INSTALACIONES...';
+              await leerRemotasDrive();
+              document.getElementById('splashBar').style.width = '100%';
+              document.getElementById('splashMsg').textContent = 'LISTO ✓';
+            }
+          }
+        });
+        client.requestAccessToken();
+      } else {
+        setTimeout(tryAuth, 200);
+      }
+    };
+    setTimeout(tryAuth, 500);
+  }
   S.intervenciones = getLS('t2-iv') || [];
   S.centros = getLS('t2-ct') || [];
   S.planificacion = getLS('t2-pl') || [];
