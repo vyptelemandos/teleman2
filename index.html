@@ -2414,18 +2414,25 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 async function sincronizarTodo() {
   if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
-  toast('SINCRONIZANDO DESDE DRIVE...','warn');
-  const ok = await sincronizarConfig();
-  if(ok) {
-    renderMaterialesOptions();
-    renderBaremosOptions();
-    renderMaterilesConfig();
-    renderBaremosEditList();
-    renderFrasesConfig();
-    toast('SINCRONIZACIÓN COMPLETADA ✓','ok');
-  } else {
-    toast('ERROR AL SINCRONIZAR','err');
-  }
+  toast('SINCRONIZANDO CONFIGURACIÓN...','warn');
+  await sincronizarConfig();
+  renderMaterialesOptions();
+  renderBaremosOptions();
+  renderMaterilesConfig();
+  renderBaremosEditList();
+  renderFrasesConfig();
+
+  toast('CARGANDO HISTORIAL...','warn');
+  const okH = await leerHistorialDrive();
+  if(okH) renderHistorial();
+
+  toast('CARGANDO INSTALACIONES...','warn');
+  const okR = await leerRemotasDrive();
+  if(okR) { renderCentros(); checkAlertasInicio(); }
+
+  if(okH && okR) toast('SINCRONIZACIÓN COMPLETADA ✓','ok');
+  else if(!okH) toast('ERROR CARGANDO HISTORIAL','err');
+  else toast('ERROR CARGANDO INSTALACIONES','err');
 }
 
 async function gFetch(url,method,body) {
