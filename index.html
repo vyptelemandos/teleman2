@@ -1055,7 +1055,7 @@ async function sincronizarConfig() {
     // Baremos
     if(data.Baremos.length) {
       S.baremos = data.Baremos.map(r=>({
-        cod: r[0]||'', desc: r[1]||'', pts: parseFloat(r[2])||0, fav: (r[3]||'').toUpperCase()==='SI'
+        cod: r[0]||'', desc: r[1]||'', pts: parseFloat(String(r[2]||'0').replace(',','.'))||0, fav: (r[3]||'').toUpperCase()==='SI'
       })).filter(b=>b.cod);
       setLS('t2-bar', S.baremos);
       renderBaremosOptions();
