@@ -1044,9 +1044,12 @@ async function sincronizarConfig() {
       data[sheet] = res?.values || [];
     }
 
-    // Materiales
+    // Materiales - now has CODIGO + DESCRIPCION columns
     if(data.Materiales.length) {
-      S.materiales = data.Materiales.map(r=>r[0]).filter(Boolean);
+      S.materiales = data.Materiales.map(r=>({
+        cod: (r[0]||'').toUpperCase().trim(),
+        desc: (r[1]||'').toUpperCase().trim()
+      })).filter(m=>m.cod);
       setLS('t2-mat', S.materiales);
     }
 
@@ -1584,13 +1587,18 @@ function removeBaremo(i) { S.baremosActuales.splice(i,1); renderBaremosAdded(); 
 function renderMaterialesOptions() {
   const el = document.getElementById('matPickerList');
   if(!el) return;
-  let html = '';
-  S.materiales.forEach(m => {
-    html += `<div class="picker-item" onclick="selMaterialPicker(${JSON.stringify(m)})">
-      <span style="font-size:13px;">${m}</span>
+  if(!S.materiales.length) {
+    el.innerHTML='<p style="font-size:12px;color:var(--gris4);padding:8px 0;">Sin materiales. Sincroniza desde Drive.</p>';
+    return;
+  }
+  el.innerHTML = S.materiales.map(m => {
+    const cod = m.cod || m;
+    const desc = m.desc || '';
+    return `<div class="picker-item" onclick="selMaterialPicker(${JSON.stringify({cod,desc})})">
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="flex:1;font-size:13px;">${desc}</span>
     </div>`;
-  });
-  el.innerHTML = html || '<p style="font-size:12px;color:var(--gris4);padding:8px 0;">Sin materiales guardados</p>';
+  }).join('');
 }
 
 function showMatManual() {
@@ -1600,10 +1608,10 @@ function showMatManual() {
   document.getElementById('matManualDesc').focus();
 }
 
-function selMaterialPicker(desc) {
+function selMaterialPicker(mat) {
   document.querySelectorAll('#matPickerList .picker-item').forEach(el=>el.classList.remove('picker-selected'));
   event.currentTarget.classList.add('picker-selected');
-  S._selectedMaterial = desc;
+  S._selectedMaterial = mat;
   document.getElementById('matManualWrap').style.display='none';
   document.getElementById('matQtyWrap').style.display='block';
   document.getElementById('matAddBtnWrap').style.display='block';
@@ -1614,13 +1622,16 @@ function onSelMaterial(sel) {
 }
 
 function addMaterial() {
-  let desc = S._selectedMaterial || vu('matManualDesc');
-  if(!desc) { toast('SELECCIONA O INTRODUCE UN MATERIAL','err'); return; }
-  desc = desc.toUpperCase().trim();
-  if(!S.materiales.includes(desc)) {
-    S.materiales.push(desc); setLS('t2-mat',S.materiales); renderMaterialesOptions();
+  let mat = S._selectedMaterial;
+  let desc, cod;
+  if(mat && typeof mat === 'object') {
+    cod = mat.cod; desc = mat.desc;
+  } else {
+    const manual = vu('matManualDesc');
+    if(!manual) { toast('SELECCIONA O INTRODUCE UN MATERIAL','err'); return; }
+    cod = manual; desc = '';
   }
-  S.materialesActuales.push({desc, qty:S.qtys.matQty});
+  S.materialesActuales.push({cod, desc, qty:S.qtys.matQty});
   S.qtys.matQty=1; document.getElementById('matQtyVal').textContent='1';
   S._selectedMaterial=null; sv('matManualDesc','');
   document.getElementById('matManualWrap').style.display='none';
@@ -1636,7 +1647,10 @@ function renderMaterialesAdded() {
   if(!S.materialesActuales.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;padding:6px 0;">Sin materiales</p>'; return; }
   el.innerHTML = S.materialesActuales.map((m,i)=>`
     <div class="added-item">
-      <div><div class="added-info"><span>${m.desc}</span></div><div class="added-sub">CANTIDAD: ${m.qty}</div></div>
+      <div>
+        <div class="added-info"><span>${m.cod||m.desc}</span> × ${m.qty} UD</div>
+        ${m.desc?`<div class="added-sub">${m.desc}</div>`:''}
+      </div>
       <button class="added-rm" onclick="removeMaterial(${i})">×</button>
     </div>`).join('');
 }
@@ -2185,11 +2199,14 @@ function renderMaterilesConfig() {
   const el = document.getElementById('materialesConfig');
   if(!el) return; // Ajustes not visible yet, skip
   if(!S.materiales.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin materiales configurados.</p>'; return; }
-  el.innerHTML = S.materiales.map((m,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
-      <input type="text" value="${m}" style="flex:1;background:var(--gris7);border:1px solid var(--gris5);border-radius:4px;padding:6px 8px;font-size:12px;font-family:'Inter',sans-serif;" onchange="editMaterialConfig(${i},this.value)">
+  el.innerHTML = S.materiales.map((m,i) => {
+    const cod = m.cod||m; const desc = m.desc||'';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="flex:1;font-size:12px;">${desc}</span>
       <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeMaterialConfig(${i})">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function addMaterialConfig() {
