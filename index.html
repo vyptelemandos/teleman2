@@ -2352,37 +2352,35 @@ async function generarPDFDrive(d) {
 async function leerHistorialDrive() {
   if(!S.auth) return false;
   try {
-    const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1:BC1`,'GET');
-    const headers = hRes?.values?.[0] || [];
-    // Read in batches to avoid timeout - first 3000 rows columns A-S
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S3500`,'GET');
-    if(!res?.values) { console.error('No values from historial'); return false; }
-    const get = (row,...names) => {
-      for(const n of names) {
-        const idx = headers.findIndex(h=>(h||'').toUpperCase()===n.toUpperCase());
-        if(idx>=0&&row[idx]!==undefined&&row[idx]!=='') return String(row[idx]).toUpperCase().trim();
-      }
-      return '';
-    };
-    S.intervenciones = res.values.map((row,i)=>({
-      intId: get(row,'ID','id') || 'INT-'+String(i+1).padStart(5,'0'),
-      centro: get(row,'INSTALACIÓN','INSTALACION','CENTRO'),
-      fecha: get(row,'FECHA'),
-      alias: get(row,'ALIAS'),
-      zona: get(row,'ZONA'),
-      poblacion: get(row,'POBLACION'),
-      tec1: get(row,'TÉCNICO1','TECNICO1','TECNICOS'),
-      tec2: get(row,'TÉCNICO2','TECNICO2'),
-      resultado: get(row,'RESULTADO'),
-      vyp: get(row,'VYP'),
-      tdc: get(row,'TDC'),
-      modelo: get(row,'MARCA/MODELO','MARCA / MODELO'),
-      resolucion: get(row,'RESOLUCIÓN','RESOLUCION'),
-      baremos: get(row,'BAREMOS','UNIDADES'),
-      materiales: get(row,'MATERIALES'),
-      trace: get(row,'TRACE')==='SÍ',
-      vale: get(row,'VALE A1')==='SÍ',
-    }));
+    // Headers are fixed - no ID column, starts with INSTALACIÓN
+    // Columns: A=INSTALACIÓN B=FECHA C=TECNICOS D=ALIAS E=ZONA F=POBLACION
+    // G=RESULTADO H=COMENTARIO I=TELCO J=VYP K=TDC L=INCIDENCIA M=MOTIVO
+    // N=MANIOBRAS O=TIPO P=MARCA/MODELO Q=RESOLUCIÓN R=UNIDADES S=MATERIALES
+
+    // Read in two batches to avoid API limits
+    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S1500`,'GET');
+    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:S3100`,'GET');
+
+    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
+    if(!allRows.length) { console.error('No values from historial'); return false; }
+
+    S.intervenciones = allRows.map((row,i)=>({
+      intId: 'INT-'+String(i+1).padStart(5,'0'),
+      centro: (row[0]||'').toUpperCase().trim(),
+      fecha: parseDateStr(row[1]||''),
+      tec1: (row[2]||'').toUpperCase().trim(),
+      alias: (row[3]||'').toUpperCase().trim(),
+      zona: (row[4]||'').toUpperCase().trim(),
+      poblacion: (row[5]||'').toUpperCase().trim(),
+      resultado: (row[6]||'').toUpperCase().trim(),
+      vyp: (row[9]||'').toString().trim(),
+      tdc: (row[10]||'').toString().trim(),
+      modelo: (row[15]||'').toUpperCase().trim(),
+      resolucion: (row[16]||'').toUpperCase().trim(),
+      baremos: (row[17]||'').toUpperCase().trim(),
+      materiales: (row[18]||'').toUpperCase().trim(),
+    })).filter(iv=>iv.centro);
+
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
     return true;
