@@ -838,15 +838,16 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <div class="modal-body">
       <div class="fg">
         <label class="fl">Selecciona material</label>
-        <div id="matPickerList" style="max-height:280px;overflow-y:auto;margin-bottom:10px;"></div>
-        <button class="btn btn-gray btn-sm" onclick="showMatManual()">+ Introducir manualmente</button>
+        <div id="matPickerList" style="max-height:320px;overflow-y:auto;"></div>
       </div>
       <div class="fg" id="matManualWrap" style="display:none;">
-        <label class="fl">Material manual</label>
-        <input class="fi" id="matManualDesc" type="text" placeholder="DESCRIPCIÓN DEL MATERIAL">
+        <label class="fl">Código manual</label>
+        <input class="fi" id="matManualCod" type="text" placeholder="CÓDIGO...">
+        <label class="fl" style="margin-top:8px;">Descripción</label>
+        <input class="fi" id="matManualDesc" type="text" placeholder="DESCRIPCIÓN..." style="margin-top:4px;">
       </div>
       <div class="fg" id="matQtyWrap" style="display:none;">
-        <label class="fl">Cantidad</label>
+        <label class="fl">Unidades</label>
         <div class="qty-wrap">
           <button class="qty-btn" onclick="adjQty('matQty',-1)">−</button>
           <span class="qty-val" id="matQtyVal">1</span>
@@ -1591,30 +1592,38 @@ function renderMaterialesOptions() {
     el.innerHTML='<p style="font-size:12px;color:var(--gris4);padding:8px 0;">Sin materiales. Sincroniza desde Drive.</p>';
     return;
   }
-  el.innerHTML = S.materiales.map((m,i) => {
-    const cod = m.cod || m;
-    const desc = m.desc || '';
-    return `<div class="picker-item" data-idx="${i}" onclick="selMaterialPicker(${i})">
-      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;flex-shrink:0;">${cod}</span>
-      <span style="flex:1;font-size:12px;padding-left:8px;">${desc}</span>
+  let html = '';
+  S.materiales.forEach((m,i) => {
+    const cod = m.cod||m;
+    const desc = m.desc||'';
+    html += `<div class="picker-item" onclick="selMaterialPicker(${i})">
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="flex:1;font-size:13px;">${desc}</span>
     </div>`;
-  }).join('');
-}
-
-function showMatManual() {
-  document.getElementById('matManualWrap').style.display='block';
-  document.getElementById('matQtyWrap').style.display='block';
-  document.getElementById('matAddBtnWrap').style.display='block';
-  document.getElementById('matManualDesc').focus();
+  });
+  html += `<div class="picker-item" onclick="selMatManual()" style="color:var(--gris3);font-style:italic;">
+    <span style="flex:1;font-size:13px;">+ Introducir manualmente</span>
+  </div>`;
+  el.innerHTML = html;
 }
 
 function selMaterialPicker(idx) {
   document.querySelectorAll('#matPickerList .picker-item').forEach(el=>el.classList.remove('picker-selected'));
-  document.querySelector(`#matPickerList [data-idx="${idx}"]`)?.classList.add('picker-selected');
+  event.currentTarget.classList.add('picker-selected');
   S._selectedMaterial = S.materiales[idx];
   document.getElementById('matManualWrap').style.display='none';
   document.getElementById('matQtyWrap').style.display='block';
   document.getElementById('matAddBtnWrap').style.display='block';
+}
+
+function selMatManual() {
+  document.querySelectorAll('#matPickerList .picker-item').forEach(el=>el.classList.remove('picker-selected'));
+  event.currentTarget.classList.add('picker-selected');
+  S._selectedMaterial = null;
+  document.getElementById('matManualWrap').style.display='block';
+  document.getElementById('matQtyWrap').style.display='block';
+  document.getElementById('matAddBtnWrap').style.display='block';
+  document.getElementById('matManualCod').focus();
 }
 
 function onSelMaterial(sel) {
@@ -1625,15 +1634,15 @@ function addMaterial() {
   let mat = S._selectedMaterial;
   let desc, cod;
   if(mat && typeof mat === 'object') {
-    cod = mat.cod; desc = mat.desc;
+    cod = mat.cod||''; desc = mat.desc||'';
   } else {
-    const manual = vu('matManualDesc');
-    if(!manual) { toast('SELECCIONA O INTRODUCE UN MATERIAL','err'); return; }
-    cod = manual; desc = '';
+    cod = vu('matManualCod');
+    desc = vu('matManualDesc');
+    if(!cod) { toast('INTRODUCE AL MENOS UN CÓDIGO','err'); return; }
   }
   S.materialesActuales.push({cod, desc, qty:S.qtys.matQty});
   S.qtys.matQty=1; document.getElementById('matQtyVal').textContent='1';
-  S._selectedMaterial=null; sv('matManualDesc','');
+  S._selectedMaterial=null; sv('matManualCod',''); sv('matManualDesc','');
   document.getElementById('matManualWrap').style.display='none';
   document.getElementById('matQtyWrap').style.display='none';
   document.getElementById('matAddBtnWrap').style.display='none';
