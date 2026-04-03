@@ -2442,7 +2442,13 @@ async function gFetch(url,method,body) {
     const opts={method,headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'}};
     if(body&&method!=='GET') opts.body=JSON.stringify(body);
     const r=await fetch(url,opts);
-    return r.ok?r.json():null;
+    if(!r.ok) {
+      const errText = await r.text();
+      console.error('gFetch error', r.status, url, errText);
+      toast(`ERROR ${r.status}: ${errText.slice(0,80)}`,'err');
+      return null;
+    }
+    return r.json();
   } catch{return null;}
 }
 
