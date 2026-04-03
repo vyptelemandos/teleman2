@@ -2123,7 +2123,7 @@ function showCentro(nombre) {
 
 function actualizarFechaBateria(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
-  c.Fechasus = new Date().toISOString().slice(0,10);
+  c.Fechasus = hoy();
   setLS('t2-ct',S.centros);
   if(S.auth) {
     escribirCentroEnDrive(c, true);
@@ -2936,7 +2936,13 @@ function findCentro(nombre) {
 }
 
 function toUpper(el){el.value=el.value.toUpperCase();}
-function hoy(){return new Date().toISOString().split('T')[0];}
+function hoy(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
 function v(id){return document.getElementById(id)?.value||'';}
 function vu(id){return (document.getElementById(id)?.value||'').toUpperCase().trim();}
 function sv(id,val){const el=document.getElementById(id);if(el)el.value=val||'';}
