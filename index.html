@@ -523,7 +523,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar
         </button>
-        <button class="btn btn-red" style="flex:1;padding:14px;" onclick="generarInforme()">
+        <button class="btn btn-red" style="flex:1;padding:14px;" onclick="confirmarGenerar()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Generar PDF
         </button>
@@ -1860,6 +1860,31 @@ function removeFrase(i) {
 // ═══════════════════════════════════════════════════
 //  GENERAR INFORME
 // ═══════════════════════════════════════════════════
+function confirmarGenerar() {
+  const d = recogerFormulario();
+  if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+  const camposFaltan = validarInforme();
+  if(camposFaltan.length) { toast('FALTAN: '+camposFaltan.join(', '),'err'); return; }
+
+  // Show confirm modal
+  document.getElementById('mIntervTitle').textContent = 'Confirmar informe';
+  document.getElementById('mIntervBody').innerHTML = `
+    <div class="alert alert-warn" style="margin-bottom:12px;">⚠️ Esta acción guardará el informe en Drive y no se puede deshacer.</div>
+    <div class="dr"><div class="dr-l">CENTRO</div><div class="dr-v">${d.centro}</div></div>
+    <div class="dr"><div class="dr-l">FECHA</div><div class="dr-v">${d.fecha}</div></div>
+    <div class="dr"><div class="dr-l">TÉCNICO</div><div class="dr-v">${d.tec1}</div></div>
+    <div class="dr"><div class="dr-l">MOTIVO</div><div class="dr-v">${d.motivo||'—'}</div></div>
+    <div class="dr"><div class="dr-l">RESULTADO</div><div class="dr-v">${d.resultado||'—'}</div></div>
+    <div class="div"></div>
+    <button class="btn btn-red" onclick="closeModal('modalInterv');generarInforme();">
+      ✓ Confirmar y generar
+    </button>
+    <button class="btn btn-gray" style="margin-top:8px;" onclick="closeModal('modalInterv')">
+      Cancelar
+    </button>`;
+  openModal('modalInterv');
+}
+
 async function generarInforme() {
   const d = recogerFormulario();
   if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
@@ -1869,14 +1894,10 @@ async function generarInforme() {
     toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err');
     return;
   }
-  if(_confirmPending['informe']) {
-    clearTimeout(_confirmPending['informe'].timer);
-    delete _confirmPending['informe'];
-  } else {
-    toast('TOCA DE NUEVO PARA GENERAR EL INFORME', 'warn');
-    _confirmPending['informe'] = { timer: setTimeout(() => delete _confirmPending['informe'], 3000) };
-    return;
-  }
+  // Block if already generating
+  if(window._generando) { toast('ESPERA, GENERANDO...','warn'); return; }
+  window._generando = true;
+  setTimeout(()=>window._generando=false, 10000); // safety timeout
 
   // ID secuencial
   const nextN = S.intervenciones.reduce((max,iv)=>{
@@ -1907,6 +1928,7 @@ async function generarInforme() {
 
   // Materials come from Drive config - don't auto-add here
 
+  window._generando = false;
   nuevoInforme();
 }
 
@@ -2694,10 +2716,18 @@ async function guardarEnSheets(d) {
   //          BAREMO1_COD-UD-DESC ... BAREMO6_COD-UD-DESC
   //          MAT1_COD-UD-DESC ... MAT6_COD-UD-DESC
 
+  // Format date as DD/MM/YYYY for Excel
+  const fmtDateExcel = (f) => {
+    if(!f) return '';
+    const parts = f.split('-');
+    if(parts.length===3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return f;
+  };
+
   const row = [
     d.intId||'',                    // A - ID
     d.centro||'',                   // B - INSTALACIÓN
-    d.fecha||'',                    // C - FECHA
+    fmtDateExcel(d.fecha),          // C - FECHA
     d.tec1||'',                     // D - TECNICO 1
     d.tec2||'',                     // E - TECNICO 2
     d.alias||'',                    // F - ALIAS
@@ -2741,7 +2771,36 @@ async function subirHistorial() {
   toast(`${rows.length} INTERVENCIONES SUBIDAS A DRIVE ✓`,'ok');
 }
 
-async function enviarPendientes() { toast('CONFIGURA GOOGLE APPS SCRIPT PRIMERO','warn'); }
+async function enviarPendientes() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  // Find all interventions with driveFileId (pending)
+  const pendientes = S.intervenciones.filter(iv => iv.driveFileId && !iv.enviado);
+  if(!pendientes.length) { toast('NO HAY INFORMES PENDIENTES DE ENVÍO','warn'); return; }
+  toast(`MOVIENDO ${pendientes.length} INFORMES A PROCESADOS...`,'warn');
+  let movidos = 0;
+  for(const iv of pendientes) {
+    const ok = await moverAProcesados(iv.driveFileId);
+    if(ok) { iv.enviado = true; movidos++; }
+  }
+  setLS('t2-iv', S.intervenciones);
+  toast(`${movidos} INFORMES MOVIDOS A PROCESADOS ✓`,'ok');
+}
+
+async function moverAProcesados(fileId) {
+  if(!S.auth || !fileId) return false;
+  try {
+    // Get current parents
+    const meta = await gFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, 'GET');
+    if(!meta) return false;
+    const oldParents = (meta.parents||[]).join(',');
+    // Move: add new parent, remove old
+    await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${CARPETA_PROCESADOS}&removeParents=${oldParents}`,
+      { method:'PATCH', headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'} }
+    );
+    return true;
+  } catch(e) { console.error('Error moviendo archivo:', e); return false; }
+}
 
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
@@ -2763,7 +2822,7 @@ async function generarPDFDrive(d) {
       `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
-        body: JSON.stringify({name: nombreArchivo, parents:[]})
+        body: JSON.stringify({name: nombreArchivo, parents:[CARPETA_PENDIENTES]})
       }
     );
     const copyData = await copyRes.json();
@@ -2785,6 +2844,7 @@ async function generarPDFDrive(d) {
     const baremos = Array.isArray(d.baremos) ? d.baremos : [];
     const mats = Array.isArray(d.materiales) ? d.materiales : [];
     const replacements = {
+      // Sin tildes (estándar)
       '{{CENTRO}}': d.centro||'',
       '{{FECHA}}': d.fecha||'',
       '{{ZONA}}': d.zona||'',
@@ -2794,31 +2854,39 @@ async function generarPDFDrive(d) {
       '{{TECNICO2}}': d.tec2||'',
       '{{ALIAS}}': d.alias||'',
       '{{POBLACION}}': d.poblacion||'',
+      '{{ID}}': d.intId||'',
       '{{NUM_INFORME}}': d.intId||'',
       '{{RESULTADO}}': d.resultado||'',
       '{{RESOLUCION}}': d.resolucion||'',
       '{{COMENTARIO}}': d.resolucion||'',
       '{{MODELO}}': d.modelo||'',
       '{{TRACE}}': d.trace?'OK':'',
-      '{{VALE_A1}}': d.vale?'SI':'',
-      '{{MANIOBRAS}}': 'NO',
-      '{{TIPO}}': 'CD',
-      '{{MOTIVO}}': '',
+      '{{VALE_A1}}': d.vale?'SI':'NO',
+      '{{MANIOBRAS}}': d.maniobras||'NO',
+      '{{TIPO}}': d.tipo||'',
+      '{{MOTIVO}}': d.motivo||'',
+      // Con tildes (por si acaso)
+      '{{TÉCNICO1}}': d.tec1||'',
+      '{{TÉCNICO2}}': d.tec2||'',
+      '{{TÉCNICO 1}}': d.tec1||'',
+      '{{TÉCNICO 2}}': d.tec2||'',
+      '{{POBLACIÓN}}': d.poblacion||'',
+      '{{RESOLUCIÓN}}': d.resolucion||'',
     };
 
     // Add baremo markers
     for(let i=0;i<6;i++) {
       const b = baremos[i];
       replacements[`{{BAREMO${i+1}_COD}}`] = b?.cod||'';
-      replacements[`{{BAREMO${i+1}_UD}}`]  = b ? `X${b.ud}` : '';
+      replacements[`{{BAREMO${i+1}_UD}}`]  = b ? String(b.ud) : '';
       replacements[`{{BAREMO${i+1}_DESC}}`]= b?.desc||'';
     }
     // Add material markers
     for(let i=0;i<6;i++) {
       const m = mats[i];
-      replacements[`{{MAT${i+1}_COD}}`]  = m?.desc||'';
-      replacements[`{{MAT${i+1}_UD}}`]   = m ? `X${m.qty}` : '';
-      replacements[`{{MAT${i+1}_DESC}}`] = '';
+      replacements[`{{MAT${i+1}_COD}}`]  = m?.cod||'';
+      replacements[`{{MAT${i+1}_UD}}`]   = m ? String(m.qty) : '';
+      replacements[`{{MAT${i+1}_DESC}}`] = m?.desc||'';
     }
 
     // 4. Build batch update
@@ -2848,8 +2916,12 @@ async function generarPDFDrive(d) {
     // 6. Move to TeleMan2 folder and export as PDF link
     toast(`INFORME CREADO: ${nombreArchivo} ✓`,'ok');
 
-    // Open the new sheet
-    window.open(`https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false`, '_blank');
+    // Save fileId to intervention for later move
+    const iv = S.intervenciones.find(x => x.intId === d.intId);
+    if(iv) { iv.driveFileId = newFileId; setLS('t2-iv', S.intervenciones); }
+
+    // Open as PDF
+    window.open(`https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=true&size=A4&fitw=true`, '_blank');
 
     return newFileId;
   } catch(e) {
