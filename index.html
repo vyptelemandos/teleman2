@@ -2841,8 +2841,11 @@ async function generarPDFDrive(d) {
     const newFileId = copyData.id;
     if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA','err'); return; }
 
+    // Wait for Drive to finish copying
+    toast('PREPARANDO PLANTILLA...','warn');
+    await new Promise(r => setTimeout(r, 3000));
+
     // 2. Get sheet name
-    const metaRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newFileId}`, 'GET');
     const sheetName = 'PARTES';
 
     // 3. Read all cells including merged cells using spreadsheets.get
