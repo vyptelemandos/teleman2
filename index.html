@@ -1049,6 +1049,8 @@ const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
 const REMOTAS_ID     = '1xIlHDuF8cGvBLY3TOxe5Rdf47y75FU_E-COHd3L5Dt8';
 const PLANTILLA_ID   = '1FLJRarCijwEsJM53xrqzotBSdXmHO-I7NDgySCfSPsM';
+const CARPETA_PENDIENTES = '103dXNeOxfs6bwP-x2wzO-7GlRVmbA9wf';
+const CARPETA_PROCESADOS = '1mq0AP16DjmFPitrGrL7RKsAunXcxmPTS';
 const ZONAS_MIA = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
 // Exact match for zone detection
 function esMiZona(area) {
@@ -1922,7 +1924,12 @@ async function generarInforme() {
   const fd = (d.fecha||'').replace(/-/g,'');
   const nombre = `${d.centro}-${zc}-${fd}`;
 
-  if(S.auth) { await guardarEnSheets(d); await generarPDFDrive(d); toast(`INFORME GENERADO ✓`,'ok'); }
+  if(S.auth) {
+    await guardarEnSheets(d);
+    const pdfOk = await generarPDFDrive(d);
+    if(pdfOk) toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
+    else toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+  }
   else toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
 
   document.getElementById('estadoBorrador').textContent='Generado ✓';
@@ -2924,10 +2931,11 @@ async function generarPDFDrive(d) {
 
     toast(`✓ INFORME ${nombreArchivo} GUARDADO EN DRIVE`, 'ok');
 
-    return newFileId;
+    return true;
   } catch(e) {
     console.error('Error generando PDF:', e);
-    toast('ERROR AL GENERAR PDF','err');
+    toast('ERROR PDF: ' + (e.message||JSON.stringify(e)).slice(0,80), 'err');
+    return false;
   }
 }
 
