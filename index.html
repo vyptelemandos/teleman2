@@ -2864,6 +2864,16 @@ async function generarPDFDrive(d) {
         }
       });
     });
+    // Debug: show first few cells with any value
+    const sampleCells = [];
+    sheetData.slice(0,10).forEach((rowData, ri) => {
+      (rowData.values || []).slice(0,10).forEach((cell, ci) => {
+        if(cell && Object.keys(cell).length > 0) {
+          sampleCells.push(`${String.fromCharCode(65+ci)}${ri+1}: ${JSON.stringify(cell.userEnteredValue||cell.effectiveValue||cell.formattedValue||'empty').slice(0,50)}`);
+        }
+      });
+    });
+    console.log('Sample cells:', sampleCells.slice(0,20));
     console.log('Celdas con marcadores:', Object.keys(cellMap));
 
     // Build replacements map
