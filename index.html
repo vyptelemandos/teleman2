@@ -2743,13 +2743,16 @@ async function guardarEnSheets(d) {
     d.tipo||'',                     // N - TIPO
     d.modelo||'',                   // O - MARCA
     d.resolucion||'',               // P - RESOLUCIÓN
+    d.vale?'SI':'NO',               // Q - VALE A1
+    d.trace?'OK':'',                // R - TRACE
   ];
 
   // Baremos: BAREMO1_COD - BAREMO1_UD - BAREMO1_DESC ... x6
   const baremos = Array.isArray(d.baremos) ? d.baremos : [];
   for(let i=0;i<6;i++) {
     const b = baremos[i];
-    row.push(b?.cod||'', b?.ud||'', b?.desc||'');
+    const bDesc = b ? (S.baremos.find(x=>x.cod===b.cod)?.desc || b.desc || '') : '';
+    row.push(b?.cod||'', b?.ud||'', bDesc);
   }
 
   // Materiales: MAT1_COD - MAT1_UD - MAT1_DESC ... x6
@@ -2915,15 +2918,11 @@ async function generarPDFDrive(d) {
       );
     }
 
-    // 6. Move to TeleMan2 folder and export as PDF link
-    toast(`INFORME CREADO: ${nombreArchivo} ✓`,'ok');
-
-    // Save fileId to intervention for later move
+    // Save fileId to intervention
     const iv = S.intervenciones.find(x => x.intId === d.intId);
     if(iv) { iv.driveFileId = newFileId; setLS('t2-iv', S.intervenciones); }
 
-    // Open as PDF
-    window.open(`https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=true&size=A4&fitw=true`, '_blank');
+    toast(`✓ INFORME ${nombreArchivo} GUARDADO EN DRIVE`, 'ok');
 
     return newFileId;
   } catch(e) {
