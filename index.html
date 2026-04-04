@@ -1905,9 +1905,7 @@ async function generarInforme() {
   document.getElementById('estadoBorrador').textContent='Generado ✓';
   document.getElementById('estadoBorrador').className='badge badge-green';
 
-  // Update materiales list with new ones
-  S.materialesActuales.forEach(m=>{ if(!S.materiales.includes(m.desc)) S.materiales.push(m.desc); });
-  setLS('t2-mat',S.materiales); renderMaterialesOptions();
+  // Materials come from Drive config - don't auto-add here
 
   nuevoInforme();
 }
