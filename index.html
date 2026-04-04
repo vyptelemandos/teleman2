@@ -1128,12 +1128,14 @@ async function sincronizarConfig() {
         desc: (r[1]||'').toUpperCase().trim()
       })).filter(m=>m.cod);
       setLS('t2-mat', S.materiales);
+      renderMaterialesOptions(); // Re-render immediately after loading
     }
 
     // Frases
     if(data.Frases.length) {
       S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
       setLS('t2-fr', S.frases);
+      renderFrasesConfig();
     }
 
     // Tecnicos - update selects
@@ -3011,7 +3013,7 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 function resetearDatosLocales() {
   confirmar('reset', 'BORRAR TODOS LOS DATOS LOCALES', () => {
-  const keys = ['t2-iv','t2-ct','t2-bo','t2-bar','t2-fr','t2-mat','t2-tec','t2-modelos','t2-config-ts'];
+  const keys = ['t2-iv','t2-ct','t2-bo','t2-config-ts']; // Keep bar/fr/mat/tec - they come from Drive
   keys.forEach(k => localStorage.removeItem(k));
   // Reset state
   S.intervenciones = [];
