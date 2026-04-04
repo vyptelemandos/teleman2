@@ -1794,8 +1794,8 @@ async function generarInforme() {
   const fd = (d.fecha||'').replace(/-/g,'');
   const nombre = `${d.centro}-${zc}-${fd}`;
 
-  if(S.auth&&S.sheetId) { await guardarEnSheets(d); toast(`GUARDADO EN DRIVE: ${nombre}.pdf`,'ok'); }
-  else toast(`GUARDADO: ${nombre}`,'ok');
+  if(S.auth) { await guardarEnSheets(d); await generarPDFDrive(d); toast(`INFORME GENERADO ✓`,'ok'); }
+  else toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
 
   document.getElementById('estadoBorrador').textContent='Generado ✓';
   document.getElementById('estadoBorrador').className='badge badge-green';
