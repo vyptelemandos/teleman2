@@ -505,9 +505,12 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title"><span class="card-title-accent">☑️</span> Verificaciones</div></div>
       <div class="card-body">
         <div class="check-row">
-          <div class="check-item"><input type="checkbox" id="f-maniobras" onchange="autosave()"><label for="f-maniobras">MANIOBRAS</label></div>
-          <div class="check-item"><input type="checkbox" id="f-trace" onchange="autosave()"><label for="f-trace">TRACE OK</label></div>
-          <div class="check-item"><input type="checkbox" id="f-vale" disabled><label for="f-vale" style="color:var(--gris4);">Vale A1 generado</label></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+            <div class="check-item"><input type="checkbox" id="f-maniobras" onchange="autosave()"><label for="f-maniobras">MANIOBRAS</label></div>
+            <div class="check-item"><input type="checkbox" id="f-trace" onchange="autosave()"><label for="f-trace">TRACE OK</label></div>
+            <div class="check-item"><input type="checkbox" id="f-baterias" onchange="onBateriasCheck(this)"><label for="f-baterias" style="color:var(--naranja);">BATERÍAS</label></div>
+            <div class="check-item"><input type="checkbox" id="f-vale" disabled><label for="f-vale" style="color:var(--gris4);">VALE A1</label></div>
+          </div>
         </div>
 
       </div>
@@ -1494,6 +1497,27 @@ function validarInforme() {
   return faltan;
 }
 
+function onBateriasCheck(cb) {
+  autosave();
+  if(cb.checked) {
+    const centro = v('f-centro');
+    if(!centro) return;
+    const c = S.centros.find(x => String(x.Nombre||x.nombre||'').toUpperCase() === centro.toUpperCase());
+    if(c) {
+      c.Fechasus = hoy();
+      setLS('t2-ct', S.centros);
+      if(S.auth) {
+        escribirCentroEnDrive(c, true);
+        toast(`🔋 FECHA BATERÍAS ACTUALIZADA EN ${centro} ✓`, 'ok');
+      } else {
+        toast(`🔋 FECHA BATERÍAS ACTUALIZADA LOCALMENTE EN ${centro}`, 'warn');
+      }
+    } else {
+      toast('CENTRO NO ENCONTRADO EN BBDD — ACTUALIZA MANUALMENTE', 'warn');
+    }
+  }
+}
+
 function guardarBorrador() {
   const faltan = validarBorrador();
   if(faltan.length) {
@@ -1536,6 +1560,7 @@ function recogerFormulario() {
     baremos: [...S.baremosActuales],
     materiales: [...S.materialesActuales],
     trace: document.getElementById('f-trace')?.checked||false,
+    baterias: document.getElementById('f-baterias')?.checked||false,
     vale: document.getElementById('f-vale')?.checked||false,
     ts: Date.now(),
   };
@@ -1555,6 +1580,7 @@ function cargarBorrador(id) {
   sv('f-resultado',d.resultado); sv('f-resolucion',d.resolucion);
   sv('f-motivo',d.motivo||''); sv('f-tipo',d.tipo||'');
   const fman2=document.getElementById('f-maniobras'); if(fman2) fman2.checked=d.maniobras==='SI';
+  const fbat2=document.getElementById('f-baterias'); if(fbat2) fbat2.checked=d.baterias||false;
   document.getElementById('f-trace').checked = d.trace||false;
   document.getElementById('f-vale').checked = d.vale||false;
   S.baremosActuales = d.baremos||[];
@@ -1569,6 +1595,7 @@ function nuevoInforme() {
   sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2','');
   sv('f-modelo',''); sv('f-resultado',''); sv('f-motivo',''); sv('f-tipo','');
   const fman=document.getElementById('f-maniobras'); if(fman) fman.checked=false;
+  const fbat=document.getElementById('f-baterias'); if(fbat) fbat.checked=false;
   const ftrace = document.getElementById('f-trace'); if(ftrace) ftrace.checked=false;
   const fvale = document.getElementById('f-vale'); if(fvale) fvale.checked=false;
   const mmw = document.getElementById('modeloManualWrap'); if(mmw) mmw.style.display='none';
