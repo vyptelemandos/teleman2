@@ -623,7 +623,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">☁️ Google Drive</div></div>
       <div class="card-body">
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
-        <div class="fg"><label class="fl">ID Hoja de Cálculo</label><input class="fi" id="cfg-sheetid" type="text" placeholder="Se rellena automáticamente" style="text-transform:none;"></div>
         <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
           <button class="btn btn-red" onclick="saveConfig()">Guardar y conectar Drive</button>
@@ -668,7 +667,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg" style="margin-top:8px;">
           <textarea class="ft" id="nuevaFrase" placeholder="NUEVA FRASE..." style="min-height:56px;" oninput="toUpper(this)"></textarea>
         </div>
-        <button class="btn btn-gray" onclick="addFrase()">+ Añadir frase</button>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addFrase()">+ Añadir frase</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarFrases()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -697,24 +699,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">📥 Importar datos</div></div>
-      <div class="card-body">
-        <div class="alert alert-info" style="margin-bottom:10px;">ℹ️ Los datos se leen desde Drive. Usa esto solo la primera vez o sin conexión.</div>
-        <label class="fl" style="margin-bottom:6px;">Historial de intervenciones (.xlsx)</label>
-        <div class="file-drop" onclick="document.getElementById('fileHist').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="margin-bottom:6px;color:var(--gris4);"><path d="M9 12h6M9 16h6M17 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-4z"/></svg>
-          <p>Toca para seleccionar Historico.xlsx</p>
-          <input type="file" id="fileHist" accept=".xlsx,.xls,.csv" onchange="importarHistorial(this)">
-        </div>
-        <label class="fl" style="margin-bottom:6px;margin-top:6px;">Parque de remotas (.xlsx)</label>
-        <div class="file-drop" onclick="document.getElementById('fileRemota').click()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="margin-bottom:6px;color:var(--gris4);"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-          <p>Toca para seleccionar parque_de_remotas.xlsx</p>
-          <input type="file" id="fileRemota" accept=".xlsx,.xls,.csv" onchange="importarRemota(this)">
-        </div>
-      </div>
-    </div>
+
     <div class="div"></div>
     <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:8px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
@@ -736,7 +721,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">☁️ Google Drive</div></div>
       <div class="card-body">
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
-        <div class="fg"><label class="fl">ID Hoja de Cálculo</label><input class="fi" id="cfg-sheetid" type="text" placeholder="Se rellena automáticamente" style="text-transform:none;"></div>
         <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
           <button class="btn btn-red" onclick="saveConfig()">Guardar y conectar Drive</button>
@@ -781,7 +765,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg" style="margin-top:8px;">
           <textarea class="ft" id="nuevaFrase" placeholder="NUEVA FRASE..." style="min-height:56px;" oninput="toUpper(this)"></textarea>
         </div>
-        <button class="btn btn-gray" onclick="addFrase()">+ Añadir frase</button>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addFrase()">+ Añadir frase</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarFrases()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -2540,6 +2527,18 @@ async function sincronizarMateriales() {
     renderMaterilesConfig();
     renderMaterialesOptions();
     toast(`${S.materiales.length} MATERIALES SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
+}
+
+async function sincronizarFrases() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO FRASES...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Frases!A2:A200`,'GET');
+  if(res?.values) {
+    S.frases = res.values.map(r=>(r[0]||'').trim()).filter(Boolean);
+    setLS('t2-fr', S.frases);
+    renderFrasesConfig();
+    toast(`${S.frases.length} FRASES SINCRONIZADAS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
 
