@@ -2851,6 +2851,8 @@ async function generarPDFDrive(d) {
       'GET'
     );
     const rows = valRes?.values || [];
+    console.log('Plantilla filas leídas:', rows.length);
+    console.log('Celdas con marcadores:', rows.flatMap((r,ri)=>r.map((c,ci)=>c?.toString().includes('{{')?`${String.fromCharCode(65+ci)}${ri+1}:${c}`:null).filter(Boolean)));
 
     // Build replacements map
     const baremos = Array.isArray(d.baremos) ? d.baremos : [];
