@@ -976,6 +976,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <select class="fs" id="nc-viacom"><option value="">--</option><option>101 CABLE</option><option>101 DMR</option><option>101 GPRS</option><option>101 PaP</option><option>101 RMO</option><option>101 VSAT</option><option>104 BGAN</option><option>104 DMR</option><option>104 GPRS</option><option>104 PLC</option><option>104 PaP</option><option>104 VSAT</option><option>DATOS RTU</option><option>TRAME</option></select>
       </div>
       <div class="fg"><label class="fl">COMADRESS</label><input class="fi" id="nc-comadress" type="text" placeholder="COMADRESS" style="text-transform:none;"></div>
+      <div class="fg"><label class="fl">Fecha alta instalación (FechaTMT)</label><input class="fi" id="nc-fechatmt" type="date" style="text-transform:none;"></div>
       <div class="fr2">
         <div class="fg"><label class="fl">RTU Marca</label>
           <select class="fs" id="nc-rtumarca"><option value="">--</option><option>SEMI</option><option>COL GIOVANNI</option><option>SCHNEIDER</option><option>DUCATI (METRELEC)</option><option>IGRID</option><option>TELVENT</option><option>ADVANCED DEVICES</option><option>ABB</option><option>INAEL</option><option>MESA-SCHNEIDER</option><option>DUCATI</option><option>SELTA</option><option>FARELL I.</option><option>GEPCE</option></select>
@@ -2252,6 +2253,7 @@ function showCentro(nombre) {
   if(c.Coord) html+=`<div class="dr"><div class="dr-l">GPS</div><div class="dr-v"><a href="https://maps.google.com/?q=${c.Coord}" target="_blank" style="color:var(--rojo);">📍 Abrir en Maps</a></div></div>`;
   html+=dr('VÍA COM.',c.Via_Com);
   html+=dr('COMADRESS',c.COMADRESS);
+  html+=dr('FECHA ALTA',c.FechaTMT?new Date(parseFecha(c.FechaTMT)).toLocaleDateString('es-ES'):'');
   html+=`<div class="div"></div>`;
   html+=dr('RTU MARCA',c.RTU_marca);
   html+=dr('RTU MODELO',c.RTU_Mod);
@@ -2293,10 +2295,10 @@ async function escribirCentroEnDrive(c, esEdicion) {
       const rowIdx = res.values.findIndex(r=>r[0]===c.Nombre);
       if(rowIdx<0) return;
       const row = rowIdx+1;
-      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
       await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
     } else {
-      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
       await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
     }
   } catch(e) { console.error('Error escribiendo centro en Drive:', e); }
@@ -2309,6 +2311,10 @@ function editarCentro(nombre) {
   sv('nc-dir',c.Direccion||''); sv('nc-coord',c.Coord||'');
   sv('nc-ubicacion',c.Ubicación||''); sv('nc-viacom',c.Via_Com||'');
   sv('nc-comadress',c.COMADRESS||'');
+  if(c.FechaTMT) {
+    const d=parseFecha(c.FechaTMT);
+    if(d) document.getElementById('nc-fechatmt').value=new Date(d).toISOString().slice(0,10);
+  }
   sv('nc-rtumarca',c.RTU_marca||''); sv('nc-rtumod',c.RTU_Mod||'');
   sv('nc-ctrlmarca',c.Controlador_Marca||''); sv('nc-ctrlmod',c.Controlador_Modelo||'');
   sv('nc-batmarca',c.Bat_Marca||''); sv('nc-batmod',c.Bat_Modelo||'');
@@ -2335,6 +2341,7 @@ function altaCentro() {
     Direccion: vu('nc-dir'), Coord: v('nc-coord'),
     'Ubicación': v('nc-ubicacion'), Via_Com: v('nc-viacom'),
     COMADRESS: v('nc-comadress'),
+    FechaTMT: v('nc-fechatmt'),
     RTU_marca: v('nc-rtumarca'), RTU_Mod: v('nc-rtumod'),
     Controlador_Marca: v('nc-ctrlmarca'), Controlador_Modelo: v('nc-ctrlmod'),
     Bat_Marca: v('nc-batmarca'), Bat_Modelo: vu('nc-batmod'),
