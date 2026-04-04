@@ -305,12 +305,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     </div>
     <p class="pg-sub">Parte de intervención</p>
 
-    <!-- Selector borradores -->
-    <div id="borradoresCard" style="display:none;" class="card">
-      <div class="card-head"><div class="card-title">Borradores abiertos</div></div>
-      <div class="card-body" id="borradoresSelectorList"></div>
-    </div>
-
     <!-- CENTRO -->
     <div class="card">
       <div class="card-head"><div class="card-title"><span class="card-title-accent">📍</span> Centro</div></div>
@@ -366,6 +360,37 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
             <input class="fi" id="f-tdc" type="text" placeholder="1694333" oninput="autosave()" style="text-transform:none;">
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- MOTIVO / TIPO / MANIOBRAS -->
+    <div class="card">
+      <div class="card-head"><div class="card-title"><span class="card-title-accent">⚡</span> Tipo de intervención</div></div>
+      <div class="card-body">
+        <div class="fr2">
+          <div class="fg">
+            <label class="fl">Motivo</label>
+            <select class="fs" id="f-motivo" onchange="autosave()">
+              <option value="">-- Motivo --</option>
+              <option>ADECUACION</option>
+              <option>AVERIA</option>
+              <option>AVERIA 72H</option>
+              <option>CAMPAÑA BATERIAS</option>
+              <option>CONJ. COMUN</option>
+              <option>PES ALTAMIRA</option>
+              <option>PES TELEMANDO</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl">Tipo</label>
+            <select class="fs" id="f-tipo" onchange="autosave()">
+              <option value="">-- Tipo --</option>
+              <option>CD</option>
+              <option>AEREO</option>
+            </select>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -480,6 +505,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title"><span class="card-title-accent">☑️</span> Verificaciones</div></div>
       <div class="card-body">
         <div class="check-row">
+          <div class="check-item"><input type="checkbox" id="f-maniobras" onchange="autosave()"><label for="f-maniobras">MANIOBRAS</label></div>
           <div class="check-item"><input type="checkbox" id="f-trace" onchange="autosave()"><label for="f-trace">TRACE OK</label></div>
           <div class="check-item"><input type="checkbox" id="f-vale" disabled><label for="f-vale" style="color:var(--gris4);">Vale A1 generado</label></div>
         </div>
@@ -490,7 +516,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <!-- ACCIONES -->
     <div style="margin-bottom:8px;">
       <div class="btn-row" style="margin-bottom:10px;">
-        <button class="btn btn-dark" style="flex:1;padding:14px;" onclick="nuevoInforme()">
+        <button class="btn btn-dark" style="flex:1;padding:14px;" onclick="guardarBorrador()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar
         </button>
@@ -629,7 +655,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <input class="fi" id="newBarDesc" placeholder="DESCRIPCIÓN" style="font-size:12px;">
           <input class="fi" id="newBarPts" type="number" placeholder="PTS" style="font-size:12px;text-transform:none;">
         </div>
-        <button class="btn btn-gray" style="margin-top:8px;" onclick="addBaremoConfig()">+ Añadir baremo</button>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addBaremoConfig()">+ Añadir baremo</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarBaremos()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -658,8 +687,14 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <p style="font-size:12px;color:var(--gris3);margin-bottom:10px;">Materiales disponibles al rellenar el informe.</p>
         <div id="materialesConfig"></div>
         <div class="div"></div>
-        <div class="fg"><label class="fl">Nuevo material</label><input class="fi" id="newMatDesc" type="text" placeholder="DESCRIPCIÓN DEL MATERIAL"></div>
-        <button class="btn btn-gray" onclick="addMaterialConfig()">+ Añadir material</button>
+        <div class="fr2">
+          <div class="fg"><label class="fl">Código</label><input class="fi" id="newMatCod" type="text" placeholder="Ej: 160068"></div>
+          <div class="fg"><label class="fl">Descripción</label><input class="fi" id="newMatDesc" type="text" placeholder="Ej: BATERÍAS 12V 18AH"></div>
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addMaterialConfig()">+ Añadir</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarMateriales()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -733,7 +768,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <input class="fi" id="newBarDesc" placeholder="DESCRIPCIÓN" style="font-size:12px;">
           <input class="fi" id="newBarPts" type="number" placeholder="PTS" style="font-size:12px;text-transform:none;">
         </div>
-        <button class="btn btn-gray" style="margin-top:8px;" onclick="addBaremoConfig()">+ Añadir baremo</button>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addBaremoConfig()">+ Añadir baremo</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarBaremos()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -843,9 +881,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
       <div class="fg" id="matManualWrap" style="display:none;">
         <label class="fl">Código manual</label>
-        <input class="fi" id="matManualCod" type="text" placeholder="CÓDIGO...">
+        <input class="fi" id="matManualCod" type="text" placeholder="Ej: 160068">
         <label class="fl" style="margin-top:8px;">Descripción</label>
-        <input class="fi" id="matManualDesc" type="text" placeholder="DESCRIPCIÓN..." style="margin-top:4px;">
+        <input class="fi" id="matManualDesc" type="text" placeholder="Ej: BATERÍAS 12V 18AH" style="margin-top:4px;">
+        <button class="btn btn-gray" style="margin-top:8px;" onclick="guardarMaterialManual()">💾 Guardar en lista</button>
       </div>
       <div class="fg" id="matQtyWrap" style="display:none;">
         <label class="fl">Unidades</label>
@@ -1183,12 +1222,12 @@ function actualizarSelectZonas(zonas) {
 // Write a single value back to config sheet
 async function writeConfigValue(sheet, value) {
   if(!S.auth) return;
-  // Append new row
-  await gFetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:A:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-    'POST',
-    { values: [[value]] }
-  );
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:A:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[[value]]});
+}
+
+async function writeConfigRow(sheet, rowValues) {
+  if(!S.auth) return;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:Z:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[rowValues]});
 }
 
 // Delete a value from config sheet (find and clear row)
@@ -1447,9 +1486,46 @@ function showStats() { showPwd('stats','Estadísticas — acceso restringido'); 
 // ═══════════════════════════════════════════════════
 //  AUTOSAVE
 // ═══════════════════════════════════════════════════
+function validarBorrador() {
+  const d = recogerFormulario();
+  const faltan = [];
+  if(!d.centro) faltan.push('CENTRO');
+  if(!d.fecha) faltan.push('FECHA');
+  if(!d.zona) faltan.push('ZONA');
+  if(!d.tec1) faltan.push('TÉCNICO 1');
+  if(!d.motivo) faltan.push('MOTIVO');
+  if(!d.tipo) faltan.push('TIPO');
+  return faltan;
+}
+
+function validarInforme() {
+  const d = recogerFormulario();
+  const faltan = validarBorrador();
+  if(!d.tdc) faltan.push('TDC');
+  if(!d.resultado) faltan.push('RESULTADO');
+  if(!d.resolucion) faltan.push('RESOLUCIÓN');
+  return faltan;
+}
+
+function guardarBorrador() {
+  const faltan = validarBorrador();
+  if(faltan.length) {
+    toast('FALTAN: ' + faltan.join(', '), 'err');
+    return;
+  }
+  if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
+  S.borradores[S.borradoresActual] = recogerFormulario();
+  setLS('t2-bo', S.borradores);
+  updateBorradorBadge();
+  renderBorradoresInicio();
+  toast('BORRADOR GUARDADO ✓', 'ok');
+}
+
 function autosave() {
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(()=>{
+    const faltan = validarBorrador();
+    if(faltan.length) return; // No guardar si faltan campos obligatorios
     if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
     S.borradores[S.borradoresActual] = recogerFormulario();
     setLS('t2-bo', S.borradores);
@@ -1467,11 +1543,13 @@ function recogerFormulario() {
     vyp: v('f-vyp'), tdc: v('f-tdc'),
     tec1: v('f-tec1'), tec2: v('f-tec2'),
     modelo,
+    motivo: v('f-motivo'), tipo: v('f-tipo'),
+    maniobras: document.getElementById('f-maniobras')?.checked ? 'SI' : 'NO',
     resultado: v('f-resultado'), resolucion: vu('f-resolucion'),
     baremos: [...S.baremosActuales],
     materiales: [...S.materialesActuales],
-    trace: document.getElementById('f-trace').checked,
-    vale: document.getElementById('f-vale').checked,
+    trace: document.getElementById('f-trace')?.checked||false,
+    vale: document.getElementById('f-vale')?.checked||false,
     ts: Date.now(),
   };
 }
@@ -1488,6 +1566,8 @@ function cargarBorrador(id) {
   if(modeloOpts.includes(d.modelo)) { sv('f-modelo',d.modelo); document.getElementById('modeloManualWrap').style.display='none'; }
   else if(d.modelo) { sv('f-modelo','__manual__'); sv('f-modelo-manual',d.modelo); document.getElementById('modeloManualWrap').style.display='block'; }
   sv('f-resultado',d.resultado); sv('f-resolucion',d.resolucion);
+  sv('f-motivo',d.motivo||''); sv('f-tipo',d.tipo||'');
+  const fman2=document.getElementById('f-maniobras'); if(fman2) fman2.checked=d.maniobras==='SI';
   document.getElementById('f-trace').checked = d.trace||false;
   document.getElementById('f-vale').checked = d.vale||false;
   S.baremosActuales = d.baremos||[];
@@ -1500,7 +1580,8 @@ function nuevoInforme() {
   S.borradoresActual = null;
   ['f-centro','f-alias','f-poblacion','f-vyp','f-tdc','f-resolucion'].forEach(id=>sv(id,''));
   sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2','');
-  sv('f-modelo',''); sv('f-resultado','');
+  sv('f-modelo',''); sv('f-resultado',''); sv('f-motivo',''); sv('f-tipo','');
+  const fman=document.getElementById('f-maniobras'); if(fman) fman.checked=false;
   const ftrace = document.getElementById('f-trace'); if(ftrace) ftrace.checked=false;
   const fvale = document.getElementById('f-vale'); if(fvale) fvale.checked=false;
   const mmw = document.getElementById('modeloManualWrap'); if(mmw) mmw.style.display='none';
@@ -1767,6 +1848,12 @@ function removeFrase(i) {
 async function generarInforme() {
   const d = recogerFormulario();
   if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+  // Validar campos obligatorios para informe final
+  const camposFaltanInforme = validarInforme();
+  if(camposFaltanInforme.length) {
+    toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err');
+    return;
+  }
   if(_confirmPending['informe']) {
     clearTimeout(_confirmPending['informe'].timer);
     delete _confirmPending['informe'];
@@ -1780,7 +1867,10 @@ async function generarInforme() {
   const nextN = S.intervenciones.reduce((max,iv)=>{
     const n=parseInt((iv.intId||'').replace('INT-',''))||0; return Math.max(max,n);
   },3013);
-  d.intId = 'INT-'+String(nextN+1).padStart(5,'0');
+  // Generate timestamp-based ID: INT-YYMMDDHHmmss
+  const _now = new Date();
+  const _pad = n => String(n).padStart(2,'0');
+  d.intId = 'INT-' + String(_now.getFullYear()).slice(2) + _pad(_now.getMonth()+1) + _pad(_now.getDate()) + _pad(_now.getHours()) + _pad(_now.getMinutes()) + _pad(_now.getSeconds());
 
   S.intervenciones.unshift(d);
   setLS('t2-iv',S.intervenciones);
@@ -2050,18 +2140,39 @@ function filtrarHistorial(){renderHistorial(document.getElementById('histSearch'
 function showInterv(intId,centro) {
   const iv=S.intervenciones.find(x=>(x.intId||x.centro)===intId||x.centro===centro); if(!iv) return;
   document.getElementById('mIntervTitle').textContent=`${iv.centro||''} — ${iv.alias||iv.ALIAS||''}`;
-  const rows=[
-    ['ID',iv.intId||'—'],['FECHA',fmtFecha(iv.fecha)],
-    ['VyP',iv.vyp||iv.VYP||'—'],['TDC',iv.tdc||iv.TDC||'—'],
-    ['TÉCNICOS',[iv.tec1||iv.TECNICOS,iv.tec2].filter(Boolean).join(' / ')],
-    ['ZONA',iv.zona||iv.ZONA||'—'],['POBLACIÓN',iv.poblacion||iv.POBLACION||'—'],
-    ['MODELO',iv.modelo||iv['MARCA / MODELO']||'—'],
-    ['RESULTADO',iv.resultado||iv.RESULTADO||'—'],
-    ['RESOLUCIÓN',iv.resolucion||iv['RESOLUCIÓN']||'—'],
-    ['BAREMOS',Array.isArray(iv.baremos)?iv.baremos.map(b=>`${b.cod}×${b.ud}`).join(', '):iv.baremos||iv.UNIDADES||'—'],
-    ['MATERIALES',Array.isArray(iv.materiales)?iv.materiales.map(m=>`${m.desc} ×${m.qty}`).join(', '):iv.materiales||iv.MATERIALES||'—'],
-  ];
-  document.getElementById('mIntervBody').innerHTML=rows.map(([l,v])=>`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v||'—'}</div></div>`).join('');
+  const dr=(l,v)=>v?`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v}</div></div>`:'';
+  let html='';
+  html+=dr('ID',iv.intId);
+  html+=dr('FECHA',fmtFecha(iv.fecha));
+  html+=dr('ZONA',iv.zona||iv.ZONA);
+  html+=dr('POBLACIÓN',iv.poblacion||iv.POBLACION);
+  html+=dr('TÉCNICO 1',iv.tec1||iv.TECNICOS);
+  html+=dr('TÉCNICO 2',iv.tec2);
+  html+=`<div class="div"></div>`;
+  html+=dr('VyP',iv.vyp||iv.VYP);
+  html+=dr('TDC',iv.tdc||iv.TDC);
+  html+=dr('MOTIVO',iv.motivo);
+  html+=dr('TIPO',iv.tipo);
+  html+=dr('MANIOBRAS',iv.maniobras);
+  html+=`<div class="div"></div>`;
+  html+=dr('MODELO',iv.modelo||iv['MARCA / MODELO']);
+  html+=dr('RESULTADO',iv.resultado||iv.RESULTADO);
+  html+=dr('RESOLUCIÓN',iv.resolucion||iv['RESOLUCIÓN']);
+  html+=dr('TRACE',iv.trace?'OK':'');
+  html+=`<div class="div"></div>`;
+  // Baremos
+  if(Array.isArray(iv.baremos)&&iv.baremos.length) {
+    html+=`<div class="dr"><div class="dr-l">BAREMOS</div><div class="dr-v">${iv.baremos.map(b=>`${b.cod} ×${b.ud}`).join('<br>')}</div></div>`;
+  } else if(iv.baremos||iv.UNIDADES) {
+    html+=dr('BAREMOS',iv.baremos||iv.UNIDADES);
+  }
+  // Materiales
+  if(Array.isArray(iv.materiales)&&iv.materiales.length) {
+    html+=`<div class="dr"><div class="dr-l">MATERIALES</div><div class="dr-v">${iv.materiales.map(m=>`${m.cod||m.desc} ×${m.qty}`).join('<br>')}</div></div>`;
+  } else if(iv.materiales||iv.MATERIALES) {
+    html+=dr('MATERIALES',iv.materiales||iv.MATERIALES);
+  }
+  document.getElementById('mIntervBody').innerHTML=html;
   openModal('modalInterv');
 }
 
@@ -2387,16 +2498,64 @@ function renderMaterilesConfig() {
 }
 
 function addMaterialConfig() {
-  const desc = document.getElementById('newMatDesc').value.trim().toUpperCase();
-  if(!desc) { toast('INTRODUCE LA DESCRIPCIÓN','err'); return; }
-  if(S.materiales.includes(desc)) { toast('YA EXISTE ESE MATERIAL','warn'); return; }
-  S.materiales.push(desc);
+  const cod = (document.getElementById('newMatCod')?.value||'').trim().toUpperCase();
+  const desc = (document.getElementById('newMatDesc')?.value||'').trim().toUpperCase();
+  if(!cod) { toast('INTRODUCE EL CÓDIGO','err'); return; }
+  const existe = S.materiales.some(m=>(m.cod||m)===cod);
+  if(existe) { toast('YA EXISTE ESE CÓDIGO','warn'); return; }
+  const mat = {cod, desc};
+  S.materiales.push(mat);
   setLS('t2-mat', S.materiales);
-  document.getElementById('newMatDesc').value = '';
+  if(document.getElementById('newMatCod')) document.getElementById('newMatCod').value='';
+  if(document.getElementById('newMatDesc')) document.getElementById('newMatDesc').value='';
   renderMaterilesConfig();
   renderMaterialesOptions();
-  writeConfigValue('Materiales', desc);
-  toast('MATERIAL AÑADIDO','ok');
+  // Write to Drive
+  if(S.auth) writeConfigRow('Materiales', [cod, desc]);
+  toast('MATERIAL AÑADIDO ✓','ok');
+}
+
+function guardarMaterialManual() {
+  const cod = vu('matManualCod');
+  const desc = vu('matManualDesc');
+  if(!cod) { toast('INTRODUCE EL CÓDIGO','err'); return; }
+  const existe = S.materiales.some(m=>(m.cod||m)===cod);
+  if(!existe) {
+    const mat = {cod, desc};
+    S.materiales.push(mat);
+    setLS('t2-mat', S.materiales);
+    renderMaterialesOptions();
+    if(S.auth) writeConfigRow('Materiales', [cod, desc]);
+    toast('MATERIAL GUARDADO EN LISTA ✓','ok');
+  }
+}
+
+async function sincronizarMateriales() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO MATERIALES...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Materiales!A2:B500`,'GET');
+  if(res?.values) {
+    S.materiales = res.values.map(r=>({cod:(r[0]||'').toUpperCase().trim(), desc:(r[1]||'').toUpperCase().trim()})).filter(m=>m.cod);
+    setLS('t2-mat', S.materiales);
+    renderMaterilesConfig();
+    renderMaterialesOptions();
+    toast(`${S.materiales.length} MATERIALES SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
+}
+
+async function sincronizarBaremos() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO BAREMOS...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Baremos!A2:D500`,'GET');
+  if(res?.values) {
+    S.baremos = res.values.map(r=>({
+      cod:r[0]||'', desc:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'
+    })).filter(b=>b.cod);
+    setLS('t2-bar', S.baremos);
+    renderBaremosOptions();
+    renderBaremosEditList();
+    toast(`${S.baremos.length} BAREMOS SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
 }
 
 function editMaterialConfig(i, val) {
@@ -2499,31 +2658,45 @@ async function writeHeaders() {
 }
 
 async function guardarEnSheets(d) {
-  const barStr=Array.isArray(d.baremos)?d.baremos.map(b=>`${b.cod}×${b.ud}`).join(', '):d.baremos||'';
-  const matStr=Array.isArray(d.materiales)?d.materiales.map(m=>`${m.desc}×${m.qty}`).join(', '):d.materiales||'';
+  // Columns: ID - INSTALACIÓN - FECHA - TECNICO1 - TECNICO2 - ALIAS - ZONA - POBLACION
+  //          RESULTADO - VYP - TDC - MOTIVO - MANIOBRAS - TIPO - MARCA - RESOLUCIÓN
+  //          BAREMO1_COD-UD-DESC ... BAREMO6_COD-UD-DESC
+  //          MAT1_COD-UD-DESC ... MAT6_COD-UD-DESC
 
-  // Base columns A-S (existing format)
-  const row = [d.intId,d.centro,d.fecha,d.alias,d.zona,d.poblacion,d.vyp,d.tdc,
-               d.tec1,d.tec2||'',d.modelo,d.resultado,d.resolucion,barStr,matStr,
-               d.trace?'SÍ':'NO',d.vale?'SÍ':'NO','',''];
+  const row = [
+    d.intId||'',                    // A - ID
+    d.centro||'',                   // B - INSTALACIÓN
+    d.fecha||'',                    // C - FECHA
+    d.tec1||'',                     // D - TECNICO 1
+    d.tec2||'',                     // E - TECNICO 2
+    d.alias||'',                    // F - ALIAS
+    d.zona||'',                     // G - ZONA
+    d.poblacion||'',                // H - POBLACION
+    d.resultado||'',                // I - RESULTADO
+    d.vyp||'',                      // J - VYP
+    d.tdc||'',                      // K - TDC
+    d.motivo||'',                   // L - MOTIVO
+    d.maniobras||'NO',              // M - MANIOBRAS
+    d.tipo||'',                     // N - TIPO
+    d.modelo||'',                   // O - MARCA
+    d.resolucion||'',               // P - RESOLUCIÓN
+  ];
 
-  // New baremo columns T-AK (6 baremos x 3 cols)
+  // Baremos: BAREMO1_COD - BAREMO1_UD - BAREMO1_DESC ... x6
   const baremos = Array.isArray(d.baremos) ? d.baremos : [];
   for(let i=0;i<6;i++) {
     const b = baremos[i];
-    if(b) { row.push(b.cod||'', b.ud||'', b.desc||''); }
-    else  { row.push('','',''); }
+    row.push(b?.cod||'', b?.ud||'', b?.desc||'');
   }
 
-  // New material columns AL-BC (6 materiales x 3 cols)
+  // Materiales: MAT1_COD - MAT1_UD - MAT1_DESC ... x6
   const mats = Array.isArray(d.materiales) ? d.materiales : [];
   for(let i=0;i<6;i++) {
     const m = mats[i];
-    if(m) { row.push(m.desc||'', m.qty||'', ''); }
-    else  { row.push('','',''); }
+    row.push(m?.cod||'', m?.qty||'', m?.desc||'');
   }
 
-  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:BC:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[row]});
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:AV:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[row]});
 }
 
 async function subirHistorial() {
@@ -2680,20 +2853,19 @@ async function leerHistorialDrive() {
     }
 
     S.intervenciones = allRows.map((row,i)=>({
-      intId: 'INT-'+String(i+1).padStart(5,'0'),
-      centro: (row[0]||'').toUpperCase().trim(),
-      fecha: parseDateStr(row[1]||''),
-      tec1: (row[2]||'').toUpperCase().trim(),
-      alias: (row[3]||'').toUpperCase().trim(),
-      zona: (row[4]||'').toUpperCase().trim(),
-      poblacion: (row[5]||'').toUpperCase().trim(),
-      resultado: (row[6]||'').toUpperCase().trim(),
+      intId: (row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
+      centro: (row[1]||'').toUpperCase().trim(),
+      fecha: parseDateStr(row[2]||''),
+      tec1: (row[3]||'').toUpperCase().trim(),
+      tec2: (row[4]||'').toUpperCase().trim(),
+      alias: (row[5]||'').toUpperCase().trim(),
+      zona: (row[6]||'').toUpperCase().trim(),
+      poblacion: (row[7]||'').toUpperCase().trim(),
+      resultado: (row[8]||'').toUpperCase().trim(),
       vyp: (row[9]||'').toString().trim(),
       tdc: (row[10]||'').toString().trim(),
-      modelo: (row[15]||'').toUpperCase().trim(),
-      resolucion: (row[16]||'').toUpperCase().trim(),
-      baremos: (row[17]||'').toUpperCase().trim(),
-      materiales: (row[18]||'').toUpperCase().trim(),
+      modelo: (row[14]||'').toUpperCase().trim(),
+      resolucion: (row[15]||'').toUpperCase().trim(),
     })).filter(iv=>iv.centro);
 
     setLS('t2-iv', S.intervenciones);
