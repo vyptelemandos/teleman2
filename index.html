@@ -2848,6 +2848,22 @@ async function generarPDFDrive(d) {
     // 2. Get sheet name
     const sheetName = 'PARTES';
 
+    // 3. Read ORIGINAL template to check structure
+    const spreadResOrig = await gFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${PLANTILLA_ID}?includeGridData=true&ranges=${sheetName}!A1:Z60`,
+      'GET'
+    );
+    const origData = spreadResOrig?.sheets?.[0]?.data?.[0]?.rowData || [];
+    console.log('ORIGINAL template rows:', origData.length);
+    const origSample = [];
+    origData.slice(0,15).forEach((rowData,ri)=>{
+      (rowData.values||[]).slice(0,15).forEach((cell,ci)=>{
+        const uev = cell?.userEnteredValue;
+        if(uev) origSample.push(`${String.fromCharCode(65+ci)}${ri+1}:${JSON.stringify(uev).slice(0,60)}`);
+      });
+    });
+    console.log('ORIGINAL sample:', origSample.slice(0,30));
+
     // 3. Read all cells including merged cells using spreadsheets.get
     const spreadRes = await gFetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}?includeGridData=true&ranges=${sheetName}!A1:Z60`,
