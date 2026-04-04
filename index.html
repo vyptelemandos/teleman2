@@ -483,24 +483,25 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <div class="check-item"><input type="checkbox" id="f-trace" onchange="autosave()"><label for="f-trace">TRACE OK</label></div>
           <div class="check-item"><input type="checkbox" id="f-vale" disabled><label for="f-vale" style="color:var(--gris4);">Vale A1 generado</label></div>
         </div>
-        <div style="margin-top:12px;">
-          <button class="btn btn-dark" onclick="goToValeA1()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-            Rellenar Vale A1
-          </button>
-        </div>
+
       </div>
     </div>
 
     <!-- ACCIONES -->
-    <div class="btn-gap" style="margin-bottom:8px;">
-      <button class="btn btn-red" onclick="generarInforme()">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Generar informe PDF
-      </button>
+    <div style="margin-bottom:8px;">
+      <div class="btn-row" style="margin-bottom:10px;">
+        <button class="btn btn-dark" style="flex:1;padding:14px;" onclick="nuevoInforme()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar
+        </button>
+        <button class="btn btn-red" style="flex:1;padding:14px;" onclick="generarInforme()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Generar PDF
+        </button>
+      </div>
       <div class="btn-row">
-        <button class="btn btn-gray" style="flex:1;" onclick="nuevoInforme()">Nuevo borrador</button>
-        <button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="borrarBorradorActual()">Borrar</button>
+        <button class="btn btn-gray btn-sm" style="flex:1;color:var(--gris2);" onclick="goToValeA1()">📋 Vale A1</button>
+        <button class="btn btn-gray btn-sm" style="flex:1;color:var(--rojo);opacity:0.7;" onclick="borrarBorradorActual()">🗑 Borrar informe</button>
       </div>
     </div>
   </div>
@@ -1208,6 +1209,21 @@ async function deleteConfigValue(sheet, value) {
   );
 }
 
+// Confirmación de acciones irreversibles - doble tap en 3 segundos
+const _confirmPending = {};
+function confirmar(key, msg, fn) {
+  if(_confirmPending[key]) {
+    clearTimeout(_confirmPending[key].timer);
+    delete _confirmPending[key];
+    fn();
+  } else {
+    toast(msg + ' — TOCA DE NUEVO PARA CONFIRMAR', 'warn');
+    _confirmPending[key] = {
+      timer: setTimeout(() => { delete _confirmPending[key]; }, 3000)
+    };
+  }
+}
+
 function splashConnect() {
   if(window._oauthClient) {
     document.getElementById('splashConnectBtn').style.display = 'none';
@@ -1498,14 +1514,18 @@ function nuevoInforme() {
 
 function borrarBorradorActual() {
   if(!S.borradoresActual) { toast('No hay borrador activo','warn'); return; }
-  delete S.borradores[S.borradoresActual];
-  setLS('t2-bo',S.borradores);
-  S.borradoresActual=null;
-  updateBorradorBadge();
-  renderBorradoresInicio();
-  renderBorradoresSelector();
-  nuevoInforme();
-  toast('BORRADOR ELIMINADO');
+  const d = S.borradores[S.borradoresActual];
+  const centro = d?.centro || 'SIN CENTRO';
+  confirmar('borrador', `BORRAR INFORME ${centro}`, () => {
+    delete S.borradores[S.borradoresActual];
+    setLS('t2-bo',S.borradores);
+    S.borradoresActual=null;
+    updateBorradorBadge();
+    renderBorradoresInicio();
+    renderBorradoresSelector();
+    nuevoInforme();
+    toast('BORRADOR ELIMINADO');
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -1735,7 +1755,11 @@ function renderFrasesConfig() {
     </div>`).join('');
 }
 
-function removeFrase(i) { S.frases.splice(i,1); setLS('t2-fr',S.frases); renderFrasesConfig(); }
+function removeFrase(i) {
+  confirmar('frase'+i, 'BORRAR FRASE', () => {
+    S.frases.splice(i,1); setLS('t2-fr',S.frases); renderFrasesConfig();
+  });
+}
 
 // ═══════════════════════════════════════════════════
 //  GENERAR INFORME
@@ -1743,6 +1767,14 @@ function removeFrase(i) { S.frases.splice(i,1); setLS('t2-fr',S.frases); renderF
 async function generarInforme() {
   const d = recogerFormulario();
   if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+  if(_confirmPending['informe']) {
+    clearTimeout(_confirmPending['informe'].timer);
+    delete _confirmPending['informe'];
+  } else {
+    toast('TOCA DE NUEVO PARA GENERAR EL INFORME', 'warn');
+    _confirmPending['informe'] = { timer: setTimeout(() => delete _confirmPending['informe'], 3000) };
+    return;
+  }
 
   // ID secuencial
   const nextN = S.intervenciones.reduce((max,iv)=>{
@@ -2214,51 +2246,91 @@ function renderStatsPage() {
   const dia16=new Date(now.getFullYear(),now.getMonth()>0?now.getMonth()-1:11,16);
   const dia15=new Date(now.getFullYear(),now.getMonth(),15);
 
-  const calcStats=(lista)=>{
-    const mes=lista.filter(iv=>(String(iv.fecha)||'').startsWith(mesActual));
-    const periodo=lista.filter(iv=>{const f=new Date(iv.fecha);return f>=dia16&&f<=dia15;});
-    const totalPts=(iv)=>{
-      if(!Array.isArray(iv.baremos)) return 0;
-      return iv.baremos.reduce((a,b)=>a+(b.pts||0),0);
-    };
-    const ptsMes=mes.reduce((a,iv)=>a+totalPts(iv),0);
-    const ptsPeriodo=periodo.reduce((a,iv)=>a+totalPts(iv),0);
-    const diasPeriodo=Math.max(1,Math.ceil((dia15-dia16)/(1000*60*60*24)));
-    const conBat=lista.filter(iv=>(iv.materiales||[]).some?.(m=>m.desc?.includes('BAT'))||(String(iv.materiales||'')).includes('BAT'));
-    return {total:lista.length,mes:mes.length,ptsMes,ptsPeriodo,ptsDia:(ptsPeriodo/diasPeriodo).toFixed(2),conBat:conBat.length};
+  // Solo intervenciones nuevas tienen baremos estructurados
+  const totalPts = (iv) => {
+    if(!Array.isArray(iv.baremos)) return 0;
+    return iv.baremos.reduce((a,b) => a + (parseFloat(b.pts)||0), 0);
   };
 
-  const miInterv=S.intervenciones.filter(iv=>(iv.tec1||iv.TECNICOS||'').toUpperCase().includes((S.miNombre||'FRAN').toUpperCase().split(' ')[0]));
-  const myS=calcStats(miInterv);
-  const allS=calcStats(S.intervenciones);
+  const calcStats = (lista) => {
+    const mes = lista.filter(iv => (String(iv.fecha)||'').startsWith(mesActual));
+    const periodo = lista.filter(iv => {
+      const f = new Date(iv.fecha); return f >= dia16 && f <= dia15;
+    });
+    const ptsMes = mes.reduce((a,iv) => a + totalPts(iv), 0);
+    const ptsPeriodo = periodo.reduce((a,iv) => a + totalPts(iv), 0);
+    const diasPeriodo = Math.max(1, Math.ceil((dia15-dia16)/(1000*60*60*24)));
+    const ivConPts = periodo.filter(iv => totalPts(iv) > 0);
+    return {
+      total: lista.length,
+      mes: mes.length,
+      periodo: periodo.length,
+      ptsMes: ptsMes.toFixed(2),
+      ptsPeriodo: ptsPeriodo.toFixed(2),
+      ptsDia: (ptsPeriodo / diasPeriodo).toFixed(2),
+      ivConPts: ivConPts.length,
+    };
+  };
 
-  // By zone
-  const byZona={};
-  S.intervenciones.forEach(iv=>{const z=iv.zona||iv.ZONA||'SIN ZONA';if(!byZona[z])byZona[z]=0;byZona[z]++;});
+  const miNombre = S.miNombre || '';
+  const miInterv = miNombre
+    ? S.intervenciones.filter(iv => (iv.tec1||iv.TECNICOS||'').toUpperCase().includes(miNombre.toUpperCase().split(' ')[0]))
+    : [];
+  const myS = calcStats(miInterv);
+  const allS = calcStats(S.intervenciones);
 
-  document.getElementById('statsContent').innerHTML=`
+  // Periodo label
+  const periodoLabel = `${dia16.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})} — ${dia15.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})}`;
+  const mesLabel = now.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).toUpperCase();
+
+  // By zone - only my zones
+  const byZona = {};
+  miInterv.forEach(iv => {
+    const z = iv.zona||iv.ZONA||'SIN ZONA';
+    if(!byZona[z]) byZona[z] = {n:0, pts:0};
+    byZona[z].n++;
+    byZona[z].pts += totalPts(iv);
+  });
+
+  document.getElementById('statsContent').innerHTML = `
     <div class="stats-period">
-      <div class="stats-period-title">MIS INTERVENCIONES — ${S.miNombre||'TÉCNICO'}</div>
-      <div class="stats-big">${myS.total}</div><div class="stats-big-label">TOTAL INTERVENCIONES</div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);"></div>
-      <div class="stats-row"><span class="stats-row-label">ESTE MES</span><span class="stats-row-val">${myS.mes}</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS ESTE MES</span><span class="stats-row-val">${myS.ptsMes.toFixed(2)}</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS PERÍODO (16-15)</span><span class="stats-row-val">${myS.ptsPeriodo.toFixed(2)}</span></div>
-      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${myS.ptsDia}</span></div>
-      <div class="stats-row"><span class="stats-row-label">CON CAMBIO BATERÍAS</span><span class="stats-row-val">${myS.conBat}</span></div>
+      <div class="stats-period-title">MIS INTERVENCIONES — ${miNombre||'SIN NOMBRE'}</div>
+      <div class="stats-big">${myS.total}</div>
+      <div class="stats-big-label">TOTAL HISTORIAL</div>
+      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
+      <div class="stats-row"><span class="stats-row-label">${mesLabel}</span><span class="stats-row-val">${myS.mes} interv.</span></div>
+      <div class="stats-row"><span class="stats-row-label">PUNTOS ${mesLabel.split(' ')[0]}</span><span class="stats-row-val">${myS.ptsMes} pts</span></div>
+      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
+      <div class="stats-row"><span class="stats-row-label">PERÍODO ${periodoLabel}</span><span class="stats-row-val">${myS.periodo} interv.</span></div>
+      <div class="stats-row" style="background:rgba(204,0,0,0.2);border-radius:6px;padding:6px 8px;margin-top:4px;">
+        <span class="stats-row-label" style="font-weight:700;">PUNTOS PERÍODO</span>
+        <span class="stats-row-val" style="font-size:18px;color:#ff6666;">${myS.ptsPeriodo} pts</span>
+      </div>
+      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${myS.ptsDia} pts</span></div>
+      <div class="stats-row"><span class="stats-row-label">INTERV. CON BAREMOS</span><span class="stats-row-val">${myS.ivConPts}</span></div>
     </div>
     <div class="stats-period" style="background:var(--gris1);">
       <div class="stats-period-title">EQUIPO COMPLETO</div>
-      <div class="stats-big">${allS.total}</div><div class="stats-big-label">TOTAL INTERVENCIONES</div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);"></div>
-      <div class="stats-row"><span class="stats-row-label">ESTE MES</span><span class="stats-row-val">${allS.mes}</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS ESTE MES</span><span class="stats-row-val">${allS.ptsMes.toFixed(2)}</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS PERÍODO (16-15)</span><span class="stats-row-val">${allS.ptsPeriodo.toFixed(2)}</span></div>
-      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${allS.ptsDia}</span></div>
+      <div class="stats-big">${allS.total}</div>
+      <div class="stats-big-label">TOTAL HISTORIAL</div>
+      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
+      <div class="stats-row"><span class="stats-row-label">${mesLabel}</span><span class="stats-row-val">${allS.mes} interv.</span></div>
+      <div class="stats-row"><span class="stats-row-label">PUNTOS ${mesLabel.split(' ')[0]}</span><span class="stats-row-val">${allS.ptsMes} pts</span></div>
+      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
+      <div class="stats-row"><span class="stats-row-label">PERÍODO ${periodoLabel}</span><span class="stats-row-val">${allS.periodo} interv.</span></div>
+      <div class="stats-row" style="background:rgba(204,0,0,0.2);border-radius:6px;padding:6px 8px;margin-top:4px;">
+        <span class="stats-row-label" style="font-weight:700;">PUNTOS PERÍODO</span>
+        <span class="stats-row-val" style="font-size:18px;color:#ff6666;">${allS.ptsPeriodo} pts</span>
+      </div>
+      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${allS.ptsDia} pts</span></div>
     </div>
-    <div class="card"><div class="card-head"><div class="card-title">INTERVENCIONES POR ZONA</div></div>
-      <div class="card-body">${Object.entries(byZona).sort((a,b)=>b[1]-a[1]).map(([z,n])=>`<div class="dr"><div class="dr-l">${z}</div><div class="dr-v">${n}</div></div>`).join('')}</div>
-    </div>`;
+    ${Object.keys(byZona).length ? `
+    <div class="card"><div class="card-head"><div class="card-title">MIS ZONAS</div></div>
+      <div class="card-body">${Object.entries(byZona).sort((a,b)=>b[1].n-a[1].n).map(([z,d])=>`
+        <div class="dr"><div class="dr-l">${z}</div>
+        <div class="dr-v">${d.n} interv.</div></div>`).join('')}
+      </div>
+    </div>` : ''}`;
 }
 
 // ═══════════════════════════════════════════════════
@@ -2291,11 +2363,13 @@ function addTecnicoConfig() {
 }
 
 function removeTecnicoConfig(i) {
-  const tecnicos = getLS('t2-tec') || [];
-  tecnicos.splice(i, 1);
-  setLS('t2-tec', tecnicos);
-  renderTecnicosConfig();
-  actualizarSelectTecnicos(tecnicos);
+  confirmar('tec'+i, 'BORRAR TÉCNICO', () => {
+    const tecnicos = getLS('t2-tec') || [];
+    tecnicos.splice(i, 1);
+    setLS('t2-tec', tecnicos);
+    renderTecnicosConfig();
+    actualizarSelectTecnicos(tecnicos);
+  });
 }
 
 function renderMaterilesConfig() {
@@ -2332,10 +2406,12 @@ function editMaterialConfig(i, val) {
 }
 
 function removeMaterialConfig(i) {
-  S.materiales.splice(i, 1);
-  setLS('t2-mat', S.materiales);
-  renderMaterilesConfig();
-  renderMaterialesOptions();
+  confirmar('mat'+i, 'BORRAR MATERIAL', () => {
+    S.materiales.splice(i, 1);
+    setLS('t2-mat', S.materiales);
+    renderMaterilesConfig();
+    renderMaterialesOptions();
+  });
 }
 
 function renderBaremosEditList() {
@@ -2349,7 +2425,11 @@ function renderBaremosEditList() {
 }
 
 function updateBaremoPts(i,val) { S.baremos[i].pts=parseFloat(val)||0; setLS('t2-bar',S.baremos); renderBaremosOptions(); }
-function removeBaremoConfig(i) { S.baremos.splice(i,1); setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions(); }
+function removeBaremoConfig(i) {
+  confirmar('baremo'+i, 'BORRAR BAREMO', () => {
+    S.baremos.splice(i,1); setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions();
+  });
+}
 function addBaremoConfig() {
   const cod=vu('newBarCod'),desc=vu('newBarDesc'),pts=parseFloat(v('newBarPts'))||0;
   if(!cod||!desc){toast('RELLENA CÓDIGO Y DESCRIPCIÓN','err');return;}
@@ -2655,6 +2735,7 @@ async function leerRemotasDrive() {
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 function resetearDatosLocales() {
+  confirmar('reset', 'BORRAR TODOS LOS DATOS LOCALES', () => {
   const keys = ['t2-iv','t2-ct','t2-bo','t2-bar','t2-fr','t2-mat','t2-tec','t2-modelos','t2-config-ts'];
   keys.forEach(k => localStorage.removeItem(k));
   // Reset state
@@ -2671,6 +2752,7 @@ function resetearDatosLocales() {
   renderBaremosOptions();
   renderMaterialesOptions();
   toast('DATOS LOCALES BORRADOS. SINCRONIZA CON DRIVE.','ok');
+  }); // end confirmar
 }
 
 async function sincronizarTodo() {
