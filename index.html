@@ -2845,14 +2845,26 @@ async function generarPDFDrive(d) {
     const metaRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newFileId}`, 'GET');
     const sheetName = 'PARTES';
 
-    // 3. Read all cells to find markers
-    const valRes = await gFetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}/values/${sheetName}!A1:Z100`,
+    // 3. Read all cells including merged cells using spreadsheets.get
+    const spreadRes = await gFetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}?includeGridData=true&ranges=${sheetName}!A1:Z60`,
       'GET'
     );
-    const rows = valRes?.values || [];
-    console.log('Plantilla filas leídas:', rows.length);
-    console.log('Celdas con marcadores:', rows.flatMap((r,ri)=>r.map((c,ci)=>c?.toString().includes('{{')?`${String.fromCharCode(65+ci)}${ri+1}:${c}`:null).filter(Boolean)));
+    const sheetData = spreadRes?.sheets?.[0]?.data?.[0]?.rowData || [];
+    console.log('Plantilla filas leídas:', sheetData.length);
+
+    // Build cell map from grid data
+    const cellMap = {}; // "A1" -> {value, row, col}
+    sheetData.forEach((rowData, ri) => {
+      (rowData.values || []).forEach((cell, ci) => {
+        const val = cell?.userEnteredValue?.stringValue || cell?.userEnteredValue?.numberValue?.toString() || '';
+        if(val && val.includes('{{')) {
+          const ref = `${String.fromCharCode(65+ci)}${ri+1}`;
+          cellMap[ref] = {value: val, row: ri, col: ci};
+        }
+      });
+    });
+    console.log('Celdas con marcadores:', Object.keys(cellMap));
 
     // Build replacements map
     const baremos = Array.isArray(d.baremos) ? d.baremos : [];
@@ -2903,20 +2915,14 @@ async function generarPDFDrive(d) {
       replacements[`{{MAT${i+1}_DESC}}`] = m?.desc||'';
     }
 
-    // 4. Build batch update
+    // 4. Build batch update from cellMap
     const data = [];
-    rows.forEach((row, ri) => {
-      row.forEach((cell, ci) => {
-        if(cell && cell.toString().includes('{{')) {
-          let newVal = cell.toString();
-          Object.entries(replacements).forEach(([k,v]) => { newVal = newVal.replace(k, v); });
-          if(newVal !== cell) {
-            const colLetter = String.fromCharCode(65+ci);
-            data.push({ range:`${sheetName}!${colLetter}${ri+1}`, values:[[newVal]] });
-          }
-        }
-      });
+    Object.entries(cellMap).forEach(([ref, info]) => {
+      let newVal = info.value;
+      Object.entries(replacements).forEach(([k,v]) => { newVal = newVal.replaceAll(k, v); });
+      data.push({ range:`${sheetName}!${ref}`, values:[[newVal]] });
     });
+    console.log('Reemplazos a aplicar:', data.length, data.map(d=>d.range+':'+d.values[0][0]));
 
     // 5. Write all replacements
     if(data.length) {
