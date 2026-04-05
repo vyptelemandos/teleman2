@@ -2850,7 +2850,7 @@ async function generarPDFDrive(d) {
 
     // 3. Read ORIGINAL template to check structure
     const spreadResOrig = await gFetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${PLANTILLA_ID}?includeGridData=true&ranges=${sheetName}!A1:Z60`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${PLANTILLA_ID}?includeGridData=true&ranges=${sheetName}!A1:CH60`,
       'GET'
     );
     const origData = spreadResOrig?.sheets?.[0]?.data?.[0]?.rowData || [];
@@ -2859,14 +2859,15 @@ async function generarPDFDrive(d) {
     origData.slice(0,15).forEach((rowData,ri)=>{
       (rowData.values||[]).slice(0,15).forEach((cell,ci)=>{
         const uev = cell?.userEnteredValue;
-        if(uev) origSample.push(`${String.fromCharCode(65+ci)}${ri+1}:${JSON.stringify(uev).slice(0,60)}`);
+        const fv = cell?.formattedValue;
+        if(uev||fv) origSample.push(`${String.fromCharCode(65+ci)}${ri+1}:${JSON.stringify(uev||fv).slice(0,80)}`);
       });
     });
     console.log('ORIGINAL sample:', origSample.slice(0,30));
 
     // 3. Read all cells including merged cells using spreadsheets.get
     const spreadRes = await gFetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}?includeGridData=true&ranges=${sheetName}!A1:Z60`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}?includeGridData=true&ranges=${sheetName}!A1:CH60`,
       'GET'
     );
     const sheetData = spreadRes?.sheets?.[0]?.data?.[0]?.rowData || [];
@@ -2876,9 +2877,10 @@ async function generarPDFDrive(d) {
     const cellMap = {}; // "A1" -> {value, row, col}
     sheetData.forEach((rowData, ri) => {
       (rowData.values || []).forEach((cell, ci) => {
-        const val = cell?.userEnteredValue?.stringValue || cell?.userEnteredValue?.numberValue?.toString() || '';
+        const uev = cell?.userEnteredValue;
+        const val = uev?.stringValue || uev?.formulaValue || String(uev?.numberValue||'') || '';
         if(val && val.includes('{{')) {
-          const ref = `${String.fromCharCode(65+ci)}${ri+1}`;
+          const ref = ci < 26 ? `${String.fromCharCode(65+ci)}${ri+1}` : `${String.fromCharCode(64+Math.floor(ci/26))}${String.fromCharCode(65+(ci%26))}${ri+1}`;
           cellMap[ref] = {value: val, row: ri, col: ci};
         }
       });
@@ -2895,9 +2897,7 @@ async function generarPDFDrive(d) {
     console.log('Sample cells:', sampleCells.slice(0,20));
     console.log('Celdas con marcadores:', Object.keys(cellMap));
 
-    // Build replacements map
-    const baremos = Array.isArray(d.baremos) ? d.baremos : [];
-    const mats = Array.isArray(d.materiales) ? d.materiales : [];
+    // Build replacements map (kept for reference)
     const replacements = {
       // Sin tildes (estándar)
       '{{CENTRO}}': d.centro||'',
@@ -2929,29 +2929,46 @@ async function generarPDFDrive(d) {
       '{{RESOLUCIÓN}}': d.resolucion||'',
     };
 
-    // Add baremo markers
-    for(let i=0;i<6;i++) {
-      const b = baremos[i];
-      replacements[`{{BAREMO${i+1}_COD}}`] = b?.cod||'';
-      replacements[`{{BAREMO${i+1}_UD}}`]  = b ? String(b.ud) : '';
-      replacements[`{{BAREMO${i+1}_DESC}}`]= b?.desc||'';
-    }
-    // Add material markers
-    for(let i=0;i<6;i++) {
-      const m = mats[i];
-      replacements[`{{MAT${i+1}_COD}}`]  = m?.cod||'';
-      replacements[`{{MAT${i+1}_UD}}`]   = m ? String(m.qty) : '';
-      replacements[`{{MAT${i+1}_DESC}}`] = m?.desc||'';
-    }
 
-    // 4. Build batch update from cellMap
-    const data = [];
-    Object.entries(cellMap).forEach(([ref, info]) => {
-      let newVal = info.value;
-      Object.entries(replacements).forEach(([k,v]) => { newVal = newVal.replaceAll(k, v); });
-      data.push({ range:`${sheetName}!${ref}`, values:[[newVal]] });
+
+    // 4. Build direct cell writes by known position
+    const data = [
+      { range:`${sheetName}!A4`,  values:[[d.centro||'']] },
+      { range:`${sheetName}!Q4`,  values:[[d.fecha||'']] },
+      { range:`${sheetName}!AC4`, values:[[d.zona||'']] },
+      { range:`${sheetName}!AN4`, values:[[d.tdc||'']] },
+      { range:`${sheetName}!Q6`,  values:[[d.tec1||'']] },
+      { range:`${sheetName}!AC6`, values:[[d.tec2||'']] },
+      { range:`${sheetName}!A8`,  values:[[d.alias||'']] },
+      { range:`${sheetName}!AC8`, values:[[d.poblacion||'']] },
+      { range:`${sheetName}!AN8`, values:[[d.intId||'']] },
+      { range:`${sheetName}!A13`, values:[[d.resultado||'']] },
+      { range:`${sheetName}!Q13`, values:[[d.vyp||'']] },
+      { range:`${sheetName}!AN13`,values:[[d.motivo||'']] },
+      { range:`${sheetName}!A15`, values:[[d.maniobras||'NO']] },
+      { range:`${sheetName}!I15`, values:[[d.tipo||'']] },
+      { range:`${sheetName}!Q15`, values:[[d.modelo||'']] },
+      { range:`${sheetName}!AN15`,values:[[d.vale?'SI':'NO']] },
+      { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
+      { range:`${sheetName}!A20`, values:[[d.resolucion||'']] },
+    ];
+    // Baremos
+    const baremoRows = [29,30,31,32,33,34];
+    baremoRows.forEach((row,i) => {
+      const b = baremos[i];
+      const bDesc = b ? (S.baremos.find(x=>x.cod===b.cod)?.desc || b.desc || '') : '';
+      data.push({ range:`${sheetName}!A${row}`, values:[[b?.cod||'']] });
+      data.push({ range:`${sheetName}!F${row}`, values:[[b?.ud||'']] });
+      data.push({ range:`${sheetName}!G${row}`, values:[[bDesc]] });
     });
-    console.log('Reemplazos a aplicar:', data.length, data.map(d=>d.range+':'+d.values[0][0]));
+    // Materiales
+    const matRows = [29,30,31,32,33,34];
+    matRows.forEach((row,i) => {
+      const m = mats[i];
+      data.push({ range:`${sheetName}!AC${row}`, values:[[m?.cod||'']] });
+      data.push({ range:`${sheetName}!AH${row}`, values:[[m?.qty||'']] });
+      data.push({ range:`${sheetName}!AI${row}`, values:[[m?.desc||'']] });
+    });
 
     // 5. Write all replacements
     if(data.length) {
