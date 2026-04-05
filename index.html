@@ -2949,6 +2949,8 @@ async function generarPDFDrive(d) {
 
 
     // 4. Build direct cell writes by known position
+    const baremos = Array.isArray(d.baremos) ? d.baremos : [];
+    const mats = Array.isArray(d.materiales) ? d.materiales : [];
     const up = s => (s||'').toString().toUpperCase();
     const data = [
       { range:`${sheetName}!A4`,  values:[[up(d.centro)]] },
