@@ -1288,11 +1288,14 @@ function runSplash() {
   };
 
   const syncAll = async () => {
-    setProgress(60, 'SINCRONIZANDO CONFIGURACIÓN...');
+    setProgress(55, 'SINCRONIZANDO CONFIGURACIÓN...');
     await sincronizarConfig();
-    setProgress(75, 'CARGANDO HISTORIAL...');
+    setProgress(68, 'CARGANDO HISTORIAL...');
     await leerHistorialDrive();
-    setProgress(90, 'CARGANDO INSTALACIONES...');
+    setProgress(80, 'CARGANDO PLANIFICACIÓN...');
+    await leerPlanificacionDrive();
+    renderPlanif();
+    setProgress(92, 'CARGANDO INSTALACIONES...');
     await leerRemotasDrive();
     finishSplash();
   };
@@ -3165,8 +3168,11 @@ async function sincronizarTodo() {
   }
 
   toast('CARGANDO PLANIFICACIÓN...','warn');
-  await leerPlanificacionDrive();
-  renderPlanif();
+  const okP = await leerPlanificacionDrive();
+  if(okP) {
+    renderPlanif();
+    toast(`${S.planificacion.length} TRABAJOS CARGADOS`,'ok');
+  }
   toast('CARGANDO INSTALACIONES...','warn');
   const okR = await leerRemotasDrive();
   if(okR) {
