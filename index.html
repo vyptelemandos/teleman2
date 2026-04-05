@@ -2151,7 +2151,9 @@ function addVyPManual() {
   const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:v('mv-coord'),estado:'PENDIENTE'};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
+  console.log('S.auth al añadir planif:', !!S.auth);
   if(S.auth) escribirPlanifDrive(newPlanif);
+  else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
   closeModal('modalNuevoVyP'); renderPlanif(); toast('TRABAJO AÑADIDO','ok');
