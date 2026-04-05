@@ -1611,6 +1611,7 @@ function nuevoInforme() {
   const fzmw = document.getElementById('f-zona-manual'); if(fzmw) fzmw.style.display='none';
   const ac = document.getElementById('alertaCentro'); if(ac) ac.innerHTML='';
   S.baremosActuales=[]; S.materialesActuales=[];
+  S._planifId = null;
   renderBaremosAdded(); renderMaterialesAdded();
   const eb = document.getElementById('estadoBorrador');
   if(eb) { eb.textContent='Borrador'; eb.className='badge badge-orange'; }
@@ -1934,7 +1935,15 @@ async function generarInforme() {
     if(pdfOk) toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
     else toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
     // Mark planif as completed if came from one
-    if(d.planifId) completarPlanifDrive(d.planifId);
+    if(S._planifId) {
+      // Remove from local planificacion
+      S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
+      setLS('t2-pl', S.planificacion);
+      renderPlanif();
+      // Mark as completed in Drive
+      completarPlanifDrive(S._planifId);
+      S._planifId = null;
+    }
   }
   else toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
 
@@ -2039,6 +2048,7 @@ function iniciarDesde(id) {
   const p = S.planificacion.find(x=>x.id===id); if(!p) return;
   const c = findCentro(p.centro);
   nuevoInforme();
+  S._planifId = id; // Save planif ID to mark as completed when informe is generated
   sv('f-centro',p.centro); sv('f-alias',(p.alias||c?.Alias||'').toUpperCase());
   sv('f-zona',(c?.Area||'').toUpperCase()); sv('f-poblacion',(c?.Municipio||'').toUpperCase());
   sv('f-vyp',p.vyp||''); sv('f-tdc',p.tdc||'');
