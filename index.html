@@ -2932,25 +2932,26 @@ async function generarPDFDrive(d) {
 
 
     // 4. Build direct cell writes by known position
+    const up = s => (s||'').toString().toUpperCase();
     const data = [
-      { range:`${sheetName}!A4`,  values:[[d.centro||'']] },
-      { range:`${sheetName}!Q4`,  values:[[d.fecha||'']] },
-      { range:`${sheetName}!AC4`, values:[[d.zona||'']] },
-      { range:`${sheetName}!AN4`, values:[[d.tdc||'']] },
-      { range:`${sheetName}!Q6`,  values:[[d.tec1||'']] },
-      { range:`${sheetName}!AC6`, values:[[d.tec2||'']] },
-      { range:`${sheetName}!A8`,  values:[[d.alias||'']] },
-      { range:`${sheetName}!AC8`, values:[[d.poblacion||'']] },
-      { range:`${sheetName}!AN8`, values:[[d.intId||'']] },
-      { range:`${sheetName}!A13`, values:[[d.resultado||'']] },
-      { range:`${sheetName}!Q13`, values:[[d.vyp||'']] },
-      { range:`${sheetName}!AN13`,values:[[d.motivo||'']] },
-      { range:`${sheetName}!A15`, values:[[d.maniobras||'NO']] },
-      { range:`${sheetName}!I15`, values:[[d.tipo||'']] },
-      { range:`${sheetName}!Q15`, values:[[d.modelo||'']] },
+      { range:`${sheetName}!A4`,  values:[[up(d.centro)]] },
+      { range:`${sheetName}!Q4`,  values:[[up(d.fecha)]] },
+      { range:`${sheetName}!AC4`, values:[[up(d.zona)]] },
+      { range:`${sheetName}!AN4`, values:[[up(d.tdc)]] },
+      { range:`${sheetName}!Q6`,  values:[[up(d.tec1)]] },
+      { range:`${sheetName}!AC6`, values:[[up(d.tec2)]] },
+      { range:`${sheetName}!A8`,  values:[[up(d.alias)]] },
+      { range:`${sheetName}!AC8`, values:[[up(d.poblacion)]] },
+      { range:`${sheetName}!AN8`, values:[[up(d.intId)]] },
+      { range:`${sheetName}!A13`, values:[[up(d.resultado)]] },
+      { range:`${sheetName}!Q13`, values:[[up(d.vyp)]] },
+      { range:`${sheetName}!AN13`,values:[[up(d.motivo)]] },
+      { range:`${sheetName}!A15`, values:[[up(d.maniobras)||'NO']] },
+      { range:`${sheetName}!I15`, values:[[up(d.tipo)]] },
+      { range:`${sheetName}!Q15`, values:[[up(d.modelo)]] },
       { range:`${sheetName}!AN15`,values:[[d.vale?'SI':'NO']] },
       { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
-      { range:`${sheetName}!A20`, values:[[d.resolucion||'']] },
+      { range:`${sheetName}!A20`, values:[[up(d.resolucion)]] },
     ];
     // Baremos
     const baremoRows = [29,30,31,32,33,34];
@@ -2973,9 +2974,9 @@ async function generarPDFDrive(d) {
     // 5. Write all replacements
     if(data.length) {
       await gFetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}/values:batchUpdate?valueInputOption=RAW`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}/values:batchUpdate`,
         'POST',
-        { data, valueInputOption:'RAW' }
+        { valueInputOption:'RAW', data }
       );
     }
 
