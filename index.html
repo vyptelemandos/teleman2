@@ -3009,11 +3009,43 @@ async function generarPDFDrive(d) {
       );
     }
 
-    // Save fileId to intervention
-    const iv = S.intervenciones.find(x => x.intId === d.intId);
-    if(iv) { iv.driveFileId = newFileId; setLS('t2-iv', S.intervenciones); }
+    // 6. Export Sheets as PDF and save to Informes Pendientes
+    toast('GENERANDO PDF...', 'warn');
 
-    toast(`✓ INFORME ${nombreArchivo} GUARDADO EN DRIVE`, 'ok');
+    // Export the filled sheet as PDF blob
+    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=true&size=A4&fitw=true&gridlines=false&printtitle=false`;
+    const pdfRes = await fetch(pdfExportUrl, {
+      headers: { 'Authorization': 'Bearer ' + S.auth }
+    });
+    if(!pdfRes.ok) throw new Error('Error exportando PDF: ' + pdfRes.status);
+    const pdfBlob = await pdfRes.blob();
+
+    // Upload PDF to Informes Pendientes
+    const pdfName = nombreArchivo + '.pdf';
+    const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [CARPETA_PENDIENTES] };
+    const formData = new FormData();
+    formData.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+    formData.append('file', pdfBlob);
+
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + S.auth },
+      body: formData
+    });
+    const uploadData = await uploadRes.json();
+    const pdfFileId = uploadData.id;
+
+    // Delete the temporary Sheets file
+    await fetch(`https://www.googleapis.com/drive/v3/files/${newFileId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + S.auth }
+    });
+
+    // Save PDF fileId to intervention
+    const iv = S.intervenciones.find(x => x.intId === d.intId);
+    if(iv) { iv.driveFileId = pdfFileId; setLS('t2-iv', S.intervenciones); }
+
+    toast(`✓ PDF ${pdfName} GUARDADO EN DRIVE`, 'ok');
 
     return true;
   } catch(e) {
