@@ -1016,7 +1016,8 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 <!-- SPLASH SCREEN -->
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
   <div style="font-family:Consolas,monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
-  <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:48px;">TELEMAN2</div>
+  <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:4px;">TELEMAN2</div>
+  <div style="font-family:Consolas,monospace;font-size:11px;color:var(--gris4);margin-bottom:44px;" id="splashVersion"></div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
@@ -1044,6 +1045,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
+const APP_VERSION = 'v2.25';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -3017,8 +3019,10 @@ async function generarPDFDrive(d) {
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
+    console.log('PDF export status:', pdfRes.status, pdfRes.ok);
     if(!pdfRes.ok) throw new Error('Error exportando PDF: ' + pdfRes.status);
     const pdfBlob = await pdfRes.blob();
+    console.log('PDF blob size:', pdfBlob.size, 'type:', pdfBlob.type);
 
     // Upload PDF to Informes Pendientes
     const pdfName = nombreArchivo + '.pdf';
@@ -3033,13 +3037,15 @@ async function generarPDFDrive(d) {
       body: formData
     });
     const uploadData = await uploadRes.json();
+    console.log('Upload result:', uploadData);
     const pdfFileId = uploadData.id;
 
     // Delete the temporary Sheets file
-    await fetch(`https://www.googleapis.com/drive/v3/files/${newFileId}`, {
+    const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${newFileId}`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
+    console.log('Delete sheets status:', delRes.status);
 
     // Save PDF fileId to intervention
     const iv = S.intervenciones.find(x => x.intId === d.intId);
