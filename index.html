@@ -2163,9 +2163,11 @@ function addVyPManual() {
 }
 
 async function sincronizarVyP() {
+  console.log('sincronizarVyP called, S.auth:', !!S.auth);
   if(!S.auth){toast('CONECTA GOOGLE DRIVE PRIMERO','warn');return;}
   toast('SINCRONIZANDO PLANIFICACIÓN...','warn');
   const ok = await leerPlanificacionDrive();
+  console.log('leerPlanificacionDrive result:', ok, 'count:', S.planificacion.length);
   if(ok) {
     renderPlanif();
     toast(`${S.planificacion.length} TRABAJOS CARGADOS ✓`,'ok');
