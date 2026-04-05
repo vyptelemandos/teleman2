@@ -1049,6 +1049,7 @@ const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
 const REMOTAS_ID     = '1xIlHDuF8cGvBLY3TOxe5Rdf47y75FU_E-COHd3L5Dt8';
 const PLANTILLA_ID   = '1FLJRarCijwEsJM53xrqzotBSdXmHO-I7NDgySCfSPsM';
+const PLANIFICACION_ID   = '1aU835m_XQJQSPHctJ0bQMvAKDgN-P4N8p7qCuTZrhPg';
 const CARPETA_PENDIENTES = '103dXNeOxfs6bwP-x2wzO-7GlRVmbA9wf';
 const CARPETA_PROCESADOS = '1mq0AP16DjmFPitrGrL7RKsAunXcxmPTS';
 const ZONAS_MIA = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
@@ -1929,6 +1930,8 @@ async function generarInforme() {
     const pdfOk = await generarPDFDrive(d);
     if(pdfOk) toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
     else toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+    // Mark planif as completed if came from one
+    if(d.planifId) completarPlanifDrive(d.planifId);
   }
   else toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
 
@@ -2145,8 +2148,10 @@ function addVyPManual() {
   const centro=vu('mv-centro'), fecha=v('mv-fecha');
   if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
   const c=findCentro(centro);
-  S.planificacion.push({id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:v('mv-coord')});
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:v('mv-coord'),estado:'PENDIENTE'};
+  S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
+  if(S.auth) escribirPlanifDrive(newPlanif);
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
   closeModal('modalNuevoVyP'); renderPlanif(); toast('TRABAJO AÑADIDO','ok');
@@ -3094,6 +3099,48 @@ function resetearDatosLocales() {
   }); // end confirmar
 }
 
+// ═══════════════════════════════════════════════════
+//  PLANIFICACIÓN EN DRIVE
+// ═══════════════════════════════════════════════════
+async function leerPlanificacionDrive() {
+  if(!S.auth) return false;
+  try {
+    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:J500`,'GET');
+    if(!res?.values) return false;
+    S.planificacion = res.values.map(row=>({
+      id:        row[0]||'PL-'+Date.now(),
+      centro:    (row[1]||'').toUpperCase(),
+      alias:     (row[2]||'').toUpperCase(),
+      fecha:     row[3]||'',
+      hora:      row[4]||'',
+      vyp:       row[5]||'',
+      tdc:       row[6]||'',
+      trabajo:   (row[7]||'').toUpperCase(),
+      coord:     row[8]||'',
+      estado:    row[9]||'PENDIENTE',
+    })).filter(p=>p.centro && p.estado!=='COMPLETADO');
+    setLS('t2-pl', S.planificacion);
+    return true;
+  } catch(e) { console.error('Error leyendo planificación:', e); return false; }
+}
+
+async function escribirPlanifDrive(p) {
+  if(!S.auth) return;
+  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE']];
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
+}
+
+async function completarPlanifDrive(id) {
+  if(!S.auth) return;
+  try {
+    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET');
+    if(!res?.values) return;
+    const rowIdx = res.values.findIndex(r=>r[0]===id);
+    if(rowIdx<0) return;
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['COMPLETADO']]});
+  } catch(e) { console.error('Error completando planif:', e); }
+}
+
 async function sincronizarTodo() {
   if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
   toast('SINCRONIZANDO CONFIGURACIÓN...','warn');
@@ -3113,6 +3160,8 @@ async function sincronizarTodo() {
     document.getElementById('histSub').textContent = `${S.intervenciones.length} INTERVENCIONES`;
   }
 
+  toast('CARGANDO PLANIFICACIÓN...','warn');
+  await leerPlanificacionDrive();
   toast('CARGANDO INSTALACIONES...','warn');
   const okR = await leerRemotasDrive();
   if(okR) {
