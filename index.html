@@ -3125,9 +3125,11 @@ async function leerPlanificacionDrive() {
 }
 
 async function escribirPlanifDrive(p) {
-  if(!S.auth) return;
+  if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
+  console.log('escribirPlanifDrive:', p.centro, p.fecha);
   const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE']];
-  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
+  console.log('escribirPlanifDrive result:', res);
 }
 
 async function completarPlanifDrive(id) {
