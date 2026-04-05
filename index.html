@@ -2163,10 +2163,15 @@ function addVyPManual() {
 }
 
 async function sincronizarVyP() {
-  if(!S.auth){toast('CONECTA GOOGLE DRIVE PRIMERO EN AJUSTES','warn');return;}
-  toast('SINCRONIZANDO VyP...','warn');
-  // TODO: read from Drive folder
-  setTimeout(()=>toast('SINCRONIZACIÓN COMPLETADA','ok'),1500);
+  if(!S.auth){toast('CONECTA GOOGLE DRIVE PRIMERO','warn');return;}
+  toast('SINCRONIZANDO PLANIFICACIÓN...','warn');
+  const ok = await leerPlanificacionDrive();
+  if(ok) {
+    renderPlanif();
+    toast(`${S.planificacion.length} TRABAJOS CARGADOS ✓`,'ok');
+  } else {
+    toast('ERROR AL SINCRONIZAR','err');
+  }
 }
 
 // ═══════════════════════════════════════════════════
