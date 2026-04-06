@@ -948,7 +948,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Fecha *</label><input class="fi" id="mv-fecha" type="date" style="text-transform:none;"></div>
       </div>
       <div class="fr2">
-        <div class="fg"><label class="fl">Hora inicio</label><input class="fi" id="mv-hora" type="time" style="text-transform:none;"></div>
+        <div class="fg"><label class="fl">Hora inicio</label><input class="fi" id="mv-hora" type="text" placeholder="08:00" inputmode="numeric" maxlength="5" style="text-transform:none;" oninput="fmtHoraInput(this)"></div>
         <div class="fg"><label class="fl">Nº VyP</label><input class="fi" id="mv-vyp" type="text" placeholder="18162931" style="text-transform:none;"></div>
       </div>
       <div class="fg"><label class="fl">TDC / Ticket</label><input class="fi" id="mv-tdc" type="text" placeholder="1694333" style="text-transform:none;"></div>
@@ -1367,7 +1367,7 @@ function runSplash() {
       try {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: cfg.clientId,
-          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
           callback: async (resp) => {
             document.getElementById('splashConnectBtn').style.display = 'none';
             if(resp.error) {
@@ -1425,7 +1425,7 @@ window.onload = () => {
       if(window.google?.accounts?.oauth2) {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: cfg.clientId,
-          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
           callback: (resp) => {
             if(!resp.error) {
               S.auth = resp.access_token;
@@ -2239,13 +2239,14 @@ function showPlanifDetalle(id) {
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
   const tieneBat=(p.trabajo||'').toLowerCase().includes('bater');
 
+  const drBig = (l,v) => `<div class="dr"><div class="dr-l">${l}</div><div class="dr-v" style="font-size:16px;font-weight:600;">${v}</div></div>`;
   let html='';
-  html+=`<div class="dr"><div class="dr-l">FECHA / HORA</div><div class="dr-v">${fmtFecha(p.fecha)} ${p.hora||''}</div></div>`;
-  html+=`<div class="dr"><div class="dr-l">CENTRO</div><div class="dr-v">${p.centro}</div></div>`;
-  html+=`<div class="dr"><div class="dr-l">ALIAS</div><div class="dr-v">${p.alias||c?.Alias||'—'}</div></div>`;
-  html+=`<div class="dr"><div class="dr-l">VyP</div><div class="dr-v">${p.vyp||'—'}</div></div>`;
-  html+=`<div class="dr"><div class="dr-l">TDC / TICKET</div><div class="dr-v">${p.tdc||'—'}</div></div>`;
-  html+=`<div class="dr"><div class="dr-l">TRABAJO</div><div class="dr-v">${p.trabajo||'—'}</div></div>`;
+  html+=drBig('FECHA / HORA',`${fmtFecha(p.fecha)} ${p.hora||''}`);
+  html+=drBig('CENTRO',p.centro);
+  html+=drBig('ALIAS',p.alias||c?.Alias||'—');
+  html+=drBig('VyP',p.vyp||'—');
+  html+=drBig('TDC / TICKET',p.tdc||'—');
+  html+=drBig('TRABAJO',p.trabajo||'—');
   if(c) {
     html+=`<div class="div"></div>`;
     html+=`<div class="dr"><div class="dr-l">ZONA / MUNICIPIO</div><div class="dr-v">${c.Area||'—'} · ${c.Municipio||'—'}</div></div>`;
@@ -2272,7 +2273,10 @@ function addVyPManual() {
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
   console.log('S.auth al añadir planif:', !!S.auth);
-  if(S.auth) escribirPlanifDrive(newPlanif);
+  if(S.auth) {
+    escribirPlanifDrive(newPlanif);
+    crearEventoCalendario(newPlanif);
+  }
   else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
@@ -2539,6 +2543,12 @@ function sincronizarCentros() {
 // ═══════════════════════════════════════════════════
 //  ESTADÍSTICAS
 // ═══════════════════════════════════════════════════
+function fmtHoraInput(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if(v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
+  el.value = v;
+}
+
 function cargarHoras() {
   const mes = document.getElementById('horas-mes')?.value;
   const periodo = document.getElementById('horas-periodo')?.value;
@@ -2901,9 +2911,9 @@ function addBaremoConfig() {
 // ═══════════════════════════════════════════════════
 function handleSync() {
   const cfg=getLS('t2-cfg')||{};
-  if(!cfg.clientId){toast('CONFIGURA EL CLIENT ID EN AJUSTES','warn');return;}
+  const clientId = cfg.clientId || CLIENT_ID;
   if(S.auth){toast('CONECTADO A GOOGLE DRIVE ✓','ok');return;}
-  loadGIS(cfg.clientId);
+  loadGIS(clientId);
 }
 
 function loadGIS(clientId) {
@@ -3428,6 +3438,37 @@ async function leerPlanificacionDrive() {
   } catch(e) { console.error('Error leyendo planificación:', e); return false; }
 }
 
+async function crearEventoCalendario(p) {
+  if(!S.auth) return;
+  try {
+    const fecha = p.fecha || hoy();
+    const hora = p.hora || '08:00';
+    const [h,m] = hora.split(':').map(Number);
+    const start = `${fecha}T${String(h).padStart(2,'0')}:${String(m||0).padStart(2,'0')}:00`;
+    const end   = `${fecha}T${String(h+1).padStart(2,'0')}:${String(m||0).padStart(2,'0')}:00`;
+
+    const event = {
+      summary: `${p.centro} — ${p.alias||''}`.trim(),
+      description: [
+        p.trabajo ? `Trabajo: ${p.trabajo}` : '',
+        p.tdc     ? `TDC: ${p.tdc}`         : '',
+        p.vyp     ? `VyP: ${p.vyp}`         : '',
+      ].filter(Boolean).join('\n'),
+      start: { dateTime: start, timeZone: 'Europe/Madrid' },
+      end:   { dateTime: end,   timeZone: 'Europe/Madrid' },
+      colorId: '11', // Tomato red
+    };
+
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + S.auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify(event)
+    });
+    if(res.ok) toast('📅 EVENTO CREADO EN GOOGLE CALENDAR ✓','ok');
+    else toast('ERROR AL CREAR EVENTO EN CALENDAR','err');
+  } catch(e) { console.error('Calendar error:', e); }
+}
+
 async function escribirPlanifDrive(p) {
   if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
   console.log('escribirPlanifDrive:', p.centro, p.fecha);
@@ -3525,7 +3566,7 @@ function reconectarDrive() {
   const clientId = cfg.clientId || CLIENT_ID;
   const client = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
-    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
     callback: async (resp) => {
       if(!resp.error) {
         S.auth = resp.access_token;
