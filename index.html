@@ -2985,7 +2985,7 @@ async function generarPDFDrive(d) {
       { range:`${sheetName}!A21`, values:[[up(d.resolucion)]] },
     ];
     // Baremos
-    const baremoRows = [29,30,31,32,33,34];
+    const baremoRows = [30,31,32,33,34,35];
     baremoRows.forEach((row,i) => {
       const b = baremos[i];
       const bDesc = b ? (S.baremos.find(x=>x.cod===b.cod)?.desc || b.desc || '') : '';
@@ -2994,7 +2994,7 @@ async function generarPDFDrive(d) {
       data.push({ range:`${sheetName}!G${row}`, values:[[bDesc]] });
     });
     // Materiales
-    const matRows = [29,30,31,32,33,34];
+    const matRows = [30,31,32,33,34,35];
     matRows.forEach((row,i) => {
       const m = mats[i];
       data.push({ range:`${sheetName}!AC${row}`, values:[[m?.cod||'']] });
@@ -3015,7 +3015,7 @@ async function generarPDFDrive(d) {
     toast('GENERANDO PDF...', 'warn');
 
     // Export the filled sheet as PDF blob
-    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&horizontal_alignment=CENTER&fzr=false&gid=613018177`;
+    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false&gid=613018177&ir=false&ic=false&r1=0&c1=0&r2=36&c2=51`;
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
