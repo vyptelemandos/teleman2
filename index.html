@@ -245,8 +245,8 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 <header class="hdr">
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
   <div class="sync-pill" onclick="handleSync()">
-    <div class="sync-dot" id="syncDot"></div>
-    <span class="sync-label" id="syncLabel">Sin conectar</span>
+    <div class="sync-dot" id="syncDot" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;"></div>
+    <span class="sync-label" id="syncLabel" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;">Sin conectar</span>
   </div>
 </header>
 
@@ -1351,8 +1351,7 @@ function runSplash() {
               return;
             }
             S.auth = resp.access_token;
-            document.getElementById('syncDot').className = 'sync-dot ok';
-            document.getElementById('syncLabel').textContent = 'Drive ✓';
+            setSyncStatus('ok');
             await syncAll();
           }
         });
@@ -1404,8 +1403,7 @@ window.onload = () => {
           callback: (resp) => {
             if(!resp.error) {
               S.auth = resp.access_token;
-              document.getElementById('syncDot').className = 'sync-dot ok';
-              document.getElementById('syncLabel').textContent = 'Drive ✓';
+              setSyncStatus('ok');
             }
           }
         });
@@ -1429,6 +1427,19 @@ window.onload = () => {
   S.miCompanero = getLS('t2-companero') || '';
 
   loadConfig();
+  // Auto-renew token every 50 minutes
+  setInterval(()=>{
+    if(!S.auth) return;
+    const cfg=getLS('t2-cfg')||{};
+    const clientId=cfg.clientId||CLIENT_ID;
+    if(!window.google?.accounts?.oauth2) return;
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:clientId,
+      scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+      callback:(resp)=>{ if(!resp.error){ S.auth=resp.access_token; setSyncStatus('ok'); } }
+    });
+    client.requestAccessToken({prompt:''});
+  }, 50*60*1000);
   renderFechaHoy();
   renderStats();
   renderBorradoresInicio();
@@ -1962,6 +1973,17 @@ async function generarInforme() {
   const fd = (d.fecha||'').replace(/-/g,'');
   const nombre = `${d.centro}-${zc}-${fd}`;
 
+  if(!navigator.onLine) {
+    // No connection - save as draft
+    if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
+    S.borradores[S.borradoresActual] = d;
+    setLS('t2-bo', S.borradores);
+    updateBorradorBadge();
+    renderBorradoresInicio();
+    window._generando=false; setGenBtn(false);
+    toast('SIN COBERTURA — BORRADOR GUARDADO. ENVÍA CUANDO TENGAS CONEXIÓN','warn');
+    return;
+  }
   if(S.auth) {
     await guardarEnSheets(d);
     const pdfOk = await generarPDFDrive(d);
@@ -2106,6 +2128,15 @@ function cancelarVyP(id) {
     window._cancelPending=null;
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
     setLS('t2-pl',S.planificacion); renderPlanif();
+    // Mark as CANCELADO in Drive
+    if(S.auth) {
+      gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET').then(res=>{
+        if(!res?.values) return;
+        const rowIdx = res.values.findIndex(r=>r[0]===id);
+        if(rowIdx<0) return;
+        gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['CANCELADO']]});
+      });
+    }
     toast('TRABAJO CANCELADO');
   }
 }
@@ -2232,7 +2263,7 @@ function renderHistorial(f='') {
   el.innerHTML=list.slice(0,100).map(iv=>{
     const res=iv.resultado||iv.RESULTADO||'';
     const bc=res==='CORRECTO'?'badge-green':res?'badge-orange':'badge-gray';
-    const lc=res==='CORRECTO'?'verde':res?'naranja':'gris';
+    const lc=colorResultado(res);
     return `<div class="li ${lc}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
       <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
       <div class="li-alias">${iv.alias||iv.ALIAS||'SIN ALIAS'}</div>
@@ -2243,8 +2274,20 @@ function renderHistorial(f='') {
 
 function filtrarHistorial(){renderHistorial(document.getElementById('histSearch').value);}
 
+function colorResultado(res) {
+  if(!res) return 'gris';
+  const r = res.toUpperCase().trim();
+  if(r === 'CORRECTO' || r === 'OK' || r === 'C') return 'verde';
+  if(r.includes('COMUNICACION') || r === 'PTE COM' || r === 'PDTE COM' || r.includes('COM')) return 'rojo';
+  if(r.startsWith('PENDIENTE') || r.startsWith('PTE') || r.startsWith('PDTE') || r.startsWith('P.')) return 'naranja';
+  return 'gris';
+}
+
 function showInterv(intId,centro) {
-  const iv=S.intervenciones.find(x=>(x.intId||x.centro)===intId||x.centro===centro); if(!iv) return;
+  // Search by intId first, fallback to centro only if intId not found
+  const iv = S.intervenciones.find(x=>x.intId===intId) 
+          || S.intervenciones.find(x=>x.centro===centro&&!x.intId);
+  if(!iv) return;
   document.getElementById('mIntervTitle').textContent=`${iv.centro||''} — ${iv.alias||iv.ALIAS||''}`;
   const dr=(l,v)=>v?`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v}</div></div>`:'';
   let html='';
@@ -2916,7 +2959,6 @@ async function generarPDFDrive(d) {
       'GET'
     );
     const origData = spreadResOrig?.sheets?.[0]?.data?.[0]?.rowData || [];
-    console.log('ORIGINAL template rows:', origData.length);
     const origSample = [];
     origData.slice(0,15).forEach((rowData,ri)=>{
       (rowData.values||[]).slice(0,15).forEach((cell,ci)=>{
@@ -2925,7 +2967,6 @@ async function generarPDFDrive(d) {
         if(uev||fv) origSample.push(`${String.fromCharCode(65+ci)}${ri+1}:${JSON.stringify(uev||fv).slice(0,80)}`);
       });
     });
-    console.log('ORIGINAL sample:', origSample.slice(0,30));
 
     // 3. Read all cells including merged cells using spreadsheets.get
     const spreadRes = await gFetch(
@@ -2933,7 +2974,6 @@ async function generarPDFDrive(d) {
       'GET'
     );
     const sheetData = spreadRes?.sheets?.[0]?.data?.[0]?.rowData || [];
-    console.log('Plantilla filas leídas:', sheetData.length);
 
     // Build cell map from grid data
     const cellMap = {}; // "A1" -> {value, row, col}
@@ -2956,8 +2996,6 @@ async function generarPDFDrive(d) {
         }
       });
     });
-    console.log('Sample cells:', sampleCells.slice(0,20));
-    console.log('Celdas con marcadores:', Object.keys(cellMap));
 
     // Build replacements map (kept for reference)
     const replacements = {
@@ -3038,9 +3076,6 @@ async function generarPDFDrive(d) {
     });
 
     // 5. Write all replacements
-    const eRows = data.filter(d=>d.range.includes('!E')||d.range.includes('!AG'));
-    console.log('X cells to write:', eRows);
-    console.log('Total data rows:', data.length);
     if(data.length) {
       await gFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}/values:batchUpdate`,
@@ -3082,10 +3117,8 @@ async function generarPDFDrive(d) {
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
-    console.log('PDF export status:', pdfRes.status, pdfRes.ok);
     if(!pdfRes.ok) throw new Error('Error exportando PDF: ' + pdfRes.status);
     const pdfBlob = await pdfRes.blob();
-    console.log('PDF blob size:', pdfBlob.size, 'type:', pdfBlob.type);
 
     toast('4/4 · GUARDANDO EN DRIVE...','warn');
     // Upload PDF to Informes Pendientes
@@ -3101,7 +3134,6 @@ async function generarPDFDrive(d) {
       body: formData
     });
     const uploadData = await uploadRes.json();
-    console.log('Upload result:', uploadData);
     const pdfFileId = uploadData.id;
 
     // Delete the temporary Sheets file
@@ -3109,7 +3141,6 @@ async function generarPDFDrive(d) {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
-    console.log('Delete sheets status:', delRes.status);
 
     // Save PDF fileId to intervention
     const iv = S.intervenciones.find(x => x.intId === d.intId);
@@ -3315,6 +3346,13 @@ async function gFetch(url,method,body) {
     if(body&&method!=='GET') opts.body=JSON.stringify(body);
     const r=await fetch(url,opts);
     if(!r.ok) {
+      if(r.status===401) {
+        // Token expired
+        S.auth=null;
+        setSyncStatus('err');
+        toast('SESIÓN EXPIRADA — PULSA EL INDICADOR PARA RECONECTAR','err');
+        return null;
+      }
       const errText = await r.text();
       console.error('gFetch error', r.status, url, errText);
       toast(`ERROR ${r.status}: ${errText.slice(0,80)}`,'err');
@@ -3322,6 +3360,42 @@ async function gFetch(url,method,body) {
     }
     return r.json();
   } catch{return null;}
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if(!dot||!label) return;
+  if(status==='ok') { dot.className='sync-dot ok'; label.textContent='Drive ✓'; }
+  else if(status==='err') { dot.className='sync-dot err'; label.textContent='Reconectar'; }
+  else { dot.className='sync-dot'; label.textContent='Sin conectar'; }
+}
+
+function reconectarDrive() {
+  if(S.auth) return; // Already connected
+  if(!window.google?.accounts?.oauth2) { toast('GOOGLE NO DISPONIBLE','err'); return; }
+  const cfg = getLS('t2-cfg')||{};
+  const clientId = cfg.clientId || CLIENT_ID;
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    callback: async (resp) => {
+      if(!resp.error) {
+        S.auth = resp.access_token;
+        setSyncStatus('ok');
+        toast('RECONECTADO ✓','ok');
+        // Re-sync
+        await sincronizarConfig();
+        await leerHistorialDrive();
+        await leerPlanificacionDrive();
+        await leerRemotasDrive();
+        renderPlanif(); renderRecent(); renderStats();
+      } else {
+        toast('ERROR AL RECONECTAR','err');
+      }
+    }
+  });
+  client.requestAccessToken({prompt:''});
 }
 
 // ═══════════════════════════════════════════════════
@@ -3439,7 +3513,7 @@ function renderRecent() {
   const el=document.getElementById('recentList');
   const r=S.intervenciones.slice(0,3);
   if(!r.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;">Sin intervenciones todavía</p>';return;}
-  el.innerHTML=r.map(iv=>`<div class="li ${iv.resultado==='CORRECTO'?'verde':'rojo'}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
+  el.innerHTML=r.map(iv=>`<div class="li ${colorResultado(iv.resultado||iv.RESULTADO)}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
     <div class="li-alias">${iv.alias||iv.ALIAS||'—'}</div>
   </div>`).join('');
