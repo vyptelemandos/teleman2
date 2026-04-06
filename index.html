@@ -2982,7 +2982,7 @@ async function generarPDFDrive(d) {
       { range:`${sheetName}!Q15`, values:[[up(d.modelo)]] },
       { range:`${sheetName}!AN15`,values:[[d.vale?'SI':'NO']] },
       { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
-      { range:`${sheetName}!A20`, values:[[up(d.resolucion)]] },
+      { range:`${sheetName}!A21`, values:[[up(d.resolucion)]] },
     ];
     // Baremos
     const baremoRows = [29,30,31,32,33,34];
@@ -3015,7 +3015,7 @@ async function generarPDFDrive(d) {
     toast('GENERANDO PDF...', 'warn');
 
     // Export the filled sheet as PDF blob
-    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=true&size=A4&fitw=true&gridlines=false&printtitle=false`;
+    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&horizontal_alignment=CENTER&fzr=false&gid=613018177`;
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
