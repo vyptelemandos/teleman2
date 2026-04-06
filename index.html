@@ -2928,10 +2928,25 @@ async function generarPDFDrive(d) {
   if(!S.auth) { toast('CONECTA DRIVE PARA GENERAR EL PDF','warn'); return; }
 
   const zonaCode = getZonaCode(d.zona);
-  const fechaStr = (d.fecha||'').replace(/-/g,'');
-  const nombreArchivo = `${d.centro}-${zonaCode}-${fechaStr}`;
+  const baseNombre = `${d.centro}-${zonaCode}`;
 
+  // Check for duplicates in Informes Pendientes and add suffix if needed
   toast('GENERANDO INFORME EN DRIVE...','warn');
+  let nombreArchivo = baseNombre;
+  try {
+    const existing = await gFetch(
+      `https://www.googleapis.com/drive/v3/files?q='${CARPETA_PENDIENTES}'+in+parents+and+name+contains+'${baseNombre}'+and+trashed=false&fields=files(name)`,
+      'GET'
+    );
+    if(existing?.files?.length) {
+      // Find highest suffix
+      const nums = existing.files.map(f=>{
+        const m = f.name.match(new RegExp(baseNombre.replace(/[.*+?^${}()|[\]\]/g,'\$&')+'(?:\s(\d+))?\.pdf$'));
+        return m ? (m[1] ? parseInt(m[1]) : 0) : -1;
+      }).filter(n=>n>=0);
+      if(nums.length) nombreArchivo = `${baseNombre} ${Math.max(...nums)+1}`;
+    }
+  } catch(e) { /* ignore, use base name */ }
 
   try {
     // 1. Copy plantilla to new file
