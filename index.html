@@ -2152,6 +2152,13 @@ function cancelarVyP(id) {
   }
   if(window._cancelPending===id) {
     window._cancelPending=null;
+    const cancelP = S.planificacion.find(x=>x.id===id);
+    // Delete calendar event if exists
+    if(S.auth && cancelP?.calEventId) {
+      fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${cancelP.calEventId}`, {
+        method:'DELETE', headers:{'Authorization':'Bearer '+S.auth}
+      }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
+    }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
     setLS('t2-pl',S.planificacion); renderPlanif();
     // Mark as CANCELADO in Drive
@@ -2269,7 +2276,8 @@ function addVyPManual() {
   const centro=vu('mv-centro'), fecha=v('mv-fecha');
   if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
   const c=findCentro(centro);
-  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:v('mv-coord'),estado:'PENDIENTE'};
+  const coordFinal = v('mv-coord') || c?.Coord || '';
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE'};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
   console.log('S.auth al añadir planif:', !!S.auth);
@@ -3456,7 +3464,7 @@ async function crearEventoCalendario(p) {
       ].filter(Boolean).join('\n'),
       start: { dateTime: start, timeZone: 'Europe/Madrid' },
       end:   { dateTime: end,   timeZone: 'Europe/Madrid' },
-      colorId: '11', // Tomato red
+      colorId: '8', // Graphite gray
     };
 
     const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
@@ -3464,8 +3472,16 @@ async function crearEventoCalendario(p) {
       headers: { 'Authorization': 'Bearer ' + S.auth, 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
     });
-    if(res.ok) toast('📅 EVENTO CREADO EN GOOGLE CALENDAR ✓','ok');
-    else toast('ERROR AL CREAR EVENTO EN CALENDAR','err');
+    if(res.ok) {
+      const evData = await res.json();
+      // Save event ID to planif for later deletion
+      const planif = S.planificacion.find(x=>x.id===p.id);
+      if(planif && evData.id) {
+        planif.calEventId = evData.id;
+        setLS('t2-pl', S.planificacion);
+      }
+      toast('📅 EVENTO CREADO EN GOOGLE CALENDAR ✓','ok');
+    } else toast('ERROR AL CREAR EVENTO EN CALENDAR','err');
   } catch(e) { console.error('Calendar error:', e); }
 }
 
