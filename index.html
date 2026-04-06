@@ -3011,11 +3011,36 @@ async function generarPDFDrive(d) {
       );
     }
 
-    // 6. Export Sheets as PDF and save to Informes Pendientes
+    // 6. Set print settings on the copied sheet before export
     toast('GENERANDO PDF...', 'warn');
 
+    // Get sheet ID of PARTES tab
+    const sheetMeta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newFileId}`,'GET');
+    const partesSheet = sheetMeta?.sheets?.find(s=>s.properties.title==='PARTES');
+    const partesSheetId = partesSheet?.properties?.sheetId || 0;
+
+    // Set page setup: A4 landscape, fit to 1x1 page, minimal margins
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newFileId}:batchUpdate`,'POST',{
+      requests:[{
+        updateSheetProperties:{
+          properties:{
+            sheetId: partesSheetId,
+            tabColor: null
+          },
+          fields:'tabColor'
+        }
+      },{
+        updateSpreadsheetProperties:{
+          properties:{
+            title: nombreArchivo
+          },
+          fields:'title'
+        }
+      }]
+    });
+
     // Export the filled sheet as PDF blob
-    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false&gid=613018177&top_margin=0.79&bottom_margin=0.59&left_margin=0.79&right_margin=0.71`;
+    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&fith=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false&gid=${partesSheetId}&horizontal_alignment=CENTER&vertical_alignment=TOP`;
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
