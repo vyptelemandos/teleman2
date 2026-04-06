@@ -2941,7 +2941,8 @@ async function generarPDFDrive(d) {
     if(existing?.files?.length) {
       // Find highest suffix
       const nums = existing.files.map(f=>{
-        const m = f.name.match(new RegExp(baseNombre.replace(/[.*+?^${}()|[\]\]/g,'\$&')+'(?:\s(\d+))?\.pdf$'));
+        const escaped = baseNombre.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
+        const m = f.name.match(new RegExp(escaped + '(?:\\s(\\d+))?\\.pdf$'));
         return m ? (m[1] ? parseInt(m[1]) : 0) : -1;
       }).filter(n=>n>=0);
       if(nums.length) nombreArchivo = `${baseNombre} ${Math.max(...nums)+1}`;
