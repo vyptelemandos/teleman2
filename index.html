@@ -3015,7 +3015,7 @@ async function generarPDFDrive(d) {
     toast('GENERANDO PDF...', 'warn');
 
     // Export the filled sheet as PDF blob
-    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false&gid=613018177&ir=false&ic=false&r1=0&c1=0&r2=36&c2=51`;
+    const pdfExportUrl = `https://docs.google.com/spreadsheets/d/${newFileId}/export?format=pdf&portrait=false&size=A4&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false&gid=613018177&ir=false&ic=false&r1=0&c1=0&r2=35&c2=53&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25`;
     const pdfRes = await fetch(pdfExportUrl, {
       headers: { 'Authorization': 'Bearer ' + S.auth }
     });
