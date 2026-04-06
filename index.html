@@ -3290,7 +3290,7 @@ async function leerPlanificacionDrive() {
       trabajo:   (row[7]||'').toUpperCase(),
       coord:     row[8]||'',
       estado:    row[9]||'PENDIENTE',
-    })).filter(p=>p.centro && p.estado!=='COMPLETADO');
+    })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
     return true;
   } catch(e) { console.error('Error leyendo planificación:', e); return false; }
