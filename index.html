@@ -3023,6 +3023,7 @@ async function generarPDFDrive(d) {
       const b = baremos[i];
       const bDesc = b ? (S.baremos.find(x=>x.cod===b.cod)?.desc || b.desc || '') : '';
       data.push({ range:`${sheetName}!A${row}`, values:[[b?.cod||'']] });
+      data.push({ range:`${sheetName}!E${row}`, values:[[b?'X':'']] });
       data.push({ range:`${sheetName}!F${row}`, values:[[b?.ud||'']] });
       data.push({ range:`${sheetName}!G${row}`, values:[[bDesc]] });
     });
@@ -3031,6 +3032,7 @@ async function generarPDFDrive(d) {
     matRows.forEach((row,i) => {
       const m = mats[i];
       data.push({ range:`${sheetName}!AC${row}`, values:[[m?.cod||'']] });
+      data.push({ range:`${sheetName}!AG${row}`, values:[[m?'X':'']] });
       data.push({ range:`${sheetName}!AH${row}`, values:[[m?.qty||'']] });
       data.push({ range:`${sheetName}!AI${row}`, values:[[m?.desc||'']] });
     });
