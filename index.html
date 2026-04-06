@@ -611,13 +611,39 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 
     <!-- Tabs -->
     <div style="display:flex;gap:0;margin-bottom:14px;background:var(--negro2);border-radius:var(--r);overflow:hidden;">
-      <button id="tab-stats" onclick="switchTab('stats')" style="flex:1;padding:11px;background:var(--rojo);color:white;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📈 Estadísticas</button>
+      <button id="tab-stats" onclick="switchTab('stats')" style="flex:1;padding:11px;background:var(--rojo);color:white;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📈 Stats</button>
+      <button id="tab-horas" onclick="switchTab('horas')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">🕐 Horas</button>
       <button id="tab-cfg" onclick="switchTab('cfg')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">⚙️ Ajustes</button>
     </div>
 
     <!-- Stats tab -->
     <div id="tab-stats-content">
       <div id="statsContent"></div>
+    </div>
+
+    <!-- Horas tab -->
+    <div id="tab-horas-content" style="display:none;">
+      <div class="card">
+        <div class="card-head"><div class="card-title">🕐 Reparto de horas</div></div>
+        <div class="card-body">
+          <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Selecciona el período y las horas de cada día para ver el reparto por TDC.</p>
+          <div class="fr2">
+            <div class="fg">
+              <label class="fl">Mes</label>
+              <input class="fi" id="horas-mes" type="month" style="text-transform:none;">
+            </div>
+            <div class="fg">
+              <label class="fl">Período</label>
+              <select class="fs" id="horas-periodo">
+                <option value="1">Días 1 — 15</option>
+                <option value="2">Días 16 — fin de mes</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-red" onclick="cargarHoras()" style="margin-top:8px;">Cargar días</button>
+        </div>
+      </div>
+      <div id="horasDiasList"></div>
     </div>
 
     <!-- Config tab -->
@@ -2153,6 +2179,21 @@ function onZonaChange(sel) {
 }
 
 function switchTab(tab) {
+  // Hide all tabs
+  ['stats','horas','cfg'].forEach(t=>{
+    const el = document.getElementById(`tab-${t}-content`);
+    const btn = document.getElementById(`tab-${t}`);
+    if(el) el.style.display='none';
+    if(btn) { btn.style.background='transparent'; btn.style.color='var(--gris4)'; }
+  });
+  // Show selected
+  const selEl = document.getElementById(`tab-${tab}-content`);
+  const selBtn = document.getElementById(`tab-${tab}`);
+  if(selEl) selEl.style.display='';
+  if(selBtn) { selBtn.style.background='var(--rojo)'; selBtn.style.color='white'; }
+  if(tab==='stats') renderStatsPage();
+  if(tab==='horas') { const m=document.getElementById('horas-mes'); if(m&&!m.value) m.value=new Date().toISOString().slice(0,7); }
+  return; // old code below no longer needed
   const statsContent = document.getElementById('tab-stats-content');
   const cfgContent = document.getElementById('tab-cfg-content');
   const tabStats = document.getElementById('tab-stats');
@@ -2498,6 +2539,96 @@ function sincronizarCentros() {
 // ═══════════════════════════════════════════════════
 //  ESTADÍSTICAS
 // ═══════════════════════════════════════════════════
+function cargarHoras() {
+  const mes = document.getElementById('horas-mes')?.value;
+  const periodo = document.getElementById('horas-periodo')?.value;
+  if(!mes) { toast('SELECCIONA EL MES','err'); return; }
+
+  const [year, month] = mes.split('-').map(Number);
+  let desde, hasta;
+  if(periodo==='1') {
+    desde = new Date(year, month-1, 1);
+    hasta = new Date(year, month-1, 15);
+  } else {
+    desde = new Date(year, month-1, 16);
+    hasta = new Date(year, month, 0); // last day of month
+  }
+
+  // Get my interventions in this period
+  const miNombre = S.miNombre || '';
+  const intervs = S.intervenciones.filter(iv => {
+    const f = new Date(iv.fecha);
+    if(isNaN(f)) return false;
+    if(miNombre && !(iv.tec1||iv.TECNICOS||'').toUpperCase().includes(miNombre.toUpperCase().split(' ')[0])) return false;
+    return f >= desde && f <= hasta;
+  });
+
+  // Group by date
+  const byDay = {};
+  intervs.forEach(iv => {
+    const f = iv.fecha?.slice(0,10) || '';
+    if(!f) return;
+    if(!byDay[f]) byDay[f] = [];
+    byDay[f].push(iv);
+  });
+
+  const dias = Object.keys(byDay).sort();
+  if(!dias.length) {
+    document.getElementById('horasDiasList').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--gris4);">Sin intervenciones en este período</div>';
+    return;
+  }
+
+  // Render each day with time inputs
+  document.getElementById('horasDiasList').innerHTML = dias.map(fecha => {
+    const ivs = byDay[fecha];
+    const d = new Date(fecha+'T12:00:00');
+    const diasSemana = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+    const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    const label = `${diasSemana[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;
+    return `
+    <div class="card" id="dia-${fecha}">
+      <div class="card-head"><div class="card-title">${label}</div></div>
+      <div class="card-body">
+        <div class="fr2" style="margin-bottom:12px;">
+          <div class="fg"><label class="fl">Entrada</label><input class="fi" type="time" id="entrada-${fecha}" value="07:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
+          <div class="fg"><label class="fl">Salida</label><input class="fi" type="time" id="salida-${fecha}" value="15:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
+        </div>
+        <div id="reparto-${fecha}" style="font-family:Consolas,monospace;font-size:13px;line-height:1.8;color:var(--blanco);background:var(--negro2);padding:10px;border-radius:8px;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Store day data and calculate initial
+  window._horasDays = byDay;
+  dias.forEach(f => calcularHoras(f));
+}
+
+function calcularHoras(fecha) {
+  const entrada = document.getElementById(`entrada-${fecha}`)?.value;
+  const salida = document.getElementById(`salida-${fecha}`)?.value;
+  const ivs = window._horasDays?.[fecha];
+  if(!entrada||!salida||!ivs?.length) return;
+
+  const [hE,mE] = entrada.split(':').map(Number);
+  const [hS,mS] = salida.split(':').map(Number);
+  const totalMins = (hS*60+mS) - (hE*60+mE);
+  if(totalMins<=0) { document.getElementById(`reparto-${fecha}`).innerHTML='<span style="color:var(--rojo);">Hora salida debe ser mayor que entrada</span>'; return; }
+
+  const minsPorTDC = Math.floor(totalMins / ivs.length);
+  let currentMins = hE*60+mE;
+  const lines = ivs.map((iv,i) => {
+    const desde = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    currentMins += minsPorTDC;
+    // Last one gets remaining time
+    if(i===ivs.length-1) currentMins = hS*60+mS;
+    const hasta = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    const tdc = iv.tdc||iv.TDC||'SIN TDC';
+    return `${desde} → ${hasta}   ${tdc}`;
+  });
+
+  document.getElementById(`reparto-${fecha}`).innerHTML = lines.join('<br>');
+}
+
 function renderStatsPage() {
   // Create stats page if not exists
   if(!document.getElementById('p-stats')) {
