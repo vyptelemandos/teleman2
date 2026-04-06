@@ -237,6 +237,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .picker-item{display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--gris5);cursor:pointer;transition:background .12s;border-radius:var(--rs);}
 .picker-item:active,.picker-item.picker-selected{background:var(--rojo-light);border-color:var(--rojo-border);}
 .picker-item.picker-selected span{color:var(--rojo) !important;}
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -637,9 +638,16 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">👤 Mi perfil</div></div>
       <div class="card-body">
         <div class="fg">
-          <label class="fl">Mi nombre</label>
+          <label class="fl">Mi nombre (Técnico 1)</label>
           <select class="fs" id="cfg-nombre">
             <option value="">-- Seleccionar --</option>
+            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Mi compañero habitual (Técnico 2)</label>
+          <select class="fs" id="cfg-companero">
+            <option value="">-- Ninguno --</option>
             <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
           </select>
         </div>
@@ -735,9 +743,16 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">👤 Mi perfil</div></div>
       <div class="card-body">
         <div class="fg">
-          <label class="fl">Mi nombre</label>
+          <label class="fl">Mi nombre (Técnico 1)</label>
           <select class="fs" id="cfg-nombre">
             <option value="">-- Seleccionar --</option>
+            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Mi compañero habitual (Técnico 2)</label>
+          <select class="fs" id="cfg-companero">
+            <option value="">-- Ninguno --</option>
             <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
           </select>
         </div>
@@ -1411,6 +1426,7 @@ window.onload = () => {
   S.frases = getLS('t2-fr') || FRASES_DEFAULT;
   S.materiales = getLS('t2-mat') || MATERIALES_DEFAULT;
   S.miNombre = getLS('t2-nombre') || '';
+  S.miCompanero = getLS('t2-companero') || '';
 
   loadConfig();
   renderFechaHoy();
@@ -1603,7 +1619,7 @@ function cargarBorrador(id) {
 function nuevoInforme() {
   S.borradoresActual = null;
   ['f-centro','f-alias','f-poblacion','f-vyp','f-tdc','f-resolucion'].forEach(id=>sv(id,''));
-  sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2','');
+  sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2',S.miCompanero||'');
   sv('f-modelo',''); sv('f-resultado',''); sv('f-motivo',''); sv('f-tipo','');
   const fman=document.getElementById('f-maniobras'); if(fman) fman.checked=false;
   const fbat=document.getElementById('f-baterias'); if(fbat) fbat.checked=false;
@@ -1871,6 +1887,20 @@ function removeFrase(i) {
 // ═══════════════════════════════════════════════════
 //  GENERAR INFORME
 // ═══════════════════════════════════════════════════
+function setGenBtn(disabled) {
+  const btn = document.querySelector('#p-informe .btn-red');
+  if(!btn) return;
+  if(disabled) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">⏳</span> Generando...';
+  } else {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
+  }
+}
+
 function confirmarGenerar() {
   const d = recogerFormulario();
   if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
@@ -1906,9 +1936,10 @@ async function generarInforme() {
     return;
   }
   // Block if already generating
-  if(window._generando) { toast('ESPERA, GENERANDO...','warn'); return; }
+  if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
   window._generando = true;
-  setTimeout(()=>window._generando=false, 10000); // safety timeout
+  setTimeout(()=>{ window._generando=false; setGenBtn(false); }, 15000); // safety timeout
+  setGenBtn(true);
 
   // ID secuencial
   const nextN = S.intervenciones.reduce((max,iv)=>{
@@ -1935,7 +1966,7 @@ async function generarInforme() {
     await guardarEnSheets(d);
     const pdfOk = await generarPDFDrive(d);
     if(pdfOk) toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-    else toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+    else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); window._generando=false; setGenBtn(false); }
     // Mark planif as completed if came from one
     if(S._planifId) {
       // Remove from local planificacion
@@ -1955,6 +1986,7 @@ async function generarInforme() {
   // Materials come from Drive config - don't auto-add here
 
   window._generando = false;
+  setGenBtn(false);
   nuevoInforme();
 }
 
@@ -2038,7 +2070,7 @@ function renderPlanif() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
       </div>
       <div class="planif-actions">
-        <button class="btn btn-red btn-sm" style="flex:1;" onclick="iniciarDesde('${p.id}')">📝 Iniciar informe</button>
+        <button class="btn btn-red btn-sm" style="flex:1;" onclick="closeAllModals();iniciarDesde('${p.id}')">📝 Iniciar informe</button>
         ${coord?`<a href="https://maps.google.com/?q=${coord}" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>`:''}
         <button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="cancelarVyP('${p.id}')">✕</button>
       </div>
@@ -2056,6 +2088,7 @@ function iniciarDesde(id) {
   sv('f-vyp',p.vyp||''); sv('f-tdc',p.tdc||'');
   document.getElementById('f-fecha').value=p.fecha||hoy();
   sv('f-tec1',S.miNombre||'');
+  sv('f-tec2',S.miCompanero||'');
   if(c?.RTU_marca&&c?.RTU_Mod) sv('f-modelo',`${c.RTU_marca} / ${c.RTU_Mod}`.toUpperCase());
   if(c) buscarCentro(p.centro);
   goPage('p-informe');
@@ -2151,7 +2184,7 @@ function showPlanifDetalle(id) {
   if(tieneBat) html+=`<div class="alert alert-warn" style="margin-top:8px;">🔋 El trabajo indica CAMBIO DE BATERÍAS. ${c?.Bat_Modelo?'Modelo actual: '+c.Bat_Modelo:''}</div>`;
   if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 5 años. Valorar sustitución.</div>`;
   html+=`<div class="div"></div>`;
-  html+=`<button class="btn btn-red" onclick="iniciarDesde('${id}');closeModal('modalPlanifDetalle')">📝 Iniciar informe</button>`;
+  html+=`<button class="btn btn-red" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
 
   // Reuse modalInterv for this
   document.getElementById('mIntervTitle').textContent=`${p.centro} — ${p.alias||c?.Alias||''}`;
@@ -2871,7 +2904,7 @@ async function generarPDFDrive(d) {
     if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA','err'); return; }
 
     // Wait for Drive to finish copying
-    toast('PREPARANDO PLANTILLA...','warn');
+    toast('1/4 · COPIANDO PLANTILLA...','warn');
     await new Promise(r => setTimeout(r, 3000));
 
     // 2. Get sheet name
@@ -3012,7 +3045,7 @@ async function generarPDFDrive(d) {
     }
 
     // 6. Set print settings on the copied sheet before export
-    toast('GENERANDO PDF...', 'warn');
+    toast('3/4 · EXPORTANDO PDF...','warn');
 
     // Get sheet ID of PARTES tab
     const sheetMeta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${newFileId}`,'GET');
@@ -3049,6 +3082,7 @@ async function generarPDFDrive(d) {
     const pdfBlob = await pdfRes.blob();
     console.log('PDF blob size:', pdfBlob.size, 'type:', pdfBlob.type);
 
+    toast('4/4 · GUARDANDO EN DRIVE...','warn');
     // Upload PDF to Informes Pendientes
     const pdfName = nombreArchivo + '.pdf';
     const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [CARPETA_PENDIENTES] };
@@ -3356,6 +3390,8 @@ function loadConfig() {
   if(cfg.sheetId){document.getElementById('cfg-sheetid').value=cfg.sheetId;S.sheetId=cfg.sheetId;}
   if(cfg.email) document.getElementById('cfg-email').value=cfg.email;
   if(cfg.nombre){S.miNombre=cfg.nombre;document.getElementById('cfg-nombre').value=cfg.nombre;document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];}
+  const companeroStored = getLS('t2-companero')||'';
+  if(companeroStored){ S.miCompanero=companeroStored; const el=document.getElementById('cfg-companero'); if(el) el.value=companeroStored; }
 }
 
 function saveConfig() {
@@ -3371,9 +3407,11 @@ function saveConfig() {
 function savePerfil() {
   const nombre=v('cfg-nombre'); S.miNombre=nombre;
   setLS('t2-nombre',nombre);
+  const companero=v('cfg-companero'); S.miCompanero=companero;
+  setLS('t2-companero',companero);
   const cfg=getLS('t2-cfg')||{}; cfg.nombre=nombre; setLS('t2-cfg',cfg);
   document.getElementById('nombreUsuario').textContent=nombre.split(' ')[0];
-  sv('f-tec1',nombre); toast('PERFIL GUARDADO ✓','ok');
+  sv('f-tec1',nombre); sv('f-tec2',companero); toast('PERFIL GUARDADO ✓','ok');
 }
 
 // ═══════════════════════════════════════════════════
@@ -3501,8 +3539,21 @@ function hoy(){
 }
 function v(id){return document.getElementById(id)?.value||'';}
 function vu(id){return (document.getElementById(id)?.value||'').toUpperCase().trim();}
-function sv(id,val){const el=document.getElementById(id);if(el)el.value=val||'';}
+function sv(id,val){
+  const el=document.getElementById(id);
+  if(!el) return;
+  // For selects, add option if not present
+  if(el.tagName==='SELECT' && val) {
+    if(![...el.options].some(o=>o.value===val||o.text===val)) {
+      el.appendChild(Object.assign(document.createElement('option'),{value:val,text:val}));
+    }
+  }
+  el.value=val||'';
+}
 function openModal(id){document.getElementById(id)?.classList.add('on');}
+function closeAllModals() {
+  document.querySelectorAll('.overlay').forEach(el => el.classList.remove('on'));
+}
 function closeModal(id){document.getElementById(id)?.classList.remove('on');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 
