@@ -3038,6 +3038,9 @@ async function generarPDFDrive(d) {
     });
 
     // 5. Write all replacements
+    const eRows = data.filter(d=>d.range.includes('!E')||d.range.includes('!AG'));
+    console.log('X cells to write:', eRows);
+    console.log('Total data rows:', data.length);
     if(data.length) {
       await gFetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${newFileId}/values:batchUpdate`,
