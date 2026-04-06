@@ -2953,7 +2953,7 @@ async function initSheet() {
   if(res?.spreadsheetId){
     S.sheetId=res.spreadsheetId;
     const c=getLS('t2-cfg')||{}; c.sheetId=S.sheetId; setLS('t2-cfg',c);
-    document.getElementById('cfg-sheetid').value=S.sheetId;
+    const sheetEl=document.getElementById('cfg-sheetid'); if(sheetEl) sheetEl.value=S.sheetId;
     await writeHeaders();
     if(S.intervenciones.length) subirHistorial();
     toast('HOJA CREADA EN DRIVE ✓','ok');
@@ -3654,7 +3654,7 @@ function loadConfig() {
   const cfg=getLS('t2-cfg')||{};
   if(!cfg.clientId) cfg.clientId = CLIENT_ID;
   if(cfg.clientId) document.getElementById('cfg-clientid').value=cfg.clientId;
-  if(cfg.sheetId){document.getElementById('cfg-sheetid').value=cfg.sheetId;S.sheetId=cfg.sheetId;}
+  if(cfg.sheetId){const sel=document.getElementById('cfg-sheetid');if(sel)sel.value=cfg.sheetId;S.sheetId=cfg.sheetId;}
   if(cfg.email) document.getElementById('cfg-email').value=cfg.email;
   if(cfg.nombre){S.miNombre=cfg.nombre;document.getElementById('cfg-nombre').value=cfg.nombre;document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];}
   const companeroStored = getLS('t2-companero')||'';
@@ -3665,8 +3665,8 @@ function saveConfig() {
   const cfg=getLS('t2-cfg')||{};
   cfg.clientId=document.getElementById('cfg-clientid').value.trim();
   cfg.email=document.getElementById('cfg-email').value.trim();
-  const sid=document.getElementById('cfg-sheetid').value.trim();
-  if(sid){cfg.sheetId=sid;S.sheetId=sid;}
+  const sidEl=document.getElementById('cfg-sheetid');
+  if(sidEl){const sid=sidEl.value.trim(); if(sid){cfg.sheetId=sid;S.sheetId=sid;}}
   setLS('t2-cfg',cfg); toast('CONFIGURACIÓN GUARDADA ✓','ok');
   if(cfg.clientId) handleSync();
 }
