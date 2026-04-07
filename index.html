@@ -1318,6 +1318,11 @@ function runSplash() {
   const bar = document.getElementById('splashBar');
   const msg = document.getElementById('splashMsg');
   if(!splash) return;
+  // Set version
+  const vEl = document.getElementById('splashVersion');
+  if(vEl) vEl.textContent = APP_VERSION;
+  const fv = document.getElementById('footerVersion');
+  if(fv) fv.textContent = APP_VERSION;
 
   const setProgress = (pct, txt) => {
     bar.style.width = pct + '%';
@@ -2271,11 +2276,12 @@ function showPlanifDetalle(id) {
   if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 5 años. Valorar sustitución.</div>`;
   // Check for incomplete centre data
   if(c) {
+    const vacio = v => !v || v.toUpperCase()==='DESCONOCIDO' || v.toUpperCase()==='DESCONOCIDA' || v==='-';
     const missing = [];
-    if(!c.Coord) missing.push('coordenadas');
-    if(!c.RTU_marca) missing.push('RTU');
-    if(!c.Bat_Tipo) missing.push('baterías');
-    if(!c.Via_Com) missing.push('vía comunicación');
+    if(vacio(c.Coord)) missing.push('coordenadas');
+    if(vacio(c.RTU_marca)) missing.push('RTU');
+    if(vacio(c.Bat_Tipo)) missing.push('baterías');
+    if(vacio(c.Via_Com)) missing.push('vía comunicación');
     if(missing.length) {
       html+=`<div class="alert alert-warn" style="margin-top:8px;">
         ⚠️ Faltan datos: <strong>${missing.join(', ')}</strong>
@@ -2331,9 +2337,14 @@ async function sincronizarVyP() {
 function renderHistorial(f='') {
   const el=document.getElementById('histList');
   const fechaFiltro = document.getElementById('histFecha')?.value||'';
-  const sorted = [...S.intervenciones].sort((a,b)=>{
-    const fa=new Date(a.fecha||0), fb=new Date(b.fecha||0); return fb-fa;
-  });
+  const parseFechaSort = (f) => {
+    if(!f) return 0;
+    // Handle DD/MM/YYYY
+    const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+    if(dm) return new Date(`${dm[3]}-${dm[2]}-${dm[1]}`).getTime();
+    return new Date(f).getTime() || 0;
+  };
+  const sorted = [...S.intervenciones].sort((a,b)=> parseFechaSort(b.fecha) - parseFechaSort(a.fecha));
   const list=sorted.filter(iv=>{
     if(fechaFiltro && !(iv.fecha||'').startsWith(fechaFiltro)) return false;
     if(!f) return true;
@@ -3380,21 +3391,44 @@ async function leerHistorialDrive() {
       return false;
     }
 
-    S.intervenciones = allRows.map((row,i)=>({
-      intId: (row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
-      centro: (row[1]||'').toUpperCase().trim(),
-      fecha: parseDateStr(row[2]||''),
-      tec1: (row[3]||'').toUpperCase().trim(),
-      tec2: (row[4]||'').toUpperCase().trim(),
-      alias: (row[5]||'').toUpperCase().trim(),
-      zona: (row[6]||'').toUpperCase().trim(),
-      poblacion: (row[7]||'').toUpperCase().trim(),
-      resultado: (row[8]||'').toUpperCase().trim(),
-      vyp: (row[9]||'').toString().trim(),
-      tdc: (row[10]||'').toString().trim(),
-      modelo: (row[14]||'').toUpperCase().trim(),
-      resolucion: (row[15]||'').toUpperCase().trim(),
-    })).filter(iv=>iv.centro);
+    S.intervenciones = allRows.map((row,i)=>{
+      // Read baremos: cols 18-35 (BAREMO1_COD=18, UD=19, DESC=20, BAREMO2_COD=21...)
+      const baremos = [];
+      for(let b=0;b<6;b++) {
+        const cod = (row[18+b*3]||'').toString().trim();
+        const ud  = parseFloat(row[19+b*3])||0;
+        if(cod) baremos.push({cod, ud, desc:(row[20+b*3]||'').toString().trim()});
+      }
+      // Read materiales: cols 36-53 (MAT1_COD=36, UD=37, DESC=38...)
+      const materiales = [];
+      for(let m=0;m<6;m++) {
+        const cod = (row[36+m*3]||'').toString().trim();
+        const qty = parseFloat(row[37+m*3])||0;
+        if(cod) materiales.push({cod, qty, desc:(row[38+m*3]||'').toString().trim()});
+      }
+      return {
+        intId: (row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
+        centro: (row[1]||'').toUpperCase().trim(),
+        fecha: parseDateStr(row[2]||''),
+        tec1: (row[3]||'').toUpperCase().trim(),
+        tec2: (row[4]||'').toUpperCase().trim(),
+        alias: (row[5]||'').toUpperCase().trim(),
+        zona: (row[6]||'').toUpperCase().trim(),
+        poblacion: (row[7]||'').toUpperCase().trim(),
+        resultado: (row[8]||'').toUpperCase().trim(),
+        vyp: (row[9]||'').toString().trim(),
+        tdc: (row[10]||'').toString().trim(),
+        motivo: (row[11]||'').toUpperCase().trim(),
+        maniobras: (row[12]||'').toUpperCase().trim(),
+        tipo: (row[13]||'').toUpperCase().trim(),
+        modelo: (row[14]||'').toUpperCase().trim(),
+        resolucion: (row[15]||'').toUpperCase().trim(),
+        vale: (row[16]||'').toUpperCase()==='SI',
+        trace: (row[17]||'').toUpperCase()==='OK',
+        baremos,
+        materiales,
+      };
+    }).filter(iv=>iv.centro);
 
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
