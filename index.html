@@ -1091,7 +1091,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.30';
+const APP_VERSION = 'v2.31';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -1996,7 +1996,7 @@ async function generarInforme() {
   const lastId = S.intervenciones.reduce((max,iv)=>{
     const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
   },0);
-  d.intId = String(lastId+1).padStart(4,'0');
+  d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
 
   S.intervenciones.unshift(d);
   setLS('t2-iv',S.intervenciones);
