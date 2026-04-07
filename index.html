@@ -749,23 +749,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       🗑 Borrar datos locales y reiniciar
     </button>
 
-    <div class="card" style="margin-top:8px;">
-      <div class="card-head"><div class="card-title">📦 Generación masiva PDFs</div></div>
-      <div class="card-body">
-        <div class="alert alert-warn" style="margin-bottom:10px;font-size:12px;">⚠️ USO ÚNICO — solo para migrar informes anteriores.</div>
-        <p style="font-size:12px;color:var(--gris3);margin-bottom:10px;">Sube el Excel en formato nuevo y se generarán todos los PDFs en Informes Pendientes.</p>
-        <div class="file-drop" onclick="document.getElementById('fileMasivo').click()" style="padding:14px;">
-          <p style="margin:0;font-size:13px;">📂 Seleccionar Excel</p>
-          <input type="file" id="fileMasivo" accept=".xlsx,.xls" onchange="generarPDFsMasivo(this)" style="display:none;">
-        </div>
-        <div id="masivoProgress" style="display:none;margin-top:10px;">
-          <div style="background:var(--negro2);border-radius:8px;overflow:hidden;height:8px;margin-bottom:8px;">
-            <div id="masivoBar" style="height:100%;width:0%;background:var(--rojo);transition:width 0.3s;"></div>
-          </div>
-          <div id="masivoMsg" style="font-size:12px;color:var(--gris3);text-align:center;"></div>
-        </div>
-      </div>
-    </div>
 
     <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span></div>
 
@@ -1108,7 +1091,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.27';
+const APP_VERSION = 'v2.29';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -2043,8 +2026,10 @@ async function generarInforme() {
   if(S.auth) {
     await guardarEnSheets(d);
     const pdfOk = await generarPDFDrive(d);
-    if(pdfOk) toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-    else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); window._generando=false; setGenBtn(false); }
+    if(pdfOk) {
+      toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
+      añadirFilaCertificacion(d); // Add to certification Excel
+    } else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); window._generando=false; setGenBtn(false); }
     // Mark planif as completed if came from one
     if(S._planifId) {
       // Remove from local planificacion
@@ -3123,6 +3108,72 @@ async function enviarPendientes() {
   toast(`${movidos} INFORMES MOVIDOS A PROCESADOS ✓`,'ok');
 }
 
+// ═══════════════════════════════════════════════════
+//  EXCEL DE CERTIFICACIÓN
+// ═══════════════════════════════════════════════════
+const CERT_FILENAME = 'TELEMANDOS_CERTIFICACION.xlsx';
+
+async function buscarOcrearCertExcel() {
+  // Search for existing cert excel in Pendientes
+  const res = await gFetch(
+    `https://www.googleapis.com/drive/v3/files?q='${CARPETA_PENDIENTES}'+in+parents+and+name='${CERT_FILENAME}'+and+trashed=false&fields=files(id,name)`,
+    'GET'
+  );
+  if(res?.files?.length) return res.files[0].id;
+
+  // Create new Excel with headers
+  const headers = [['COMENTARIOS','LCL','TICKET / TDC','FECHA REALIZACION','ZONA','POBLACION','DIRECCION','CT','COD NAVISION','FECHA CERTIFICACION','IMPORTE','FECHA FACTURACION']];
+  
+  // Create via Sheets API then move to folder
+  const createRes = await gFetch('https://sheets.googleapis.com/v4/spreadsheets','POST',{
+    properties: { title: CERT_FILENAME },
+    sheets: [{ properties: { title: 'Hoja1' } }]
+  });
+  if(!createRes?.spreadsheetId) return null;
+  const fileId = createRes.spreadsheetId;
+
+  // Write headers
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/Hoja1!A1:L1?valueInputOption=RAW`,'PUT',{values:headers});
+
+  // Move to Pendientes folder
+  const meta = await gFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,'GET');
+  const oldParents = (meta?.parents||[]).join(',');
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${CARPETA_PENDIENTES}&removeParents=${oldParents}`,{
+    method:'PATCH', headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'}
+  });
+
+  return fileId;
+}
+
+async function añadirFilaCertificacion(d) {
+  if(!S.auth) return;
+  try {
+    const certId = await buscarOcrearCertExcel();
+    if(!certId) return;
+
+    const tdc = String(d.tdc||'').trim();
+    const digitos = tdc.replace(/\D/g,'').length;
+    const lcl = digitos === 10 ? tdc : '';
+
+    const row = [
+      '',           // COMENTARIOS - oficina
+      lcl,          // LCL - solo si 10 dígitos
+      tdc,          // TICKET/TDC - siempre
+      d.fecha||'',  // FECHA REALIZACION
+      d.zona||'',   // ZONA
+      d.poblacion||'', // POBLACION
+      d.alias||'',  // DIRECCION (alias)
+      d.centro||'', // CT
+      '',           // COD NAVISION - oficina
+      '',           // FECHA CERTIFICACION - oficina
+      '',           // IMPORTE - oficina
+      '',           // FECHA FACTURACION - oficina
+    ];
+
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${certId}/values/Hoja1!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[row]});
+  } catch(e) { console.error('Error certificación:', e); }
+}
+
 async function moverAProcesados(fileId) {
   if(!S.auth || !fileId) return false;
   try {
@@ -3493,85 +3544,6 @@ async function leerRemotasDrive() {
 
 // escribirIntervDrive = alias of guardarEnSheets
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
-
-async function generarPDFsMasivo(input) {
-  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','err'); return; }
-  const file = input.files[0]; if(!file) return;
-
-  const progressEl = document.getElementById('masivoProgress');
-  const barEl = document.getElementById('masivoBar');
-  const msgEl = document.getElementById('masivoMsg');
-  progressEl.style.display = 'block';
-
-  // Read Excel
-  const data = await file.arrayBuffer();
-  const wb = XLSX.read(data, {type:'array'});
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-
-  const total = rows.length;
-  let done = 0, errors = 0;
-  msgEl.textContent = `0 / ${total} — preparando...`;
-
-  for(const row of rows) {
-    const d = {
-      intId: row['ID'] || ('MIGR-'+Date.now()),
-      centro: String(row['INSTALACIÓN']||'').toUpperCase().trim(),
-      fecha: row['FECHA'] ? String(row['FECHA']).trim() : '',
-      tec1: String(row['TECNICO 1']||'').toUpperCase().trim(),
-      tec2: String(row['TECNICO 2']||'').toUpperCase().trim(),
-      alias: String(row['ALIAS']||'').toUpperCase().trim(),
-      zona: String(row['ZONA']||'').toUpperCase().trim(),
-      poblacion: String(row['POBLACION']||'').toUpperCase().trim(),
-      resultado: String(row['RESULTADO']||'').toUpperCase().trim(),
-      vyp: String(row['VYP']||'').trim(),
-      tdc: String(row['TDC']||'').trim(),
-      motivo: String(row['MOTIVO']||'').toUpperCase().trim(),
-      maniobras: String(row['MANIOBRAS']||'NO').toUpperCase().trim(),
-      tipo: String(row['TIPO']||'').toUpperCase().trim(),
-      modelo: String(row['MARCA']||'').toUpperCase().trim(),
-      resolucion: String(row['RESOLUCIÓN']||'').toUpperCase().trim(),
-      vale: String(row['VALE A1']||'').toUpperCase()==='SI',
-      trace: String(row['TRACE']||'').toUpperCase()==='OK',
-      baremos: [],
-      materiales: [],
-    };
-
-    if(!d.centro) { done++; continue; }
-
-    // Parse baremos
-    for(let i=1;i<=6;i++) {
-      const cod = String(row[`BAREMO${i}_COD`]||'').trim();
-      const ud = parseFloat(row[`BAREMO${i}_UD`])||0;
-      const desc = String(row[`BAREMO${i}_DESC`]||'').trim();
-      if(cod) d.baremos.push({cod, ud, desc});
-    }
-    // Parse materiales
-    for(let i=1;i<=6;i++) {
-      const cod = String(row[`MAT${i}_COD`]||'').trim();
-      const qty = parseFloat(row[`MAT${i}_UD`])||0;
-      const desc = String(row[`MAT${i}_DESC`]||'').trim();
-      if(cod) d.materiales.push({cod, qty, desc});
-    }
-
-    try {
-      msgEl.textContent = `${done+1} / ${total} — ${d.centro}`;
-      await generarPDFDrive(d);
-      done++;
-    } catch(e) {
-      console.error('Error en', d.centro, e);
-      errors++;
-      done++;
-    }
-
-    barEl.style.width = Math.round((done/total)*100)+'%';
-    // Small delay to avoid rate limiting
-    await new Promise(r=>setTimeout(r,1500));
-  }
-
-  msgEl.textContent = `✓ ${done} PDFs generados. ${errors>0?errors+' errores':''}`;
-  toast(`${done} PDFs GENERADOS ✓`,'ok');
-}
 
 function resetearDatosLocales() {
   confirmar('reset', 'BORRAR DATOS', () => {
