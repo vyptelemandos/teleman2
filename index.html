@@ -2276,12 +2276,19 @@ function showPlanifDetalle(id) {
   if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 5 años. Valorar sustitución.</div>`;
   // Check for incomplete centre data
   if(c) {
-    const vacio = v => !v || v.toUpperCase()==='DESCONOCIDO' || v.toUpperCase()==='DESCONOCIDA' || v==='-';
+    const vacio = v => !v || ['DESCONOCIDO','DESCONOCIDA','-','N/A',''].includes((v||'').toString().toUpperCase().trim());
     const missing = [];
+    if(vacio(c.Tipo)) missing.push('tipo');
+    if(vacio(c['Ubicación'])) missing.push('ubicación');
     if(vacio(c.Coord)) missing.push('coordenadas');
-    if(vacio(c.RTU_marca)) missing.push('RTU');
-    if(vacio(c.Bat_Tipo)) missing.push('baterías');
-    if(vacio(c.Via_Com)) missing.push('vía comunicación');
+    if(vacio(c.Via_Com)) missing.push('vía com.');
+    if(vacio(c.RTU_marca)) missing.push('RTU marca');
+    if(vacio(c.RTU_Mod)) missing.push('RTU modelo');
+    if(vacio(c.Controlador_Marca)) missing.push('ctrl. marca');
+    if(vacio(c.Controlador_Modelo)) missing.push('ctrl. modelo');
+    if(vacio(c.Fechasus)) missing.push('fecha baterías');
+    if(vacio(c.Bat_Tipo)) missing.push('tipo baterías');
+    if(vacio(c.Rec_Marca)) missing.push('rectificador');
     if(missing.length) {
       html+=`<div class="alert alert-warn" style="margin-top:8px;">
         ⚠️ Faltan datos: <strong>${missing.join(', ')}</strong>
