@@ -542,7 +542,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-sub" id="histSub">0 intervenciones</p>
     <div class="srch">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="histSearch" placeholder="Centro, alias, ticket, zona, técnico..." oninput="filtrarHistorial()">
+      <input type="text" id="histSearch" placeholder="Centro, alias, ticket, técnico..." oninput="filtrarHistorial()">
+    </div>
+    <div style="padding:0 16px 8px;">
+      <input class="fi" id="histFecha" type="month" oninput="filtrarHistorial()" style="width:100%;text-transform:none;" placeholder="Filtrar por mes">
     </div>
     <div id="histList"></div>
   </div>
@@ -635,8 +638,8 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
             <div class="fg">
               <label class="fl">Período</label>
               <select class="fs" id="horas-periodo">
-                <option value="1">Días 1 — 15</option>
-                <option value="2">Días 16 — fin de mes</option>
+                <option value="1">Días 16 — 25 (mismo mes)</option>
+                <option value="2">Días 26 — 15 (mes siguiente)</option>
               </select>
             </div>
           </div>
@@ -655,7 +658,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
         <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
-          <button class="btn btn-red" onclick="saveConfig()">Guardar y conectar Drive</button>
+          <button class="btn btn-gray" onclick="saveConfig()" style="font-size:12px;padding:8px;">Guardar configuración</button>
           <button class="btn btn-dark" onclick="enviarPendientes()">📤 Enviar informes pendientes ahora</button>
         </div>
       </div>
@@ -745,7 +748,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <button class="btn btn-gray" onclick="resetearDatosLocales()" style="margin-bottom:12px;color:var(--rojo);">
       🗑 Borrar datos locales y reiniciar
     </button>
-    <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--gris4);">Teleman2 v2.1</div>
+    <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span></div>
 
     </div><!-- /tab-cfg-content -->
   </div><!-- /p-miaera -->
@@ -760,7 +763,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
         <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
-          <button class="btn btn-red" onclick="saveConfig()">Guardar y conectar Drive</button>
+          <button class="btn btn-gray" onclick="saveConfig()" style="font-size:12px;padding:8px;">Guardar configuración</button>
           <button class="btn btn-dark" onclick="enviarPendientes()">📤 Enviar informes pendientes ahora</button>
         </div>
       </div>
@@ -847,7 +850,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
 
-    <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:var(--gris4);">Teleman2 v2.1 · vyptelemandos.github.io/teleman2</div>
+    <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span> · vyptelemandos.github.io/teleman2</div>
   </div>
 
 </div><!-- /scroll -->
@@ -1058,7 +1061,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
   <div style="font-family:Consolas,monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
   <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:4px;">TELEMAN2</div>
-  <div style="font-family:Consolas,monospace;font-size:11px;color:var(--gris4);margin-bottom:44px;" id="splashVersion"></div>
+  <div style="font-family:Consolas,monospace;font-size:12px;color:var(--gris3);margin-bottom:44px;letter-spacing:1px;" id="splashVersion"></div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
@@ -1295,7 +1298,7 @@ function confirmar(key, msg, fn) {
     delete _confirmPending[key];
     fn();
   } else {
-    toast(msg + ' — TOCA DE NUEVO PARA CONFIRMAR', 'warn');
+    toast(msg + ' — TOCA OTRA VEZ', 'warn');
     _confirmPending[key] = {
       timer: setTimeout(() => { delete _confirmPending[key]; }, 3000)
     };
@@ -1916,7 +1919,7 @@ function renderFrasesConfig() {
 }
 
 function removeFrase(i) {
-  confirmar('frase'+i, 'BORRAR FRASE', () => {
+  confirmar('frase'+i, 'BORRAR', () => {
     S.frases.splice(i,1); setLS('t2-fr',S.frases); renderFrasesConfig();
   });
 }
@@ -1982,10 +1985,11 @@ async function generarInforme() {
   const nextN = S.intervenciones.reduce((max,iv)=>{
     const n=parseInt((iv.intId||'').replace('INT-',''))||0; return Math.max(max,n);
   },3013);
-  // Generate timestamp-based ID: INT-YYMMDDHHmmss
-  const _now = new Date();
-  const _pad = n => String(n).padStart(2,'0');
-  d.intId = 'INT-' + String(_now.getFullYear()).slice(2) + _pad(_now.getMonth()+1) + _pad(_now.getDate()) + _pad(_now.getHours()) + _pad(_now.getMinutes()) + _pad(_now.getSeconds());
+  // Generate correlative ID based on last row in historial
+  const lastId = S.intervenciones.reduce((max,iv)=>{
+    const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
+  },0);
+  d.intId = String(lastId+1).padStart(4,'0');
 
   S.intervenciones.unshift(d);
   setLS('t2-iv',S.intervenciones);
@@ -2001,13 +2005,15 @@ async function generarInforme() {
 
   if(!navigator.onLine) {
     // No connection - save as draft
+    setSyncStatus('err');
+    document.getElementById('syncLabel').textContent = 'Sin cobertura';
     if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
     S.borradores[S.borradoresActual] = d;
     setLS('t2-bo', S.borradores);
     updateBorradorBadge();
     renderBorradoresInicio();
     window._generando=false; setGenBtn(false);
-    toast('SIN COBERTURA — BORRADOR GUARDADO. ENVÍA CUANDO TENGAS CONEXIÓN','warn');
+    toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
     return;
   }
   if(S.auth) {
@@ -2263,6 +2269,20 @@ function showPlanifDetalle(id) {
   if(coord) html+=`<div class="dr"><div class="dr-l">GPS</div><div class="dr-v"><a href="https://maps.google.com/?q=${coord}" target="_blank" style="color:var(--rojo);">📍 Abrir en Maps</a></div></div>`;
   if(tieneBat) html+=`<div class="alert alert-warn" style="margin-top:8px;">🔋 El trabajo indica CAMBIO DE BATERÍAS. ${c?.Bat_Modelo?'Modelo actual: '+c.Bat_Modelo:''}</div>`;
   if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 5 años. Valorar sustitución.</div>`;
+  // Check for incomplete centre data
+  if(c) {
+    const missing = [];
+    if(!c.Coord) missing.push('coordenadas');
+    if(!c.RTU_marca) missing.push('RTU');
+    if(!c.Bat_Tipo) missing.push('baterías');
+    if(!c.Via_Com) missing.push('vía comunicación');
+    if(missing.length) {
+      html+=`<div class="alert alert-warn" style="margin-top:8px;">
+        ⚠️ Faltan datos: <strong>${missing.join(', ')}</strong>
+        <button class="btn btn-gray btn-sm" style="margin-top:6px;width:100%;" onclick="closeAllModals();editarCentro('${p.centro}')">✏️ Completar ficha</button>
+      </div>`;
+    }
+  }
   html+=`<div class="div"></div>`;
   html+=`<button class="btn btn-red" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
 
@@ -2310,7 +2330,15 @@ async function sincronizarVyP() {
 // ═══════════════════════════════════════════════════
 function renderHistorial(f='') {
   const el=document.getElementById('histList');
-  const list=S.intervenciones.filter(iv=>!f||[iv.centro,iv.alias,iv.tdc,iv.vyp,iv.zona,iv.poblacion,iv.tec1,iv.resultado].join(' ').toUpperCase().includes(f.toUpperCase()));
+  const fechaFiltro = document.getElementById('histFecha')?.value||'';
+  const sorted = [...S.intervenciones].sort((a,b)=>{
+    const fa=new Date(a.fecha||0), fb=new Date(b.fecha||0); return fb-fa;
+  });
+  const list=sorted.filter(iv=>{
+    if(fechaFiltro && !(iv.fecha||'').startsWith(fechaFiltro)) return false;
+    if(!f) return true;
+    return [iv.centro,iv.alias,iv.tdc,iv.vyp,iv.zona,iv.poblacion,iv.tec1,iv.resultado].join(' ').toUpperCase().includes(f.toUpperCase());
+  });
   document.getElementById('histSub').textContent=`${S.intervenciones.length} INTERVENCIONES · ${list.length} MOSTRADAS`;
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6M9 16h6M17 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-4z"/></svg><div class="empty-t">${f?'SIN RESULTADOS':'SIN INTERVENCIONES'}</div><div class="empty-s">${f?'':'Importa tu historial desde Ajustes'}</div></div>`;return;}
   el.innerHTML=list.slice(0,100).map(iv=>{
@@ -2325,7 +2353,7 @@ function renderHistorial(f='') {
   }).join('');
 }
 
-function filtrarHistorial(){renderHistorial(document.getElementById('histSearch').value);}
+function filtrarHistorial(){renderHistorial(document.getElementById('histSearch')?.value||'');}
 
 function colorResultado(res) {
   if(!res) return 'gris';
@@ -2384,7 +2412,8 @@ function showInterv(intId,centro) {
 function renderCentros(f='') {
   const el=document.getElementById('centroList');
   const list=S.centros.filter(c=>!f||Object.values(c).join(' ').toUpperCase().includes(f.toUpperCase()));
-  document.getElementById('centrosSub').textContent=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS`;
+  const incompletos = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo).length;
+  document.getElementById('centrosSub').textContent=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletos?` · ${incompletos} INCOMPLETAS`:''}`;
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="empty-t">SIN INSTALACIONES</div><div class="empty-s">Importa tu Excel desde Ajustes</div></div>`;return;}
 
   // Group by zone — mine first
@@ -2565,11 +2594,11 @@ function cargarHoras() {
   const [year, month] = mes.split('-').map(Number);
   let desde, hasta;
   if(periodo==='1') {
-    desde = new Date(year, month-1, 1);
-    hasta = new Date(year, month-1, 15);
-  } else {
     desde = new Date(year, month-1, 16);
-    hasta = new Date(year, month, 0); // last day of month
+    hasta = new Date(year, month-1, 25);
+  } else {
+    desde = new Date(year, month-1, 26);
+    hasta = new Date(year, month, 15); // 15th of next month
   }
 
   // Get my interventions in this period
@@ -2664,7 +2693,12 @@ function renderStatsPage() {
   // Solo intervenciones nuevas tienen baremos estructurados
   const totalPts = (iv) => {
     if(!Array.isArray(iv.baremos)) return 0;
-    return iv.baremos.reduce((a,b) => a + (parseFloat(b.pts)||0), 0);
+    return iv.baremos.reduce((a,b) => {
+      // Try pts field first, then look up in config baremos by code
+      const pts = parseFloat(b.pts) || 
+                  parseFloat(S.baremos.find(x=>x.cod===b.cod)?.pts) || 0;
+      return a + pts * (parseFloat(b.ud)||1);
+    }, 0);
   };
 
   const calcStats = (lista) => {
@@ -2778,7 +2812,7 @@ function addTecnicoConfig() {
 }
 
 function removeTecnicoConfig(i) {
-  confirmar('tec'+i, 'BORRAR TÉCNICO', () => {
+  confirmar('tec'+i, 'BORRAR', () => {
     const tecnicos = getLS('t2-tec') || [];
     tecnicos.splice(i, 1);
     setLS('t2-tec', tecnicos);
@@ -2881,7 +2915,7 @@ function editMaterialConfig(i, val) {
 }
 
 function removeMaterialConfig(i) {
-  confirmar('mat'+i, 'BORRAR MATERIAL', () => {
+  confirmar('mat'+i, 'BORRAR', () => {
     S.materiales.splice(i, 1);
     setLS('t2-mat', S.materiales);
     renderMaterilesConfig();
@@ -2901,7 +2935,7 @@ function renderBaremosEditList() {
 
 function updateBaremoPts(i,val) { S.baremos[i].pts=parseFloat(val)||0; setLS('t2-bar',S.baremos); renderBaremosOptions(); }
 function removeBaremoConfig(i) {
-  confirmar('baremo'+i, 'BORRAR BAREMO', () => {
+  confirmar('baremo'+i, 'BORRAR', () => {
     S.baremos.splice(i,1); setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions();
   });
 }
@@ -3401,7 +3435,7 @@ async function leerRemotasDrive() {
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 function resetearDatosLocales() {
-  confirmar('reset', 'BORRAR TODOS LOS DATOS LOCALES', () => {
+  confirmar('reset', 'BORRAR DATOS', () => {
   const keys = ['t2-iv','t2-ct','t2-bo','t2-config-ts']; // Keep bar/fr/mat/tec - they come from Drive
   keys.forEach(k => localStorage.removeItem(k));
   // Reset state
@@ -3763,7 +3797,14 @@ function checkAlertasInicio() {
     return d&&(Date.now()-d)/(1000*60*60*24*365)>5;
   });
   const el=document.getElementById('alertasInicio');
-  if(viejas.length) el.innerHTML=`<div class="alert alert-warn" style="margin-bottom:10px;">🔋 <strong>${viejas.length} INSTALACIONES</strong> con baterías de más de 5 años en tus zonas. <span style="color:var(--rojo);cursor:pointer;" onclick="goPage('p-centros')">Ver →</span></div>`;
+  if(viejas.length) el.innerHTML=`<div class="alert alert-warn" onclick="goPage('p-centros')" style="cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <span style="font-size:22px;">🔋</span>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;">${viejas.length} instalaciones con baterías &gt;5 años</div>
+      <div style="font-size:12px;opacity:0.8;">En tus zonas · pulsa para ver</div>
+    </div>
+    <span style="color:var(--rojo);font-size:18px;">→</span>
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════
