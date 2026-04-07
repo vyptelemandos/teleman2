@@ -3475,6 +3475,85 @@ async function leerRemotasDrive() {
 // escribirIntervDrive = alias of guardarEnSheets
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
+async function generarPDFsMasivo(input) {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','err'); return; }
+  const file = input.files[0]; if(!file) return;
+
+  const progressEl = document.getElementById('masivoProgress');
+  const barEl = document.getElementById('masivoBar');
+  const msgEl = document.getElementById('masivoMsg');
+  progressEl.style.display = 'block';
+
+  // Read Excel
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+  const total = rows.length;
+  let done = 0, errors = 0;
+  msgEl.textContent = `0 / ${total} — preparando...`;
+
+  for(const row of rows) {
+    const d = {
+      intId: row['ID'] || ('MIGR-'+Date.now()),
+      centro: String(row['INSTALACIÓN']||'').toUpperCase().trim(),
+      fecha: row['FECHA'] ? String(row['FECHA']).trim() : '',
+      tec1: String(row['TECNICO 1']||'').toUpperCase().trim(),
+      tec2: String(row['TECNICO 2']||'').toUpperCase().trim(),
+      alias: String(row['ALIAS']||'').toUpperCase().trim(),
+      zona: String(row['ZONA']||'').toUpperCase().trim(),
+      poblacion: String(row['POBLACION']||'').toUpperCase().trim(),
+      resultado: String(row['RESULTADO']||'').toUpperCase().trim(),
+      vyp: String(row['VYP']||'').trim(),
+      tdc: String(row['TDC']||'').trim(),
+      motivo: String(row['MOTIVO']||'').toUpperCase().trim(),
+      maniobras: String(row['MANIOBRAS']||'NO').toUpperCase().trim(),
+      tipo: String(row['TIPO']||'').toUpperCase().trim(),
+      modelo: String(row['MARCA']||'').toUpperCase().trim(),
+      resolucion: String(row['RESOLUCIÓN']||'').toUpperCase().trim(),
+      vale: String(row['VALE A1']||'').toUpperCase()==='SI',
+      trace: String(row['TRACE']||'').toUpperCase()==='OK',
+      baremos: [],
+      materiales: [],
+    };
+
+    if(!d.centro) { done++; continue; }
+
+    // Parse baremos
+    for(let i=1;i<=6;i++) {
+      const cod = String(row[`BAREMO${i}_COD`]||'').trim();
+      const ud = parseFloat(row[`BAREMO${i}_UD`])||0;
+      const desc = String(row[`BAREMO${i}_DESC`]||'').trim();
+      if(cod) d.baremos.push({cod, ud, desc});
+    }
+    // Parse materiales
+    for(let i=1;i<=6;i++) {
+      const cod = String(row[`MAT${i}_COD`]||'').trim();
+      const qty = parseFloat(row[`MAT${i}_UD`])||0;
+      const desc = String(row[`MAT${i}_DESC`]||'').trim();
+      if(cod) d.materiales.push({cod, qty, desc});
+    }
+
+    try {
+      msgEl.textContent = `${done+1} / ${total} — ${d.centro}`;
+      await generarPDFDrive(d);
+      done++;
+    } catch(e) {
+      console.error('Error en', d.centro, e);
+      errors++;
+      done++;
+    }
+
+    barEl.style.width = Math.round((done/total)*100)+'%';
+    // Small delay to avoid rate limiting
+    await new Promise(r=>setTimeout(r,1500));
+  }
+
+  msgEl.textContent = `✓ ${done} PDFs generados. ${errors>0?errors+' errores':''}`;
+  toast(`${done} PDFs GENERADOS ✓`,'ok');
+}
+
 function resetearDatosLocales() {
   confirmar('reset', 'BORRAR DATOS', () => {
   const keys = ['t2-iv','t2-ct','t2-bo','t2-config-ts']; // Keep bar/fr/mat/tec - they come from Drive
