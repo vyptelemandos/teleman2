@@ -1091,7 +1091,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.31';
+const APP_VERSION = 'v2.32';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -3079,7 +3079,10 @@ async function guardarEnSheets(d) {
     row.push(m?.cod||'', m?.qty||'', m?.desc||'');
   }
 
-  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:AV:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[row]});
+  // Get last row in column A to find next empty row
+  const lastRowRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:A`,'GET');
+  const nextRow = (lastRowRes?.values?.length || 1) + 1;
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A${nextRow}:AV${nextRow}?valueInputOption=RAW`,'PUT',{values:[row]});
 }
 
 async function subirHistorial() {
