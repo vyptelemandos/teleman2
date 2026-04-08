@@ -1091,7 +1091,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.34';
+const APP_VERSION = 'v2.35';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -3162,7 +3162,7 @@ async function añadirFilaCertificacion(d) {
       '',           // COMENTARIOS - oficina
       lcl,          // LCL - solo si 10 dígitos
       tdc,          // TICKET/TDC - siempre
-      d.fecha||'',  // FECHA REALIZACION
+      fmtDateExcel(d.fecha)||'',  // FECHA REALIZACION
       d.zona||'',   // ZONA
       d.poblacion||'', // POBLACION
       d.alias||'',  // DIRECCION (alias)
@@ -3291,7 +3291,7 @@ async function generarPDFDrive(d) {
     const replacements = {
       // Sin tildes (estándar)
       '{{CENTRO}}': d.centro||'',
-      '{{FECHA}}': d.fecha||'',
+      '{{FECHA}}': fmtDateExcel(d.fecha),
       '{{ZONA}}': d.zona||'',
       '{{TDC}}': d.tdc||'',
       '{{VYP}}': d.vyp||'',
@@ -3327,7 +3327,7 @@ async function generarPDFDrive(d) {
     const up = s => (s||'').toString().toUpperCase();
     const data = [
       { range:`${sheetName}!A4`,  values:[[up(d.centro)]] },
-      { range:`${sheetName}!Q4`,  values:[[up(d.fecha)]] },
+      { range:`${sheetName}!Q4`,  values:[[fmtDateExcel(d.fecha)]] },
       { range:`${sheetName}!AC4`, values:[[up(d.zona)]] },
       { range:`${sheetName}!AN4`, values:[[up(d.tdc)]] },
       { range:`${sheetName}!Q6`,  values:[[up(d.tec1)]] },
@@ -3712,6 +3712,13 @@ async function gFetch(url,method,body) {
     }
     return r.json();
   } catch{return null;}
+}
+
+function fmtDateExcel(f) {
+  if(!f) return '';
+  const parts = f.split('-');
+  if(parts.length===3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return f;
 }
 
 function setSyncStatus(status) {
