@@ -1985,72 +1985,72 @@ async function generarInforme() {
   // Block if already generating
   if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
   window._generando = true;
-  setTimeout(()=>{ window._generando=false; setGenBtn(false); }, 15000); // safety timeout
-  setGenBtn(true);
+  async function generarInforme() {
+    const d = recogerFormulario();
+    if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+    const camposFaltanInforme = validarInforme();
+    if(camposFaltanInforme.length) { toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err'); return; }
+    if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
+    
+    window._generando = true;
+    setGenBtn(true); // Bloquea el botón
 
-  // ID secuencial
-  const nextN = S.intervenciones.reduce((max,iv)=>{
-    const n=parseInt((iv.intId||'').replace('INT-',''))||0; return Math.max(max,n);
-  },3013);
-  // Generate correlative ID based on last row in historial
-  const lastId = S.intervenciones.reduce((max,iv)=>{
-    const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-  },0);
-  d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+    try {
+        const lastId = S.intervenciones.reduce((max,iv)=>{
+            const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
+        },0);
+        d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+        S.intervenciones.unshift(d);
+        setLS('t2-iv',S.intervenciones);
 
-  S.intervenciones.unshift(d);
-  setLS('t2-iv',S.intervenciones);
+        if(S.borradoresActual) { delete S.borradores[S.borradoresActual]; setLS('t2-bo',S.borradores); S.borradoresActual=null; }
+        renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
 
-  // Eliminar borrador
-  if(S.borradoresActual) { delete S.borradores[S.borradoresActual]; setLS('t2-bo',S.borradores); S.borradoresActual=null; }
+        const zc = getZonaCode(d.zona);
+        const fd = (d.fecha||'').replace(/-/g,'');
+        const nombre = `${d.centro}-${zc}-${fd}`;
+        
+        if(!navigator.onLine) {
+            setSyncStatus('err');
+            document.getElementById('syncLabel').textContent = 'Sin cobertura';
+            if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
+            S.borradores[S.borradoresActual] = d;
+            setLS('t2-bo', S.borradores);
+            updateBorradorBadge();
+            renderBorradoresInicio();
+            toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
+            return;
+        }
+        
+        if(S.auth) {
+            await guardarEnSheets(d);
+            const pdfOk = await generarPDFDrive(d);
+            if(pdfOk) {
+                toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
+                añadirFilaCertificacion(d);
+            } else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); }
 
-  renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
+            if(S._planifId) {
+                S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
+                setLS('t2-pl', S.planificacion);
+                renderPlanif();
+                completarPlanifDrive(S._planifId);
+                S._planifId = null;
+            }
+        } else {
+            toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
+        }
 
-  const zc = getZonaCode(d.zona);
-  const fd = (d.fecha||'').replace(/-/g,'');
-  const nombre = `${d.centro}-${zc}-${fd}`;
-
-  if(!navigator.onLine) {
-    // No connection - save as draft
-    setSyncStatus('err');
-    document.getElementById('syncLabel').textContent = 'Sin cobertura';
-    if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
-    S.borradores[S.borradoresActual] = d;
-    setLS('t2-bo', S.borradores);
-    updateBorradorBadge();
-    renderBorradoresInicio();
-    window._generando=false; setGenBtn(false);
-    toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
-    return;
-  }
-  if(S.auth) {
-    await guardarEnSheets(d);
-    const pdfOk = await generarPDFDrive(d);
-    if(pdfOk) {
-      toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-      añadirFilaCertificacion(d); // Add to certification Excel
-    } else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); window._generando=false; setGenBtn(false); }
-    // Mark planif as completed if came from one
-    if(S._planifId) {
-      // Remove from local planificacion
-      S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
-      setLS('t2-pl', S.planificacion);
-      renderPlanif();
-      // Mark as completed in Drive
-      completarPlanifDrive(S._planifId);
-      S._planifId = null;
+        document.getElementById('estadoBorrador').textContent='Generado ✓';
+        document.getElementById('estadoBorrador').className='badge badge-green';
+        nuevoInforme();
+    } catch(e) {
+        console.error('Error generando informe:', e);
+        toast('ERROR INESPERADO: ' + (e.message||''), 'err');
+    } finally {
+        window._generando = false;
+        setGenBtn(false); // Solo se suelta el botón cuando termina de verdad
     }
-  }
-  else toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
-
-  document.getElementById('estadoBorrador').textContent='Generado ✓';
-  document.getElementById('estadoBorrador').className='badge badge-green';
-
-  // Materials come from Drive config - don't auto-add here
-
-  window._generando = false;
-  setGenBtn(false);
-  nuevoInforme();
 }
 
 // ═══════════════════════════════════════════════════
