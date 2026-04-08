@@ -1091,7 +1091,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.35';
+const APP_VERSION = 'v2.34';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -1974,78 +1974,14 @@ function confirmarGenerar() {
 }
 
 async function generarInforme() {
-    const d = recogerFormulario();
-    if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
-    const camposFaltanInforme = validarInforme();
-    if(camposFaltanInforme.length) { toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err'); return; }
-    if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
-
-    window._generando = true;
-    setGenBtn(true); // Bloquea el botón
-
-    try {
-        // ID secuencial
-        const lastId = S.intervenciones.reduce((max,iv)=>{
-            const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-        },0);
-        d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
-        S.intervenciones.unshift(d);
-        setLS('t2-iv',S.intervenciones);
-
-        // Eliminar borrador
-        if(S.borradoresActual) { 
-            delete S.borradores[S.borradoresActual]; 
-            setLS('t2-bo', S.borradores); 
-            S.borradoresActual=null; 
-        }
-        renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
-
-        if(!navigator.onLine) {
-            setSyncStatus('err');
-            document.getElementById('syncLabel').textContent = 'Sin cobertura';
-            if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
-            S.borradores[S.borradoresActual] = d;
-            setLS('t2-bo', S.borradores);
-            updateBorradorBadge();
-            renderBorradoresInicio();
-            toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
-            return;
-        }
-
-        if(S.auth) {
-            await guardarEnSheets(d);
-            const pdfOk = await generarPDFDrive(d);
-            if(pdfOk) {
-                toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-                añadirFilaCertificacion(d);
-            } else {
-                toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
-            }
-
-            if(S._planifId) {
-                S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
-                setLS('t2-pl', S.planificacion);
-                renderPlanif();
-                completarPlanifDrive(S._planifId);
-                S._planifId = null;
-            }
-        } else {
-            const zc = getZonaCode(d.zona);
-            const fd = (d.fecha||'').replace(/-/g,'');
-            toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
-        }
-
-        document.getElementById('estadoBorrador').textContent='Generado ✓';
-        document.getElementById('estadoBorrador').className='badge badge-green';
-        nuevoInforme();
-    } catch(e) {
-        console.error('Error generando informe:', e);
-        toast('ERROR INESPERADO: ' + (e.message||''), 'err');
-    } finally {
-        window._generando = false;
-        setGenBtn(false); // ← Se desbloquea SOLO cuando termina de verdad
-    }
-}
+  const d = recogerFormulario();
+  if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+  // Validar campos obligatorios para informe final
+  const camposFaltanInforme = validarInforme();
+  if(camposFaltanInforme.length) {
+    toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err');
+    return;
+  }
   // Block if already generating
   if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
   window._generando = true;
@@ -3226,7 +3162,7 @@ async function añadirFilaCertificacion(d) {
       '',           // COMENTARIOS - oficina
       lcl,          // LCL - solo si 10 dígitos
       tdc,          // TICKET/TDC - siempre
-      fmtDateExcel(d.fecha)||'',  // FECHA REALIZACION
+      d.fecha||'',  // FECHA REALIZACION
       d.zona||'',   // ZONA
       d.poblacion||'', // POBLACION
       d.alias||'',  // DIRECCION (alias)
@@ -3355,7 +3291,7 @@ async function generarPDFDrive(d) {
     const replacements = {
       // Sin tildes (estándar)
       '{{CENTRO}}': d.centro||'',
-      '{{FECHA}}': fmtDateExcel(d.fecha),
+      '{{FECHA}}': d.fecha||'',
       '{{ZONA}}': d.zona||'',
       '{{TDC}}': d.tdc||'',
       '{{VYP}}': d.vyp||'',
@@ -3391,7 +3327,7 @@ async function generarPDFDrive(d) {
     const up = s => (s||'').toString().toUpperCase();
     const data = [
       { range:`${sheetName}!A4`,  values:[[up(d.centro)]] },
-      { range:`${sheetName}!Q4`,  values:[[fmtDateExcel(d.fecha)]] },
+      { range:`${sheetName}!Q4`,  values:[[up(d.fecha)]] },
       { range:`${sheetName}!AC4`, values:[[up(d.zona)]] },
       { range:`${sheetName}!AN4`, values:[[up(d.tdc)]] },
       { range:`${sheetName}!Q6`,  values:[[up(d.tec1)]] },
@@ -3776,13 +3712,6 @@ async function gFetch(url,method,body) {
     }
     return r.json();
   } catch{return null;}
-}
-
-function fmtDateExcel(f) {
-  if(!f) return '';
-  const parts = f.split('-');
-  if(parts.length===3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  return f;
 }
 
 function setSyncStatus(status) {
