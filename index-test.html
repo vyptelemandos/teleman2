@@ -746,6 +746,19 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
     <div class="card">
+      <div class="card-head"><div class="card-title">👤 Solicitantes</div></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gris3);margin-bottom:10px;">Personas de Endesa que encargan los trabajos.</p>
+        <div id="solicitantesConfig"></div>
+        <div class="div"></div>
+        <div class="fg"><label class="fl">Nuevo solicitante</label><input class="fi" id="newSolNombre" type="text" placeholder="NOMBRE COMPLETO" oninput="toUpper(this)"></div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addSolicitanteConfig()">+ Añadir</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarSolicitantes()">↻ Sincronizar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-head"><div class="card-title">🔧 Lista de materiales</div></div>
       <div class="card-body">
         <p style="font-size:12px;color:var(--gris3);margin-bottom:10px;">Materiales disponibles al rellenar el informe.</p>
@@ -988,6 +1001,13 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
       </div>
       <div class="fg"><label class="fl">Trabajo previsto</label><textarea class="ft" id="mv-trabajo" placeholder="DESCRIPCIÓN DEL TRABAJO..." style="min-height:56px;" oninput="toUpper(this)"></textarea></div>
+      <div class="fg"><label class="fl">Solicitante *</label>
+        <select class="fs" id="mv-solicitante" onchange="onSolicitanteChange(this)">
+          <option value="">-- Seleccionar --</option>
+          <option value="__nuevo__">+ Añadir nuevo...</option>
+        </select>
+        <input class="fi" id="mv-solicitante-manual" type="text" placeholder="Nombre del solicitante..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
+      </div>
       <button class="btn btn-red" onclick="addVyPManual()">Añadir a planificación</button>
     </div>
   </div>
@@ -1120,7 +1140,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.46';
+const APP_VERSION = 'v2.48';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -4024,7 +4044,10 @@ function loadConfig() {
   if(cfg.clientId) document.getElementById('cfg-clientid').value=cfg.clientId;
   if(cfg.sheetId){const sel=document.getElementById('cfg-sheetid');if(sel)sel.value=cfg.sheetId;S.sheetId=cfg.sheetId;}
   if(cfg.email) document.getElementById('cfg-email').value=cfg.email;
-  if(cfg.nombre){S.miNombre=cfg.nombre;document.getElementById('cfg-nombre').value=cfg.nombre;document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];}
+  // Populate tecnicos selects first
+  const tecLoadedList = getLS('t2-tec') || [];
+  if(tecLoadedList.length) actualizarSelectTecnicos(tecLoadedList);
+  if(cfg.nombre){S.miNombre=cfg.nombre; const el=document.getElementById('cfg-nombre'); if(el) el.value=cfg.nombre; document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];}
   const companeroStored = getLS('t2-companero')||'';
   if(companeroStored){ S.miCompanero=companeroStored; const el=document.getElementById('cfg-companero'); if(el) el.value=companeroStored; }
 }
