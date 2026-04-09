@@ -1140,14 +1140,15 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.48';
+const APP_VERSION = 'v2.57';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
 const REMOTAS_ID     = '1xIlHDuF8cGvBLY3TOxe5Rdf47y75FU_E-COHd3L5Dt8';
 const PLANTILLA_ID   = '1FLJRarCijwEsJM53xrqzotBSdXmHO-I7NDgySCfSPsM';
 const PLANIFICACION_ID   = '1aU835m_XQJQSPHctJ0bQMvAKDgN-P4N8p7qCuTZrhPg';
-const CARPETA_PENDIENTES = '103dXNeOxfs6bwP-x2wzO-7GlRVmbA9wf';
+const CARPETA_PENDIENTES  = '103dXNeOxfs6bwP-x2wzO-7GlRVmbA9wf';
+const CARPETA_MODIFICADOS = '1-qM-VMfk7FKQqYcNUgh9Q4D_2eslgInq';
 const CARPETA_PROCESADOS = '1mq0AP16DjmFPitrGrL7RKsAunXcxmPTS';
 const ZONAS_MIA = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
 // Exact match for zone detection
@@ -1276,15 +1277,16 @@ async function sincronizarConfig() {
 }
 
 function actualizarSelectTecnicos(tecnicos) {
-  const ids = ['f-tec1','f-tec2','cfg-nombre'];
-  ids.forEach(id => {
-    const sel = document.getElementById(id);
-    if(!sel) return;
-    const current = sel.value;
-    const opts = ['<option value="">-- Seleccionar --</option>'];
-    if(id==='f-tec2') opts[0] = '<option value="">-- Ninguno --</option>';
-    tecnicos.forEach(t => opts.push(`<option${t===current?' selected':''}>${t}</option>`));
-    sel.innerHTML = opts.join('');
+  ['f-tec1','f-tec2'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    const cur=el.value;
+    el.innerHTML='<option value="">-- Técnico --</option>'+tecnicos.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
+  });
+  document.querySelectorAll('#cfg-nombre, #cfg-companero').forEach(el=>{
+    const cur=el.value;
+    const placeholder = el.id==='cfg-companero' ? '-- Ninguno --' : '-- Seleccionar --';
+    el.innerHTML=`<option value="">${placeholder}</option>`+tecnicos.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
+    if(cur) el.value=cur;
   });
 }
 
@@ -1389,6 +1391,23 @@ function runSplash() {
     }, 400);
   };
 
+  // Cache-first: show local data immediately, sync in background
+  const hasLocalData = S.intervenciones.length > 0 || S.centros.length > 0;
+
+  const syncInBackground = async () => {
+    if(!S.auth) return;
+    try {
+      document.getElementById('syncLabel').textContent = 'Actualizando...';
+      await sincronizarConfig();
+      await leerHistorialDrive();
+      await leerPlanificacionDrive();
+      renderPlanif();
+      await leerRemotasDrive();
+      setSyncStatus('ok');
+      renderStats(); renderRecent(); checkAlertasInicio();
+    } catch(e) { console.error('Background sync error:', e); }
+  };
+
   const syncAll = async () => {
     setProgress(55, 'SINCRONIZANDO CONFIGURACIÓN...');
     await sincronizarConfig();
@@ -1403,11 +1422,44 @@ function runSplash() {
   };
 
   const doSplash = async () => {
+    const cfg = getLS('t2-cfg') || {};
+    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
+
+    // If we have local data, show app immediately
+    if(hasLocalData) {
+      setProgress(100, 'CARGANDO...');
+      await new Promise(r=>setTimeout(r,300));
+      finishSplash();
+      // Then connect and sync in background
+      const connectBackground = () => {
+        if(!window.google?.accounts?.oauth2) {
+          setTimeout(connectBackground, 300);
+          return;
+        }
+        try {
+          const client = google.accounts.oauth2.initTokenClient({
+            client_id: cfg.clientId,
+            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
+            callback: async (resp) => {
+              if(!resp.error) {
+                S.auth = resp.access_token;
+                setSyncStatus('ok');
+                syncInBackground();
+              }
+            }
+          });
+          window._oauthClient = client;
+          client.requestAccessToken({prompt:''});
+        } catch(e) { console.error('Background auth error:', e); }
+      };
+      setTimeout(connectBackground, 500);
+      return;
+    }
+
+    // No local data — must wait for Drive (first launch)
     setProgress(10, 'INICIANDO...');
     await new Promise(r=>setTimeout(r,200));
 
-    const cfg = getLS('t2-cfg') || {};
-    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
     if(!cfg.clientId) {
       setProgress(50, 'CONFIGURA GOOGLE DRIVE EN MI ÁREA');
       await new Promise(r=>setTimeout(r,1200));
@@ -1416,8 +1468,6 @@ function runSplash() {
     }
 
     setProgress(25, 'CONECTANDO CON GOOGLE...');
-
-    // Store client for button use
     window._splashCfg = cfg;
     window._syncAll = syncAll;
     window._finishSplash = finishSplash;
@@ -1441,11 +1491,9 @@ function runSplash() {
           }
         });
         window._oauthClient = client;
-        // Show button immediately
         setProgress(25, 'TOCA PARA CONECTAR');
         document.getElementById('splashConnectBtn').style.display = 'block';
       } catch(e) {
-        console.error('Auth error:', e);
         setProgress(25, 'TOCA PARA CONECTAR');
         document.getElementById('splashConnectBtn').style.display = 'block';
       }
@@ -1564,7 +1612,8 @@ function goPage(id) {
 // ═══════════════════════════════════════════════════
 //  PASSWORD
 // ═══════════════════════════════════════════════════
-function showPwd(target, label) {
+function showPwd(target, label, callback) {
+  if(callback) S._pwdCallback = callback;
   S.pwdTarget = target;
   document.getElementById('pwdTargetLabel').textContent = label || 'Introduce la contraseña';
   document.getElementById('pwdInput').value='';
@@ -1575,12 +1624,17 @@ function closePwd() { document.getElementById('pwdScreen').classList.remove('on'
 function checkPwd() {
   if(document.getElementById('pwdInput').value === PASS) {
     closePwd();
-    if(S.pwdTarget==='ajustes'||S.pwdTarget==='miaera') {
+    if(S._pwdCallback) {
+      const fn = S._pwdCallback;
+      S._pwdCallback = null;
+      S.pwdTarget = null;
+      fn();
+    } else if(S.pwdTarget==='ajustes'||S.pwdTarget==='miaera') {
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
       document.getElementById('scrollArea').scrollTop=0;
-      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); loadConfig(); },50);
+      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
     } else if(S.pwdTarget==='stats') {
       renderStatsPage();
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1821,6 +1875,7 @@ function nuevoInforme() {
   const ac = document.getElementById('alertaCentro'); if(ac) ac.innerHTML='';
   S.baremosActuales=[]; S.materialesActuales=[];
   S._planifId = null;
+  S._editMode = false; S._editIntId = null;
   renderBaremosAdded(); renderMaterialesAdded();
   const eb = document.getElementById('estadoBorrador');
   if(eb) { eb.textContent='Borrador'; eb.className='badge badge-orange'; }
@@ -2126,13 +2181,26 @@ async function generarInforme() {
   window._generando = true;
   setGenBtn(true);
   try {
-    // ID secuencial
-    const lastId = S.intervenciones.reduce((max,iv)=>{
-      const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-    },0);
-    d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
-    S.intervenciones.unshift(d);
-    setLS('t2-iv',S.intervenciones);
+    // Edit mode or new?
+    if(S._editMode && S._editIntId) {
+      d.intId = S._editIntId;
+      d._esEdicion = true;
+      // Replace existing in local array — do NOT add new entry
+      const idx = S.intervenciones.findIndex(x=>x.intId===S._editIntId);
+      if(idx>=0) { S.intervenciones[idx] = d; } else { S.intervenciones.unshift(d); }
+      setLS('t2-iv', S.intervenciones);
+      S._editMode = false;
+      S._editIntId = null;
+    } else {
+      d._esEdicion = false;
+      // ID secuencial
+      const lastId = S.intervenciones.reduce((max,iv)=>{
+        const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
+      },0);
+      d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+      S.intervenciones.unshift(d);
+      setLS('t2-iv',S.intervenciones);
+    }
     // Eliminar borrador
     if(S.borradoresActual) {
       delete S.borradores[S.borradoresActual];
@@ -2151,14 +2219,22 @@ async function generarInforme() {
       toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
       return;
     }
+    const isEdit = !!d._esEdicion;
     if(S.auth) {
-      await guardarEnSheets(d);
-      const pdfOk = await generarPDFDrive(d);
-      if(pdfOk) {
-        toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-        añadirFilaCertificacion(d);
+      if(isEdit) {
+        await actualizarEnSheets(d);
+        const pdfOk = await generarPDFDrive(d, true); // true = modified folder
+        if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
+        else toast('EXCEL ACTUALIZADO. ERROR AL GENERAR PDF','warn');
       } else {
-        toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+        await guardarEnSheets(d);
+        const pdfOk = await generarPDFDrive(d);
+        if(pdfOk) {
+          toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
+          añadirFilaCertificacion(d);
+        } else {
+          toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+        }
       }
       if(S._planifId) {
         S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
@@ -2517,7 +2593,13 @@ function renderHistorial(f='') {
     const res=iv.resultado||iv.RESULTADO||'';
     const bc=res==='CORRECTO'?'badge-green':res?'badge-orange':'badge-gray';
     const lc=colorResultado(res);
-    return `<div class="li ${lc}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
+    const _id = iv.intId||iv.centro||'';
+    return `<div class="li ${lc}"
+      onclick="showInterv('${_id}','${(iv.centro||'').replace(/'/g,"\\'")}')"
+      oncontextmenu="event.preventDefault();editarInformeAuth('${_id}')"
+      ontouchstart="startLongPress('${_id}',event)"
+      ontouchend="cancelLongPress()"
+      ontouchmove="cancelLongPress()">
       <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
       <div class="li-alias">${iv.alias||iv.ALIAS||'SIN ALIAS'}</div>
       <div class="li-meta"><span>TDC: ${iv.tdc||iv.TDC||'—'}</span><span>${iv.tec1||iv.TECNICOS||''}</span>${res?`<span class="badge ${bc}">${res}</span>`:''}</div>
@@ -2534,6 +2616,61 @@ function colorResultado(res) {
   if(r.includes('COMUNICACION') || r === 'PTE COM' || r === 'PDTE COM' || r.includes('COM')) return 'rojo';
   if(r.startsWith('PENDIENTE') || r.startsWith('PTE') || r.startsWith('PDTE') || r.startsWith('P.')) return 'naranja';
   return 'gris';
+}
+
+// Long press detection
+let _longPressTimer = null;
+let _longPressFired = false;
+function startLongPress(intId, event) {
+  _longPressFired = false;
+  _longPressTimer = setTimeout(() => {
+    _longPressTimer = null;
+    _longPressFired = true;
+    editarInformeAuth(intId);
+  }, 1500);
+}
+function cancelLongPress() {
+  if(_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+}
+
+function editarInformeAuth(intId) {
+  showPwd('editarInforme_'+intId, 'Editar informe — introduce contraseña', () => editarInforme(intId));
+}
+
+function editarInforme(intId) {
+  const iv = S.intervenciones.find(x => x.intId === intId || x.centro === intId);
+  if(!iv) { toast('INTERVENCIÓN NO ENCONTRADA','err'); return; }
+  closeAllModals();
+  // Mark as edit mode
+  S._editMode = true;
+  S._editIntId = iv.intId;
+  nuevoInforme();
+  // Populate form with existing data
+  sv('f-centro', iv.centro||'');
+  document.getElementById('f-fecha').value = iv.fecha||hoy();
+  sv('f-alias', iv.alias||'');
+  sv('f-zona', iv.zona||iv.ZONA||'');
+  sv('f-poblacion', iv.poblacion||iv.POBLACION||'');
+  sv('f-vyp', iv.vyp||iv.VYP||'');
+  sv('f-tdc', iv.tdc||iv.TDC||'');
+  sv('f-tec1', iv.tec1||iv.TECNICOS||'');
+  sv('f-tec2', iv.tec2||'');
+  sv('f-motivo', iv.motivo||'');
+  sv('f-tipo', iv.tipo||'');
+  sv('f-resultado', iv.resultado||iv.RESULTADO||'');
+  sv('f-resolucion', iv.resolucion||iv['RESOLUCIÓN']||'');
+  sv('f-solicitante', iv.solicitante||'');
+  sv('f-modelo', iv.modelo||iv['MARCA / MODELO']||'');
+  const fman = document.getElementById('f-maniobras'); if(fman) fman.checked = iv.maniobras==='SI';
+  const ftrace = document.getElementById('f-trace'); if(ftrace) ftrace.checked = iv.trace||false;
+  // Load baremos and materiales
+  if(Array.isArray(iv.baremos)) { S.baremosActuales = [...iv.baremos]; renderBaremosAdded(); }
+  if(Array.isArray(iv.materiales)) { S.materialesActuales = [...iv.materiales]; renderMaterialesAdded(); }
+  // Show edit mode indicator
+  document.getElementById('estadoBorrador').textContent = '✏️ Editando';
+  document.getElementById('estadoBorrador').className = 'badge badge-orange';
+  toast('MODO EDICIÓN — ' + iv.intId, 'warn');
+  goPage('p-informe');
 }
 
 function showInterv(intId,centro) {
@@ -3300,6 +3437,43 @@ async function guardarEnSheets(d) {
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A${nextRow}:BB${nextRow}?valueInputOption=RAW`,'PUT',{values:[row]});
 }
 
+async function actualizarEnSheets(d) {
+  // Find row with this intId in column A and update it
+  const colARes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:A`,'GET');
+  if(!colARes?.values) return;
+  const rowIdx = colARes.values.findIndex(r=>r[0]===d.intId);
+  if(rowIdx < 0) { console.warn('Row not found for', d.intId); return; }
+  const row = rowIdx + 1;
+
+  const fmtDateExcel = (f) => {
+    if(!f) return '';
+    const parts = f.split('-');
+    if(parts.length===3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return f;
+  };
+
+  const rowData = [
+    d.intId||'', d.centro||'', fmtDateExcel(d.fecha),
+    d.tec1||'', d.tec2||'', d.alias||'', d.zona||'', d.poblacion||'',
+    d.resultado||'', d.vyp||'', d.tdc||'', d.motivo||'',
+    d.maniobras||'NO', d.tipo||'', d.modelo||'', d.resolucion||'',
+    d.vale?'SI':'NO', d.trace?'OK':'',
+  ];
+  const baremos = Array.isArray(d.baremos) ? d.baremos : [];
+  for(let i=0;i<6;i++) {
+    const b = baremos[i];
+    const bDesc = b ? (S.baremos.find(x=>x.cod===b.cod)?.desc || b.desc || '') : '';
+    rowData.push(b?.cod||'', b?.ud||'', bDesc);
+  }
+  const mats = Array.isArray(d.materiales) ? d.materiales : [];
+  for(let i=0;i<6;i++) {
+    const m = mats[i];
+    rowData.push(m?.cod||'', m?.qty||'', m?.desc||'');
+  }
+
+  await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A${row}:BB${row}?valueInputOption=RAW`,'PUT',{values:[rowData]});
+}
+
 async function subirHistorial() {
   const rows=S.intervenciones.map(d=>{
     const barStr=Array.isArray(d.baremos)?d.baremos.map(b=>`${b.cod}×${b.ud}`).join(', '):d.baremos||d.UNIDADES||'';
@@ -3413,7 +3587,7 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 // ═══════════════════════════════════════════════════
 //  GENERAR PDF RELLENANDO PLANTILLA EN DRIVE
 // ═══════════════════════════════════════════════════
-async function generarPDFDrive(d) {
+async function generarPDFDrive(d, esModificado=false) {
   if(!S.auth) { toast('CONECTA DRIVE PARA GENERAR EL PDF','warn'); return; }
 
   const zonaCode = getZonaCode(d.zona);
@@ -3444,7 +3618,7 @@ async function generarPDFDrive(d) {
       `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
-        body: JSON.stringify({name: nombreArchivo, parents:[CARPETA_PENDIENTES]})
+        body: JSON.stringify({name: nombreArchivo, parents:[esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES]})
       }
     );
     const copyData = await copyRes.json();
@@ -4044,12 +4218,19 @@ function loadConfig() {
   if(cfg.clientId) document.getElementById('cfg-clientid').value=cfg.clientId;
   if(cfg.sheetId){const sel=document.getElementById('cfg-sheetid');if(sel)sel.value=cfg.sheetId;S.sheetId=cfg.sheetId;}
   if(cfg.email) document.getElementById('cfg-email').value=cfg.email;
-  // Populate tecnicos selects first
+  // Populate tecnicos selects first, then restore saved values
   const tecLoadedList = getLS('t2-tec') || [];
   if(tecLoadedList.length) actualizarSelectTecnicos(tecLoadedList);
-  if(cfg.nombre){S.miNombre=cfg.nombre; const el=document.getElementById('cfg-nombre'); if(el) el.value=cfg.nombre; document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];}
+  if(cfg.nombre){
+    S.miNombre=cfg.nombre;
+    document.querySelectorAll('#cfg-nombre').forEach(el=>el.value=cfg.nombre);
+    document.getElementById('nombreUsuario').textContent=cfg.nombre.split(' ')[0];
+  }
   const companeroStored = getLS('t2-companero')||'';
-  if(companeroStored){ S.miCompanero=companeroStored; const el=document.getElementById('cfg-companero'); if(el) el.value=companeroStored; }
+  if(companeroStored){
+    S.miCompanero=companeroStored;
+    document.querySelectorAll('#cfg-companero').forEach(el=>el.value=companeroStored);
+  }
 }
 
 function saveConfig() {
