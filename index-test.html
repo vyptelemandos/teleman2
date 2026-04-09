@@ -258,7 +258,26 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-sub" id="fechaHoy"></p>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Intervenciones</div></div>
-      <div class="stat-card"><div class="stat-n" id="statMes">0</div><div class="stat-l">Este mes</div></div>
+      <div class="stat-card" id="statMesCard"><div class="stat-n" id="statMes">0</div><div class="stat-l" id="statMesLabel">Este mes</div></div>
+    </div>
+    <div class="card" id="semanaCard" style="margin-bottom:10px;">
+      <div class="card-head"><div class="card-title">Semana en curso</div></div>
+      <div class="card-body" style="padding:10px 14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div>
+            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--gris2);" id="semPlanif">0</div>
+            <div style="font-size:11px;color:var(--gris4);">PLANIFICADOS</div>
+          </div>
+          <div>
+            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:#4caf50;" id="semCompletados">0</div>
+            <div style="font-size:11px;color:var(--gris4);">COMPLETADOS</div>
+          </div>
+          <div>
+            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--naranja);" id="semCancelados">0</div>
+            <div style="font-size:11px;color:var(--gris4);">CANCELADOS</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="alertasInicio"></div>
     <div class="card">
@@ -275,7 +294,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title"><span class="card-title-accent">●</span> Borradores</div></div>
+      <div class="card-head"><div class="card-title">Borradores</div></div>
       <div class="card-body" id="borradorListInicio"></div>
     </div>
     <div class="card">
@@ -293,7 +312,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
         Sincronizar VyP
       </button>
-      <button class="btn btn-gray btn-sm" onclick="openModal('modalNuevoVyP')">+ Manual</button>
+      <button class="btn btn-gray btn-sm" onclick="openNuevoVyP()">+ Manual</button>
     </div>
     <div id="planifList"></div>
   </div>
@@ -403,14 +422,14 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <label class="fl">Técnico 1</label>
           <select class="fs" id="f-tec1" onchange="autosave()">
             <option value="">-- Seleccionar --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
         <div class="fg">
           <label class="fl">Técnico 2</label>
           <select class="fs" id="f-tec2" onchange="autosave()">
             <option value="">-- Ninguno --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
       </div>
@@ -670,14 +689,14 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <label class="fl">Mi nombre (Técnico 1)</label>
           <select class="fs" id="cfg-nombre">
             <option value="">-- Seleccionar --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
         <div class="fg">
           <label class="fl">Mi compañero habitual (Técnico 2)</label>
           <select class="fs" id="cfg-companero">
             <option value="">-- Ninguno --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
         <button class="btn btn-red" onclick="savePerfil()">Guardar perfil</button>
@@ -720,7 +739,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div id="tecnicosConfig"></div>
         <div class="div"></div>
         <div class="fg"><label class="fl">Nuevo técnico</label><input class="fi" id="newTecNombre" type="text" placeholder="NOMBRE COMPLETO"></div>
-        <button class="btn btn-gray" onclick="addTecnicoConfig()">+ Añadir técnico</button>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addTecnicoConfig()">+ Añadir técnico</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarTecnicos()">↻ Sincronizar</button>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -777,14 +799,14 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <label class="fl">Mi nombre (Técnico 1)</label>
           <select class="fs" id="cfg-nombre">
             <option value="">-- Seleccionar --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
         <div class="fg">
           <label class="fl">Mi compañero habitual (Técnico 2)</label>
           <select class="fs" id="cfg-companero">
             <option value="">-- Ninguno --</option>
-            <option>FRAN TALAVERA</option><option>SAMUEL ACERO</option><option>ALBERTO ANDRÉS</option>
+            
           </select>
         </div>
         <button class="btn btn-red" onclick="savePerfil()">Guardar perfil</button>
@@ -1025,32 +1047,39 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="fg"><label class="fl">Fecha alta instalación (FechaTMT)</label><input class="fi" id="nc-fechatmt" type="date" style="text-transform:none;"></div>
       <div class="fr2">
         <div class="fg"><label class="fl">RTU Marca</label>
-          <select class="fs" id="nc-rtumarca"><option value="">--</option><option>SEMI</option><option>COL GIOVANNI</option><option>SCHNEIDER</option><option>DUCATI (METRELEC)</option><option>IGRID</option><option>TELVENT</option><option>ADVANCED DEVICES</option><option>ABB</option><option>INAEL</option><option>MESA-SCHNEIDER</option><option>DUCATI</option><option>SELTA</option><option>FARELL I.</option><option>GEPCE</option></select>
+          <select class="fs" id="nc-rtumarca" onchange="onCentroSelectChange(this,'nc-rtumarca-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-rtumarca-manual" type="text" placeholder="Nueva marca RTU..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
         <div class="fg"><label class="fl">RTU Modelo</label>
-          <select class="fs" id="nc-rtumod"><option value="">--</option><option>SETIS CPU.48.IM.48 v4</option><option>SETIS I24MD4 v2</option><option>UP INDOOR 2015 UE8</option><option>UP INDOOR 2012 UE8</option><option>UP OUTDOOR 2015</option><option>UP INDOOR 2020</option><option>T200P</option><option>iRTU</option><option>IRTUCOMPACT</option><option>CPT</option><option>SAITEL 2000DP</option></select>
+          <select class="fs" id="nc-rtumod" onchange="onCentroSelectChange(this,'nc-rtumod-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-rtumod-manual" type="text" placeholder="Nuevo modelo RTU..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
       </div>
       <div class="fr2">
         <div class="fg"><label class="fl">Controlador Marca</label>
-          <select class="fs" id="nc-ctrlmarca"><option value="">--</option><option>ORMAZABAL</option><option>SCHNEIDER</option><option>COL GIOVANNI</option><option>DUCATI</option><option>MESA</option><option>INAEL</option><option>RGDAT</option><option>TESMEC</option><option>THYTRONIC</option><option>General Electric</option><option>NO PROCEDE</option></select>
+          <select class="fs" id="nc-ctrlmarca" onchange="onCentroSelectChange(this,'nc-ctrlmarca-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-ctrlmarca-manual" type="text" placeholder="Nueva marca controlador..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
         <div class="fg"><label class="fl">Controlador Modelo</label>
-          <select class="fs" id="nc-ctrlmod"><option value="">--</option><option>Ekor RCI</option><option>T200I</option><option>RGDAT GSTP001 INDOOR</option><option>RGDAT GSTP001-INDOOR</option><option>CCP1</option><option>CCT</option><option>NO PROCEDE</option></select>
+          <select class="fs" id="nc-ctrlmod" onchange="onCentroSelectChange(this,'nc-ctrlmod-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-ctrlmod-manual" type="text" placeholder="Nuevo modelo controlador..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
       </div>
       <div class="fr2">
         <div class="fg"><label class="fl">Bat. Marca</label>
-          <select class="fs" id="nc-batmarca"><option value="">--</option><option>LIVEN</option><option>YUASA</option><option>FIAMM</option><option>LEOCH</option><option>ENERBAT</option><option>CEGASA</option><option>FAAM</option><option>KAISE</option><option>HEYCAR</option><option>FIRST POWER</option><option>EMISA</option></select>
+          <select class="fs" id="nc-batmarca" onchange="onCentroSelectChange(this,'nc-batmarca-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-batmarca-manual" type="text" placeholder="Nueva marca batería..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
         <div class="fg"><label class="fl">Bat. Tipo</label>
-          <select class="fs" id="nc-battipo"><option value="">--</option><option>TIPO A (4 X 12 AH)</option><option>TIPO B (4 X 18 AH)</option><option>TIPO C (1 X 24 AH)</option><option>TIPO D (1 X 40 AH)</option><option>TIPO E (2 X 24 AH)</option><option>SB</option><option>E125 (125 V)</option></select>
+          <select class="fs" id="nc-battipo" onchange="onCentroSelectChange(this,'nc-battipo-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+          <input class="fi" id="nc-battipo-manual" type="text" placeholder="Nuevo tipo batería..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
         </div>
       </div>
       <div class="fg"><label class="fl">Bat. Modelo</label><input class="fi" id="nc-batmod" type="text" placeholder="Ej: LVL18-12"></div>
       <div class="fg"><label class="fl">Fecha sustitución baterías</label><input class="fi" id="nc-fechasus" type="date" style="text-transform:none;"></div>
       <div class="fg"><label class="fl">Rectificador Marca</label>
-        <select class="fs" id="nc-recmarca"><option value="">--</option><option>ORMAZABAL</option><option>COL GIOVANNI</option><option>DUCATI (METRELEC)</option><option>INAEL</option><option>ADVANCED DEVICES</option><option>BENNING</option><option>INGETEAM</option><option>EMISA</option><option>AEG POWER SYSTEM</option></select>
+        <select class="fs" id="nc-recmarca" onchange="onCentroSelectChange(this,'nc-recmarca-manual')"><option value="">--</option><option value="__otro__">Otro...</option></select>
+        <input class="fi" id="nc-recmarca-manual" type="text" placeholder="Nueva marca rectificador..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
       </div>
       <div class="fg"><label class="fl">Comentario</label><textarea class="ft" id="nc-comentario" style="min-height:56px;" oninput="toUpper(this)"></textarea></div>
       <button class="btn btn-red" onclick="altaCentro()">Guardar instalación</button>
@@ -1091,7 +1120,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.35';
+const APP_VERSION = 'v2.46';
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -1162,7 +1191,7 @@ async function sincronizarConfig() {
   if(!S.auth) return;
   try {
     // Read each sheet from the config spreadsheet
-    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas'];
+    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
     const data = {};
     for(const sheet of sheets) {
       const res = await gFetch(
@@ -1571,6 +1600,90 @@ function validarInforme() {
   return faltan;
 }
 
+// Populate centro selects from unique values in S.centros
+function renderCentroSelects() {
+  const getUnique = (field) => {
+    const vals = [...new Set(S.centros.map(c=>c[field]||'').filter(v=>v&&v!=='DESCONOCIDO'&&v!=='DESCONOCIDA'))].sort();
+    // Also include any locally saved extras
+    const extras = getLS('t2-centroOpts-'+field) || [];
+    return [...new Set([...vals, ...extras])].sort();
+  };
+
+  const populate = (selId, field) => {
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    const cur = sel.value;
+    const vals = getUnique(field);
+    sel.innerHTML = '<option value="">--</option>' + vals.map(v=>`<option>${v}</option>`).join('') + '<option value="__otro__">Otro...</option>';
+    if(cur && cur !== '__otro__') sel.value = cur;
+  };
+
+  populate('nc-rtumarca', 'RTU_marca');
+  populate('nc-rtumod', 'RTU_Mod');
+  populate('nc-ctrlmarca', 'Controlador_Marca');
+  populate('nc-ctrlmod', 'Controlador_Modelo');
+  populate('nc-batmarca', 'Bat_Marca');
+  populate('nc-battipo', 'Bat_Tipo');
+  populate('nc-recmarca', 'Rec_Marca');
+}
+
+function actualizarSelectSolicitantes() {
+  const sols = getLS('t2-solicitantes') || [];
+  ['mv-solicitante'].forEach(id => {
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+      sols.map(s=>`<option${s===cur?' selected':''}>${s}</option>`).join('') +
+      '<option value="__nuevo__">+ Añadir nuevo...</option>';
+  });
+}
+
+function onSolicitanteChange(sel) {
+  const manualEl = document.getElementById('mv-solicitante-manual');
+  if(!manualEl) return;
+  if(sel.value === '__nuevo__') {
+    manualEl.style.display = 'block';
+    manualEl.focus();
+  } else {
+    manualEl.style.display = 'none';
+    manualEl.value = '';
+  }
+}
+
+function onCentroSelectChange(sel, manualId) {
+  const manualEl = document.getElementById(manualId);
+  if(!manualEl) return;
+  if(sel.value === '__otro__') {
+    manualEl.style.display = 'block';
+    manualEl.focus();
+  } else {
+    manualEl.style.display = 'none';
+    manualEl.value = '';
+  }
+}
+
+// Get value from select+manual pair
+function getCentroSelectVal(selId, manualId) {
+  const selVal = document.getElementById(selId)?.value || '';
+  if(selVal === '__otro__') {
+    const manualVal = (document.getElementById(manualId)?.value || '').trim().toUpperCase();
+    if(manualVal) {
+      // Save for future use
+      const field = selId.replace('nc-','').replace('-manual','');
+      const fieldMap = {'rtumarca':'RTU_marca','rtumod':'RTU_Mod','ctrlmarca':'Controlador_Marca','ctrlmod':'Controlador_Modelo','batmarca':'Bat_Marca','battipo':'Bat_Tipo','recmarca':'Rec_Marca'};
+      const driveField = fieldMap[field] || field;
+      const extras = getLS('t2-centroOpts-'+driveField) || [];
+      if(!extras.includes(manualVal)) {
+        extras.push(manualVal);
+        setLS('t2-centroOpts-'+driveField, extras);
+      }
+    }
+    return manualVal;
+  }
+  return selVal;
+}
+
 function onBateriasCheck(cb) {
   autosave();
   if(cb.checked) {
@@ -1620,12 +1733,23 @@ function autosave() {
 }
 
 function recogerFormulario() {
-  const modelo = v('f-modelo')==='__manual__' ? vu('f-modelo-manual') : vu('f-modelo');
+  const modeloRaw = v('f-modelo');
+  const modelo = modeloRaw==='__manual__' ? vu('f-modelo-manual') : vu('f-modelo');
+  // Save new modelo to Drive if manual
+  if(modeloRaw==='__manual__' && modelo && S.auth) {
+    const modelos = getLS('t2-modelos') || [];
+    if(!modelos.includes(modelo)) {
+      modelos.push(modelo);
+      setLS('t2-modelos', modelos);
+      actualizarSelectModelos(modelos);
+      writeConfigValue('Modelos_Remota', modelo);
+    }
+  }
   return {
     id: S.borradoresActual,
     centro: vu('f-centro'), fecha: v('f-fecha'),
     alias: vu('f-alias'), zona: vu('f-zona'), poblacion: vu('f-poblacion'),
-    vyp: v('f-vyp'), tdc: v('f-tdc'),
+    vyp: v('f-vyp'), tdc: v('f-tdc'), solicitante: vu('f-solicitante'),
     tec1: v('f-tec1'), tec2: v('f-tec2'),
     modelo,
     motivo: v('f-motivo'), tipo: v('f-tipo'),
@@ -1652,7 +1776,7 @@ function cargarBorrador(id) {
   if(modeloOpts.includes(d.modelo)) { sv('f-modelo',d.modelo); document.getElementById('modeloManualWrap').style.display='none'; }
   else if(d.modelo) { sv('f-modelo','__manual__'); sv('f-modelo-manual',d.modelo); document.getElementById('modeloManualWrap').style.display='block'; }
   sv('f-resultado',d.resultado); sv('f-resolucion',d.resolucion);
-  sv('f-motivo',d.motivo||''); sv('f-tipo',d.tipo||'');
+  sv('f-motivo',d.motivo||''); sv('f-tipo',d.tipo||''); sv('f-solicitante',d.solicitante||'');
   const fman2=document.getElementById('f-maniobras'); if(fman2) fman2.checked=d.maniobras==='SI';
   const fbat2=document.getElementById('f-baterias'); if(fbat2) fbat2.checked=d.baterias||false;
   document.getElementById('f-trace').checked = d.trace||false;
@@ -1666,7 +1790,7 @@ function cargarBorrador(id) {
 function nuevoInforme() {
   S.borradoresActual = null;
   ['f-centro','f-alias','f-poblacion','f-vyp','f-tdc','f-resolucion'].forEach(id=>sv(id,''));
-  sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2',S.miCompanero||'');
+  sv('f-fecha',hoy()); sv('f-zona',''); sv('f-tec1',S.miNombre||''); sv('f-tec2',S.miCompanero||''); sv('f-solicitante','');
   sv('f-modelo',''); sv('f-resultado',''); sv('f-motivo',''); sv('f-tipo','');
   const fman=document.getElementById('f-maniobras'); if(fman) fman.checked=false;
   const fbat=document.getElementById('f-baterias'); if(fbat) fbat.checked=false;
@@ -1974,71 +2098,70 @@ function confirmarGenerar() {
 }
 
 async function generarInforme() {
-    const d = recogerFormulario();
-    if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
-    const camposFaltanInforme = validarInforme();
-    if(camposFaltanInforme.length) { toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err'); return; }
-    if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
-
-    window._generando = true;
-    setGenBtn(true);
-
-    try {
-        const lastId = S.intervenciones.reduce((max,iv)=>{
-            const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-        },0);
-        d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
-        S.intervenciones.unshift(d);
-        setLS('t2-iv',S.intervenciones);
-
-        if(S.borradoresActual) { delete S.borradores[S.borradoresActual]; setLS('t2-bo',S.borradores); S.borradoresActual=null; }
-        renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
-
-        const zc = getZonaCode(d.zona);
-        const fd = (d.fecha||'').replace(/-/g,'');
-        const nombre = `${d.centro}-${zc}-${fd}`;
-
-        if(!navigator.onLine) {
-            setSyncStatus('err');
-            document.getElementById('syncLabel').textContent = 'Sin cobertura';
-            if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
-            S.borradores[S.borradoresActual] = d;
-            setLS('t2-bo', S.borradores);
-            updateBorradorBadge();
-            renderBorradoresInicio();
-            toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
-            return;
-        }
-
-        if(S.auth) {
-            await guardarEnSheets(d);
-            const pdfOk = await generarPDFDrive(d);
-            if(pdfOk) {
-                toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-                añadirFilaCertificacion(d);
-            } else { toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn'); }
-
-            if(S._planifId) {
-                S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
-                setLS('t2-pl', S.planificacion);
-                renderPlanif();
-                completarPlanifDrive(S._planifId);
-                S._planifId = null;
-            }
-        } else {
-            toast(`GUARDADO LOCALMENTE: ${nombre}`,'ok');
-        }
-
-        document.getElementById('estadoBorrador').textContent='Generado ✓';
-        document.getElementById('estadoBorrador').className='badge badge-green';
-        nuevoInforme();
-    } catch(e) {
-        console.error('Error generando informe:', e);
-        toast('ERROR INESPERADO: ' + (e.message||''), 'err');
-    } finally {
-        window._generando = false;
-        setGenBtn(false);
+  const d = recogerFormulario();
+  if(!d.centro||!d.fecha) { toast('CENTRO Y FECHA SON OBLIGATORIOS','err'); return; }
+  const camposFaltanInforme = validarInforme();
+  if(camposFaltanInforme.length) { toast('FALTAN: ' + camposFaltanInforme.join(', '), 'err'); return; }
+  if(window._generando) { toast('⏳ ESPERA, YA SE ESTÁ GENERANDO...','warn'); return; }
+  window._generando = true;
+  setGenBtn(true);
+  try {
+    // ID secuencial
+    const lastId = S.intervenciones.reduce((max,iv)=>{
+      const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
+    },0);
+    d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+    S.intervenciones.unshift(d);
+    setLS('t2-iv',S.intervenciones);
+    // Eliminar borrador
+    if(S.borradoresActual) {
+      delete S.borradores[S.borradoresActual];
+      setLS('t2-bo', S.borradores);
+      S.borradoresActual=null;
     }
+    renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
+    if(!navigator.onLine) {
+      setSyncStatus('err');
+      document.getElementById('syncLabel').textContent = 'Sin cobertura';
+      if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
+      S.borradores[S.borradoresActual] = d;
+      setLS('t2-bo', S.borradores);
+      updateBorradorBadge();
+      renderBorradoresInicio();
+      toast('SIN COBERTURA — GUARDADO EN BORRADOR','warn');
+      return;
+    }
+    if(S.auth) {
+      await guardarEnSheets(d);
+      const pdfOk = await generarPDFDrive(d);
+      if(pdfOk) {
+        toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
+        añadirFilaCertificacion(d);
+      } else {
+        toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
+      }
+      if(S._planifId) {
+        S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
+        setLS('t2-pl', S.planificacion);
+        renderPlanif();
+        completarPlanifDrive(S._planifId);
+        S._planifId = null;
+      }
+    } else {
+      const zc = getZonaCode(d.zona);
+      const fd = (d.fecha||'').replace(/-/g,'');
+      toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
+    }
+    document.getElementById('estadoBorrador').textContent='Generado ✓';
+    document.getElementById('estadoBorrador').className='badge badge-green';
+    nuevoInforme();
+  } catch(e) {
+    console.error('Error generando informe:', e);
+    toast('ERROR INESPERADO: ' + (e.message||''), 'err');
+  } finally {
+    window._generando = false;
+    setGenBtn(false);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -2137,6 +2260,7 @@ function iniciarDesde(id) {
   sv('f-centro',p.centro); sv('f-alias',(p.alias||c?.Alias||'').toUpperCase());
   sv('f-zona',(c?.Area||'').toUpperCase()); sv('f-poblacion',(c?.Municipio||'').toUpperCase());
   sv('f-vyp',p.vyp||''); sv('f-tdc',p.tdc||'');
+  sv('f-solicitante', p.solicitante||'');
   document.getElementById('f-fecha').value=p.fecha||hoy();
   sv('f-tec1',S.miNombre||'');
   sv('f-tec2',S.miCompanero||'');
@@ -2256,6 +2380,7 @@ function showPlanifDetalle(id) {
   html+=drBig('ALIAS',p.alias||c?.Alias||'—');
   html+=drBig('VyP',p.vyp||'—');
   html+=drBig('TDC / TICKET',p.tdc||'—');
+  html+=drBig('SOLICITANTE',p.solicitante||'—');
   html+=drBig('TRABAJO',p.trabajo||'—');
   if(c) {
     html+=`<div class="div"></div>`;
@@ -2297,12 +2422,29 @@ function showPlanifDetalle(id) {
   openModal('modalInterv');
 }
 
+function openNuevoVyP() {
+  actualizarSelectSolicitantes();
+  openModal('modalNuevoVyP');
+}
+
 function addVyPManual() {
   const centro=vu('mv-centro'), fecha=v('mv-fecha');
   if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
   const c=findCentro(centro);
   const coordFinal = v('mv-coord') || c?.Coord || '';
-  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE'};
+  const solicitanteVal = v('mv-solicitante')==='__nuevo__' ? vu('mv-solicitante-manual') : v('mv-solicitante');
+  if(!solicitanteVal) { toast('SOLICITANTE ES OBLIGATORIO','err'); return; }
+  // Save new solicitante to history
+  if(v('mv-solicitante')==='__nuevo__' && solicitanteVal) {
+    const sols = getLS('t2-solicitantes') || [];
+    if(!sols.includes(solicitanteVal)) {
+      sols.push(solicitanteVal);
+      setLS('t2-solicitantes', sols);
+      actualizarSelectSolicitantes();
+      if(S.auth) writeConfigValue('Solicitantes', solicitanteVal);
+    }
+  }
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
   console.log('S.auth al añadir planif:', !!S.auth);
@@ -2554,7 +2696,7 @@ function editarCentro(nombre) {
   const ncTitle = document.getElementById('ncModalTitle');
   if(ncTitle) ncTitle.textContent = 'Editar: '+nombre;
   closeModal('modalCentro');
-  openModal('modalNuevoCentro');
+  renderCentroSelects(); openModal('modalNuevoCentro');
 }
 
 function altaCentro() {
@@ -2568,10 +2710,14 @@ function altaCentro() {
     'Ubicación': v('nc-ubicacion'), Via_Com: v('nc-viacom'),
     COMADRESS: v('nc-comadress'),
     FechaTMT: v('nc-fechatmt'),
-    RTU_marca: v('nc-rtumarca'), RTU_Mod: v('nc-rtumod'),
-    Controlador_Marca: v('nc-ctrlmarca'), Controlador_Modelo: v('nc-ctrlmod'),
-    Bat_Marca: v('nc-batmarca'), Bat_Modelo: vu('nc-batmod'),
-    Bat_Tipo: v('nc-battipo'), Rec_Marca: v('nc-recmarca'),
+    RTU_marca: getCentroSelectVal('nc-rtumarca','nc-rtumarca-manual'),
+    RTU_Mod: getCentroSelectVal('nc-rtumod','nc-rtumod-manual'),
+    Controlador_Marca: getCentroSelectVal('nc-ctrlmarca','nc-ctrlmarca-manual'),
+    Controlador_Modelo: getCentroSelectVal('nc-ctrlmod','nc-ctrlmod-manual'),
+    Bat_Marca: getCentroSelectVal('nc-batmarca','nc-batmarca-manual'),
+    Bat_Modelo: vu('nc-batmod'),
+    Bat_Tipo: getCentroSelectVal('nc-battipo','nc-battipo-manual'),
+    Rec_Marca: getCentroSelectVal('nc-recmarca','nc-recmarca-manual'),
     Fechasus: v('nc-fechasus'), Comentario: vu('nc-comentario'),
   };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
@@ -2795,10 +2941,46 @@ function renderStatsPage() {
 // ═══════════════════════════════════════════════════
 //  BAREMOS CONFIG
 // ═══════════════════════════════════════════════════
+function renderSolicitantesConfig() {
+  const el = document.getElementById('solicitantesConfig');
+  if(!el) return;
+  const sols = getLS('t2-solicitantes') || [];
+  if(!sols.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin solicitantes configurados.</p>'; return; }
+  el.innerHTML = sols.map((s,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
+      <span style="flex:1;font-size:13px;font-weight:500;">${s}</span>
+      <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeSolicitanteConfig(${i})">×</button>
+    </div>`).join('');
+}
+
+function addSolicitanteConfig() {
+  const nombre = document.getElementById('newSolNombre').value.trim().toUpperCase();
+  if(!nombre) { toast('INTRODUCE EL NOMBRE','err'); return; }
+  const sols = getLS('t2-solicitantes') || [];
+  if(sols.includes(nombre)) { toast('YA EXISTE ESE SOLICITANTE','warn'); return; }
+  sols.push(nombre);
+  setLS('t2-solicitantes', sols);
+  document.getElementById('newSolNombre').value = '';
+  renderSolicitantesConfig();
+  actualizarSelectSolicitantes();
+  if(S.auth) writeConfigValue('Solicitantes', nombre);
+  toast('SOLICITANTE AÑADIDO ✓','ok');
+}
+
+function removeSolicitanteConfig(i) {
+  confirmar('sol'+i, 'BORRAR', () => {
+    const sols = getLS('t2-solicitantes') || [];
+    sols.splice(i, 1);
+    setLS('t2-solicitantes', sols);
+    renderSolicitantesConfig();
+    actualizarSelectSolicitantes();
+  });
+}
+
 function renderTecnicosConfig() {
   const el = document.getElementById('tecnicosConfig');
   if(!el) return;
-  const tecnicos = getLS('t2-tec') || ['FRAN TALAVERA','SAMUEL ACERO','ALBERTO ANDRÉS'];
+  const tecnicos = getLS('t2-tec') || [];
   if(!tecnicos.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin técnicos configurados.</p>'; return; }
   el.innerHTML = tecnicos.map((t,i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
@@ -2810,7 +2992,7 @@ function renderTecnicosConfig() {
 function addTecnicoConfig() {
   const nombre = document.getElementById('newTecNombre').value.trim().toUpperCase();
   if(!nombre) { toast('INTRODUCE EL NOMBRE','err'); return; }
-  const tecnicos = getLS('t2-tec') || ['FRAN TALAVERA','SAMUEL ACERO','ALBERTO ANDRÉS'];
+  const tecnicos = getLS('t2-tec') || [];
   if(tecnicos.includes(nombre)) { toast('YA EXISTE ESE TÉCNICO','warn'); return; }
   tecnicos.push(nombre);
   setLS('t2-tec', tecnicos);
@@ -2888,6 +3070,31 @@ async function sincronizarMateriales() {
     renderMaterilesConfig();
     renderMaterialesOptions();
     toast(`${S.materiales.length} MATERIALES SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
+}
+
+async function sincronizarSolicitantes() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO SOLICITANTES...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Solicitantes!A2:A200`,'GET');
+  if(res?.values) {
+    const sols = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
+    setLS('t2-solicitantes', sols);
+    actualizarSelectSolicitantes();
+    toast(`${sols.length} SOLICITANTES SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
+}
+
+async function sincronizarTecnicos() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO TÉCNICOS...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Tecnicos!A2:A50`,'GET');
+  if(res?.values) {
+    const tecnicos = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
+    setLS('t2-tec', tecnicos);
+    renderTecnicosConfig();
+    actualizarSelectTecnicos(tecnicos);
+    toast(`${tecnicos.length} TÉCNICOS SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
 
@@ -3322,7 +3529,7 @@ async function generarPDFDrive(d) {
       { range:`${sheetName}!AC6`, values:[[up(d.tec2)]] },
       { range:`${sheetName}!A8`,  values:[[up(d.alias)]] },
       { range:`${sheetName}!AC8`, values:[[up(d.poblacion)]] },
-      { range:`${sheetName}!AN8`, values:[[up(d.intId)]] },
+      { range:`${sheetName}!AN8`, values:[[up(d.solicitante||'')]] },
       { range:`${sheetName}!A13`, values:[[up(d.resultado)]] },
       { range:`${sheetName}!Q13`, values:[[up(d.vyp)]] },
       { range:`${sheetName}!AN13`,values:[[up(d.motivo)]] },
@@ -3525,6 +3732,7 @@ async function leerRemotasDrive() {
     });
     setLS('t2-ct', S.centros);
     checkAlertasInicio();
+    renderCentroSelects();
     return true;
   } catch(e) {
     console.error('Error leyendo remotas:',e);
@@ -3566,16 +3774,17 @@ async function leerPlanificacionDrive() {
     const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:J500`,'GET');
     if(!res?.values) return false;
     S.planificacion = res.values.map(row=>({
-      id:        row[0]||'PL-'+Date.now(),
-      centro:    (row[1]||'').toUpperCase(),
-      alias:     (row[2]||'').toUpperCase(),
-      fecha:     row[3]||'',
-      hora:      row[4]||'',
-      vyp:       row[5]||'',
-      tdc:       row[6]||'',
-      trabajo:   (row[7]||'').toUpperCase(),
-      coord:     row[8]||'',
-      estado:    row[9]||'PENDIENTE',
+      id:          row[0]||'PL-'+Date.now(),
+      centro:      (row[1]||'').toUpperCase(),
+      alias:       (row[2]||'').toUpperCase(),
+      fecha:       row[3]||'',
+      hora:        row[4]||'',
+      vyp:         row[5]||'',
+      tdc:         row[6]||'',
+      trabajo:     (row[7]||'').toUpperCase(),
+      coord:       row[8]||'',
+      estado:      row[9]||'PENDIENTE',
+      solicitante: (row[10]||'').toUpperCase(),
     })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
     return true;
@@ -3624,7 +3833,7 @@ async function crearEventoCalendario(p) {
 async function escribirPlanifDrive(p) {
   if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
   console.log('escribirPlanifDrive:', p.centro, p.fecha);
-  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE']];
+  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'']];
   const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
   console.log('escribirPlanifDrive result:', res);
 }
@@ -3850,10 +4059,118 @@ function renderFechaHoy() {
   document.getElementById('fechaHoy').textContent=`${dias[d.getDay()]}, ${d.getDate()} DE ${meses[d.getMonth()]} DE ${d.getFullYear()}`;
 }
 
+function getSemanaActual() {
+  // Week runs from Friday 20:00 to Friday 20:00
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 1=Mon... 5=Fri, 6=Sat
+  const hour = now.getHours();
+  // Find last Friday 20:00
+  let daysBack = (day - 5 + 7) % 7;
+  if(day === 5 && hour < 20) daysBack = 7; // Before 20:00 on Friday = previous week
+  const start = new Date(now);
+  start.setDate(now.getDate() - daysBack);
+  start.setHours(20, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  return { start, end };
+}
+
 function renderStats() {
-  document.getElementById('statTotal').textContent=S.intervenciones.length;
-  const mes=new Date().toISOString().slice(0,7);
-  document.getElementById('statMes').textContent=S.intervenciones.filter(iv=>(String(iv.fecha)||'').startsWith(mes)).length;
+  document.getElementById('statTotal').textContent = S.intervenciones.length;
+
+  // Monthly stats with trend indicator
+  const now = new Date();
+  const mesActual = now.toISOString().slice(0,7);
+  const dayOfMonth = now.getDate();
+  // Previous month same period
+  const prevMonth = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().slice(0,7);
+  
+  const parseFechaSort = (f) => {
+    if(!f) return null;
+    const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+    if(dm) return new Date(`${dm[3]}-${dm[2]}-${dm[1]}`);
+    return new Date(f);
+  };
+
+  const ivMesActual = S.intervenciones.filter(iv => {
+    const d = parseFechaSort(iv.fecha);
+    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()<=dayOfMonth;
+  });
+  const ivMesAnterior = S.intervenciones.filter(iv => {
+    const d = parseFechaSort(iv.fecha);
+    if(!d) return false;
+    const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth() && d.getDate()<=dayOfMonth;
+  });
+
+  // Count working days (days with any intervention or planif)
+  const diasActual = new Set(ivMesActual.map(iv=>(iv.fecha||'').slice(0,10))).size;
+  const diasAnterior = new Set(ivMesAnterior.map(iv=>(iv.fecha||'').slice(0,10))).size;
+  
+  const ratioActual = diasActual > 0 ? ivMesActual.length / diasActual : 0;
+  const ratioAnterior = diasAnterior > 0 ? ivMesAnterior.length / diasAnterior : 0;
+  const diff = ivMesActual.length - ivMesAnterior.length;
+
+  document.getElementById('statMes').textContent = ivMesActual.length;
+
+  // Color indicator
+  const card = document.getElementById('statMesCard');
+  const label = document.getElementById('statMesLabel');
+  if(card && diasAnterior > 0) {
+    if(diff >= 5) {
+      card.style.borderLeftColor = '#4caf50';
+      label.textContent = `Este mes (+${diff})`;
+    } else if(diff <= -5) {
+      card.style.borderLeftColor = 'var(--rojo)';
+      label.textContent = `Este mes (${diff})`;
+    } else {
+      card.style.borderLeftColor = 'var(--naranja)';
+      label.textContent = `Este mes (${diff>=0?'+':''}${diff})`;
+    }
+  } else if(label) {
+    label.textContent = 'Este mes';
+  }
+
+  // Weekly stats
+  const { start, end } = getSemanaActual();
+  
+  // Todos los trabajos planificados para esta semana
+  // S.planificacion only has PENDING (COMPLETADO/CANCELADO filtered on load)
+  // So total = completados del historial + pendientes + cancelados locales
+  const planifSemana = S.planificacion.filter(p => {
+    const f = parseFechaSort(p.fecha);
+    return f && f >= start && f < end;
+  });
+
+  // Completados esta semana (intervenciones en historial con fecha en semana)
+  const completadosSemana = S.intervenciones.filter(iv => {
+    const f = parseFechaSort(iv.fecha);
+    return f && f >= start && f < end;
+  });
+
+  // Cancelados esta semana
+  const canceladosSemana = planifSemana.filter(p => p.estado === 'CANCELADO').length;
+
+  // Total planificados = completados (historial) + pendientes + cancelados
+  const completados = completadosSemana.length;
+  const cancelados = canceladosSemana;
+  const pendientesPlanif = planifSemana.filter(p=>p.estado==='PENDIENTE').length;
+  const planif = completados + cancelados + pendientesPlanif;
+
+  document.getElementById('semPlanif').textContent = planif;
+  document.getElementById('semCompletados').textContent = completados;
+  document.getElementById('semCancelados').textContent = cancelados;
+
+  // Status indicator
+  const statusEl = document.getElementById('semanaStatus');
+  const card2 = document.getElementById('semanaCard');
+  if(card2) {
+    if(completados + cancelados === planif) {
+      card2.style.borderLeft = '3px solid #4caf50';
+    } else {
+      card2.style.borderLeft = '';
+    }
+  }
 }
 
 function renderRecent() {
