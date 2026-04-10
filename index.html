@@ -784,6 +784,19 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-head"><div class="card-title">📡 Modelos de remota</div></div>
+      <div class="card-body">
+        <div id="modelosConfig"></div>
+        <div class="div"></div>
+        <div class="fg"><label class="fl">Nuevo modelo</label><input class="fi" id="newModeloNombre" type="text" placeholder="MARCA / MODELO RTU"></div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addModeloConfig()">+ Añadir modelo</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarModelos()">↻ Sincronizar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="div"></div>
     <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:8px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
@@ -1166,7 +1179,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.68';
+const APP_VERSION = 'v2.69';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
