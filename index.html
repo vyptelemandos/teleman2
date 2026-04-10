@@ -1001,6 +1001,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nº VyP</label><input class="fi" id="mv-vyp" type="text" placeholder="18162931" style="text-transform:none;"></div>
       </div>
       <div class="fg"><label class="fl">TDC / Ticket</label><input class="fi" id="mv-tdc" type="text" placeholder="1694333" style="text-transform:none;"></div>
+      <div class="fg"><label class="fl">Teléfono contacto</label><input class="fi" id="mv-telefono" type="tel" placeholder="666 123 456" style="text-transform:none;" inputmode="tel"></div>
       <div class="fg">
         <label class="fl">Coordenadas GPS</label>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -1149,7 +1150,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.63';
+const APP_VERSION = 'v2.65';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2516,6 +2517,7 @@ function showPlanifDetalle(id) {
   html+=drBig('VyP',p.vyp||'—');
   html+=drBig('TDC / TICKET',p.tdc||'—');
   html+=drBig('SOLICITANTE',p.solicitante||'—');
+  if(p.telefono) html+=drBig('TELÉFONO',`<a href="tel:${p.telefono}" style="color:var(--azul);">${p.telefono}</a>`);
   html+=drBig('TRABAJO',p.trabajo||'—');
   if(c) {
     html+=`<div class="div"></div>`;
@@ -2579,7 +2581,7 @@ function addVyPManual() {
       if(S.auth) writeConfigValue('Solicitantes', solicitanteVal);
     }
   }
-  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),telefono:v('mv-telefono')||'',trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
   console.log('S.auth al añadir planif:', !!S.auth);
@@ -2588,7 +2590,7 @@ function addVyPManual() {
     crearEventoCalendario(newPlanif);
   }
   else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
-  ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord'].forEach(id=>sv(id,''));
+  ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord','mv-telefono'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
   closeModal('modalNuevoVyP'); renderPlanif(); toast('TRABAJO AÑADIDO','ok');
 }
@@ -4146,7 +4148,7 @@ function resetearDatosLocales() {
 async function leerPlanificacionDrive() {
   if(!S.auth) return false;
   try {
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:J500`,'GET');
+    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
     if(!res?.values) return false;
     S.planificacion = res.values.map(row=>({
       id:          row[0]||'PL-'+Date.now(),
@@ -4160,6 +4162,7 @@ async function leerPlanificacionDrive() {
       coord:       row[8]||'',
       estado:      row[9]||'PENDIENTE',
       solicitante: (row[10]||'').toUpperCase(),
+      telefono:    row[11]||'',
     })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
     return true;
@@ -4178,9 +4181,11 @@ async function crearEventoCalendario(p) {
     const event = {
       summary: `${p.centro} — ${p.alias||''}`.trim(),
       description: [
-        p.trabajo ? `Trabajo: ${p.trabajo}` : '',
-        p.tdc     ? `TDC: ${p.tdc}`         : '',
-        p.vyp     ? `VyP: ${p.vyp}`         : '',
+        p.trabajo     ? `Trabajo: ${p.trabajo}`       : '',
+        p.tdc         ? `TDC: ${p.tdc}`               : '',
+        p.vyp         ? `VyP: ${p.vyp}`               : '',
+        p.solicitante ? `Solicitante: ${p.solicitante}`: '',
+        p.telefono    ? `Teléfono: ${p.telefono}`      : '',
       ].filter(Boolean).join('\n'),
       start: { dateTime: start, timeZone: 'Europe/Madrid' },
       end:   { dateTime: end,   timeZone: 'Europe/Madrid' },
@@ -4208,8 +4213,8 @@ async function crearEventoCalendario(p) {
 async function escribirPlanifDrive(p) {
   if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
   console.log('escribirPlanifDrive:', p.centro, p.fecha);
-  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'']];
-  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:K:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
+  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'', p.telefono||'']];
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
   console.log('escribirPlanifDrive result:', res);
   escribirPlanifSupabase(p).catch(()=>{});
 }
