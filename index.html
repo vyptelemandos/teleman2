@@ -802,6 +802,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
       Sincronizar todo desde Drive
     </button>
+    <button class="btn btn-green" onclick="migrarASupabase()" style="margin-bottom:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Migrar todo a Supabase
+    </button>
     <button class="btn btn-gray" onclick="resetearDatosLocales()" style="margin-bottom:12px;color:var(--rojo);">
       🗑 Borrar datos locales y reiniciar
     </button>
@@ -1179,7 +1183,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.69';
+const APP_VERSION = 'v2.70';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4266,6 +4270,144 @@ async function leerRemotasDrive() {
 
 // escribirIntervDrive = alias of guardarEnSheets
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
+
+async function migrarASupabase() {
+  if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
+  const sb = getSB();
+  let ok = 0, err = 0;
+
+  const log = (msg, isErr) => { if(isErr) err++; else ok++; console.log(msg); };
+
+  toast('MIGRANDO... ESTO PUEDE TARDAR UN MINUTO','warn');
+
+  try {
+    // 1. CONFIGURACIÓN
+    toast('MIGRANDO CONFIGURACIÓN...','warn');
+    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
+    const data = {};
+    for(const sheet of sheets) {
+      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,'GET');
+      data[sheet] = res?.values || [];
+    }
+
+    // Materiales
+    if(data.Materiales.length) {
+      const rows = data.Materiales.map(r=>({cod:(r[0]||'').toUpperCase().trim(), descripcion:(r[1]||'').toUpperCase().trim()})).filter(r=>r.cod);
+      const {error} = await sb.from('materiales').upsert(rows, {onConflict:'cod'});
+      log(`Materiales: ${rows.length}`, !!error);
+    }
+    // Frases
+    if(data.Frases.length) {
+      const rows = data.Frases.map(r=>({texto:(r[0]||'').trim()})).filter(r=>r.texto);
+      const {error} = await sb.from('frases').upsert(rows, {onConflict:'texto'});
+      log(`Frases: ${rows.length}`, !!error);
+    }
+    // Tecnicos
+    if(data.Tecnicos.length) {
+      const rows = data.Tecnicos.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('tecnicos').upsert(rows, {onConflict:'nombre'});
+      log(`Técnicos: ${rows.length}`, !!error);
+    }
+    // Modelos remota
+    if(data.Modelos_Remota.length) {
+      const rows = data.Modelos_Remota.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('modelos_remota').upsert(rows, {onConflict:'nombre'});
+      log(`Modelos remota: ${rows.length}`, !!error);
+    }
+    // Baremos
+    if(data.Baremos.length) {
+      const rows = data.Baremos.map(r=>({cod:r[0]||'', descripcion:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'})).filter(r=>r.cod);
+      const {error} = await sb.from('baremos').upsert(rows, {onConflict:'cod'});
+      log(`Baremos: ${rows.length}`, !!error);
+    }
+    // Zonas
+    if(data.Zonas.length) {
+      const rows = data.Zonas.map(r=>({zona:(r[0]||'').toUpperCase().trim(), codigo:(r[1]||'').toUpperCase().trim()})).filter(r=>r.zona&&r.codigo);
+      const {error} = await sb.from('zonas').upsert(rows, {onConflict:'zona'});
+      log(`Zonas: ${rows.length}`, !!error);
+    }
+    // Solicitantes
+    if(data.Solicitantes.length) {
+      const rows = data.Solicitantes.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('solicitantes').upsert(rows, {onConflict:'nombre'});
+      log(`Solicitantes: ${rows.length}`, !!error);
+    }
+
+    // 2. CENTROS
+    toast('MIGRANDO CENTROS...','warn');
+    const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
+    const headers = hRes?.values?.[0] || [];
+    const rRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A2:Z5000`,'GET');
+    if(rRes?.values) {
+      const parseFechaSB = (f) => { if(!f) return null; const d=parseFecha(f); return d?new Date(d).toISOString().slice(0,10):null; };
+      const centros = rRes.values.map(row=>{ const obj={}; headers.forEach((h,i)=>{if(h) obj[h]=row[i]||'';}); return obj; }).filter(c=>c.Nombre);
+      const rows = centros.map(c=>({
+        nombre:c.Nombre||'', alias:c.Alias||'', area:c.Area||'', tipo:c.Tipo||'',
+        ubicacion:c['Ubicación']||'', direccion:c.Direccion||'', municipio:c.Municipio||'',
+        coord:c.Coord||'', fecha_tmt:parseFechaSB(c.FechaTMT), via_com:c.Via_Com||'',
+        comadress:c.COMADRESS||'', rtu_marca:c.RTU_marca||'', rtu_mod:c.RTU_Mod||'',
+        controlador_marca:c.Controlador_Marca||'', controlador_modelo:c.Controlador_Modelo||'',
+        fechasus:parseFechaSB(c.Fechasus), bat_marca:c.Bat_Marca||'', bat_modelo:c.Bat_Modelo||'',
+        bat_tipo:c.Bat_Tipo||'', rec_marca:c.Rec_Marca||'', comentario:c.Comentario||'',
+      }));
+      // Supabase tiene límite de 1000 filas por upsert, hacemos lotes
+      for(let i=0;i<rows.length;i+=500) {
+        const {error} = await sb.from('centros').upsert(rows.slice(i,i+500), {onConflict:'nombre'});
+        log(`Centros lote ${i/500+1}: ${Math.min(500,rows.length-i)}`, !!error);
+      }
+    }
+
+    // 3. PLANIFICACIÓN
+    toast('MIGRANDO PLANIFICACIÓN...','warn');
+    const pRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
+    if(pRes?.values) {
+      const rows = pRes.values.map(row=>({
+        id:row[0]||'PL-'+Date.now(), centro:(row[1]||'').toUpperCase(), alias:(row[2]||'').toUpperCase(),
+        fecha:row[3]||null, hora:row[4]||'', vyp:row[5]||'', tdc:row[6]||'',
+        trabajo:(row[7]||'').toUpperCase(), coord:row[8]||'', estado:row[9]||'PENDIENTE',
+        solicitante:(row[10]||'').toUpperCase(), telefono:row[11]||'',
+      })).filter(r=>r.centro);
+      const {error} = await sb.from('planificacion').upsert(rows, {onConflict:'id'});
+      log(`Planificación: ${rows.length}`, !!error);
+    }
+
+    // 4. HISTORIAL (en lotes de 500)
+    toast('MIGRANDO HISTORIAL... (puede tardar)','warn');
+    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
+    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
+    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
+    if(allRows.length) {
+      const intervs = allRows.map((row,i)=>{
+        const baremos=[], materiales=[];
+        for(let b=0;b<6;b++) { const cod=(row[18+b*3]||'').trim(); if(cod) baremos.push({cod,ud:parseFloat(row[19+b*3])||0,desc:(row[20+b*3]||'').trim()}); }
+        for(let m=0;m<6;m++) { const cod=(row[36+m*3]||'').trim(); if(cod) materiales.push({cod,qty:parseFloat(row[37+m*3])||0,desc:(row[38+m*3]||'').trim()}); }
+        return {
+          int_id:(row[0]||'INT-'+String(i+1).padStart(5,'0')).trim(),
+          centro:(row[1]||'').toUpperCase().trim(), fecha:parseDateStr(row[2]||'')||null,
+          tec1:(row[3]||'').toUpperCase().trim(), tec2:(row[4]||'').toUpperCase().trim(),
+          alias:(row[5]||'').toUpperCase().trim(), zona:(row[6]||'').toUpperCase().trim(),
+          poblacion:(row[7]||'').toUpperCase().trim(), resultado:(row[8]||'').toUpperCase().trim(),
+          vyp:(row[9]||'').trim(), tdc:(row[10]||'').trim(), motivo:(row[11]||'').toUpperCase().trim(),
+          maniobras:(row[12]||'NO').toUpperCase().trim(), tipo:(row[13]||'').toUpperCase().trim(),
+          modelo:(row[14]||'').toUpperCase().trim(), resolucion:(row[15]||'').toUpperCase().trim(),
+          vale:(row[16]||'').toUpperCase()==='SI', trace:(row[17]||'').toUpperCase()==='OK',
+          baremos, materiales, solicitante:(row[54]||'').toUpperCase().trim(),
+        };
+      }).filter(r=>r.centro);
+      for(let i=0;i<intervs.length;i+=500) {
+        const {error} = await sb.from('intervenciones').upsert(intervs.slice(i,i+500), {onConflict:'int_id'});
+        log(`Historial lote ${i/500+1}: ${Math.min(500,intervs.length-i)}`, !!error);
+      }
+    }
+
+    if(err===0) toast(`MIGRACIÓN COMPLETA ✓ — ${ok} operaciones OK`,'ok');
+    else toast(`MIGRACIÓN CON ${err} ERRORES — revisa la consola`,'warn');
+
+  } catch(e) {
+    console.error('Error en migración:', e);
+    toast('ERROR EN MIGRACIÓN: '+e.message,'err');
+  }
+}
 
 function resetearDatosLocales() {
   confirmar('reset', 'BORRAR DATOS', () => {
