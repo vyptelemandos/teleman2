@@ -1200,7 +1200,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.75';
+const APP_VERSION = 'v2.76';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2897,7 +2897,8 @@ function showInterv(intId,centro) {
 function renderCentros(f='') {
   const el=document.getElementById('centroList');
   const list=S.centros.filter(c=>!f||Object.values(c).join(' ').toUpperCase().includes(f.toUpperCase()));
-  const incompletosCount = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo).length;
+  const esIncompleto = c => !c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca;
+  const incompletosCount = S.centros.filter(esIncompleto).length;
   const incompletosLink = incompletosCount ? ` · <span style="color:var(--rojo);cursor:pointer;text-decoration:underline;" onclick="filtrarIncompletos()">${incompletosCount} INCOMPLETAS</span>` : '';
   document.getElementById('centrosSub').innerHTML=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletosLink}`;
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="empty-t">SIN INSTALACIONES</div><div class="empty-s">Importa tu Excel desde Ajustes</div></div>`;return;}
@@ -2938,9 +2939,10 @@ function centroHtml(c,esNorte=false) {
 
 function filtrarIncompletos() {
   const el = document.getElementById('centroSearch');
-  if(el) { el.value = ''; }
+  if(el) el.value = '';
   const elList = document.getElementById('centroList');
-  const incompletos = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo);
+  const esIncompleto = c => !c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca;
+  const incompletos = S.centros.filter(esIncompleto);
   if(!incompletos.length) { toast('NO HAY INSTALACIONES INCOMPLETAS','ok'); return; }
   elList.innerHTML = incompletos.map(c=>centroHtml(c)).join('');
   document.getElementById('centrosSub').innerHTML = `<span style="color:var(--rojo);font-weight:600;">${incompletos.length} INSTALACIONES INCOMPLETAS</span> · <span style="cursor:pointer;text-decoration:underline;" onclick="renderCentros()">Ver todas</span>`;
