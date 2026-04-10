@@ -1200,7 +1200,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.76';
+const APP_VERSION = 'v2.77';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2897,7 +2897,7 @@ function showInterv(intId,centro) {
 function renderCentros(f='') {
   const el=document.getElementById('centroList');
   const list=S.centros.filter(c=>!f||Object.values(c).join(' ').toUpperCase().includes(f.toUpperCase()));
-  const esIncompleto = c => !c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca;
+  const esIncompleto = c => esMiZona(c.Area) && (!c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca);
   const incompletosCount = S.centros.filter(esIncompleto).length;
   const incompletosLink = incompletosCount ? ` · <span style="color:var(--rojo);cursor:pointer;text-decoration:underline;" onclick="filtrarIncompletos()">${incompletosCount} INCOMPLETAS</span>` : '';
   document.getElementById('centrosSub').innerHTML=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletosLink}`;
@@ -2941,7 +2941,7 @@ function filtrarIncompletos() {
   const el = document.getElementById('centroSearch');
   if(el) el.value = '';
   const elList = document.getElementById('centroList');
-  const esIncompleto = c => !c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca;
+  const esIncompleto = c => esMiZona(c.Area) && (!c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca);
   const incompletos = S.centros.filter(esIncompleto);
   if(!incompletos.length) { toast('NO HAY INSTALACIONES INCOMPLETAS','ok'); return; }
   elList.innerHTML = incompletos.map(c=>centroHtml(c)).join('');
