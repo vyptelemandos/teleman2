@@ -1149,7 +1149,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.61';
+const APP_VERSION = 'v2.62';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2430,6 +2430,7 @@ function cancelarVyP(id) {
         if(rowIdx<0) return;
         gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['CANCELADO']]});
       });
+      actualizarEstadoPlanifSupabase(id, 'CANCELADO').catch(()=>{});
     }
     toast('TRABAJO CANCELADO');
   }
@@ -2864,6 +2865,7 @@ async function escribirCentroEnDrive(c, esEdicion) {
       const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
       await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
     }
+    escribirCentroSupabase(c).catch(()=>{});
   } catch(e) { console.error('Error escribiendo centro en Drive:', e); }
 }
 
@@ -3545,6 +3547,77 @@ async function actualizarEnSupabase(d) {
   }
 }
 
+async function escribirPlanifSupabase(p) {
+  try {
+    const sb = getSB();
+    const payload = {
+      id:          p.id,
+      centro:      p.centro || '',
+      alias:       p.alias || '',
+      fecha:       p.fecha || null,
+      hora:        p.hora || '',
+      vyp:         p.vyp || '',
+      tdc:         p.tdc || '',
+      trabajo:     p.trabajo || '',
+      coord:       p.coord || '',
+      estado:      p.estado || 'PENDIENTE',
+      solicitante: p.solicitante || '',
+      telefono:    p.telefono || '',
+      cal_event_id: p.calEventId || null,
+    };
+    const { error } = await sb.from('planificacion').upsert(payload, { onConflict: 'id' });
+    if(error) console.warn('Supabase planif warn:', error.message);
+    else console.log('Supabase planif ✓', payload.id);
+  } catch(e) { console.warn('Supabase planif error (no crítico):', e.message); }
+}
+
+async function actualizarEstadoPlanifSupabase(id, estado) {
+  try {
+    const sb = getSB();
+    const { error } = await sb.from('planificacion').update({ estado }).eq('id', id);
+    if(error) console.warn('Supabase planif estado warn:', error.message);
+    else console.log('Supabase planif estado ✓', id, estado);
+  } catch(e) { console.warn('Supabase planif estado error (no crítico):', e.message); }
+}
+
+async function escribirCentroSupabase(c) {
+  try {
+    const sb = getSB();
+    const parseFechaSB = (f) => {
+      if(!f) return null;
+      const d = parseFecha(f);
+      return d ? new Date(d).toISOString().slice(0,10) : null;
+    };
+    const payload = {
+      nombre:             c.Nombre || '',
+      alias:              c.Alias || '',
+      area:               c.Area || '',
+      tipo:               c.Tipo || '',
+      ubicacion:          c['Ubicación'] || '',
+      direccion:          c.Direccion || '',
+      municipio:          c.Municipio || '',
+      coord:              c.Coord || '',
+      fecha_tmt:          parseFechaSB(c.FechaTMT),
+      via_com:            c.Via_Com || '',
+      comadress:          c.COMADRESS || '',
+      rtu_marca:          c.RTU_marca || '',
+      rtu_mod:            c.RTU_Mod || '',
+      controlador_marca:  c.Controlador_Marca || '',
+      controlador_modelo: c.Controlador_Modelo || '',
+      fechasus:           parseFechaSB(c.Fechasus),
+      bat_marca:          c.Bat_Marca || '',
+      bat_modelo:         c.Bat_Modelo || '',
+      bat_tipo:           c.Bat_Tipo || '',
+      rec_marca:          c.Rec_Marca || '',
+      comentario:         c.Comentario || '',
+      updated_at:         new Date().toISOString(),
+    };
+    const { error } = await sb.from('centros').upsert(payload, { onConflict: 'nombre' });
+    if(error) console.warn('Supabase centro warn:', error.message);
+    else console.log('Supabase centro ✓', payload.nombre);
+  } catch(e) { console.warn('Supabase centro error (no crítico):', e.message); }
+}
+
 async function actualizarEnSheets(d) {
   // Find row with this intId in column A and update it
   const colARes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:A`,'GET');
@@ -4138,6 +4211,7 @@ async function escribirPlanifDrive(p) {
   const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'']];
   const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
   console.log('escribirPlanifDrive result:', res);
+  escribirPlanifSupabase(p).catch(()=>{});
 }
 
 async function completarPlanifDrive(id) {
@@ -4148,6 +4222,7 @@ async function completarPlanifDrive(id) {
     const rowIdx = res.values.findIndex(r=>r[0]===id);
     if(rowIdx<0) return;
     await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['COMPLETADO']]});
+    actualizarEstadoPlanifSupabase(id, 'COMPLETADO').catch(()=>{});
   } catch(e) { console.error('Error completando planif:', e); }
 }
 
