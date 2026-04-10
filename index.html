@@ -896,6 +896,22 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-head"><div class="card-title">📡 Modelos de remota</div></div>
+      <div class="card-body">
+        <div id="modelosConfig"></div>
+        <div class="div"></div>
+        <div class="fg">
+          <label class="fl">Nuevo modelo</label>
+          <input class="fi" id="newModeloNombre" type="text" placeholder="MARCA / MODELO RTU">
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addModeloConfig()">+ Añadir modelo</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarModelos()">↻ Sincronizar</button>
+        </div>
+      </div>
+    </div>
+
     <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span> · vyptelemandos.github.io/teleman2</div>
   </div>
 
@@ -1150,7 +1166,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.66';
+const APP_VERSION = 'v2.68';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1307,6 +1323,62 @@ function actualizarSelectTecnicos(tecnicos) {
     el.innerHTML=`<option value="">${placeholder}</option>`+tecnicos.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
     if(cur) el.value=cur;
   });
+}
+
+function renderModelosConfig() {
+  const el = document.getElementById('modelosConfig');
+  if(!el) return;
+  const modelos = getLS('t2-modelos') || [];
+  if(!modelos.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin modelos configurados.</p>'; return; }
+  el.innerHTML = modelos.map((m,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gris5);">
+      <span style="font-size:13px;font-weight:500;">${m}</span>
+      <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeModeloConfig(${i})">×</button>
+    </div>`).join('');
+}
+
+function addModeloConfig() {
+  const nombre = vu('newModeloNombre');
+  if(!nombre) { toast('INTRODUCE UN MODELO','err'); return; }
+  const modelos = getLS('t2-modelos') || [];
+  if(modelos.includes(nombre)) { toast('ESE MODELO YA EXISTE','warn'); return; }
+  modelos.push(nombre);
+  setLS('t2-modelos', modelos);
+  actualizarSelectModelos(modelos);
+  renderModelosConfig();
+  sv('newModeloNombre','');
+  if(S.auth) writeConfigValue('Modelos_Remota', nombre);
+  toast('MODELO AÑADIDO ✓','ok');
+}
+
+function removeModeloConfig(i) {
+  confirmar('modelo'+i, 'BORRAR', () => {
+    const modelos = getLS('t2-modelos') || [];
+    modelos.splice(i, 1);
+    setLS('t2-modelos', modelos);
+    actualizarSelectModelos(modelos);
+    renderModelosConfig();
+  });
+}
+
+async function sincronizarModelos() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO MODELOS...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Modelos_Remota!A2:A200`,'GET');
+  if(res?.values) {
+    const modelos = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
+    setLS('t2-modelos', modelos);
+    actualizarSelectModelos(modelos);
+    renderModelosConfig();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = modelos.map(nombre=>({nombre}));
+      const {error} = await sb.from('modelos_remota').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB modelos sync warn:', error.message);
+    } catch(e) { console.warn('SB modelos sync error:', e.message); }
+    toast(`${modelos.length} MODELOS SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
 }
 
 function actualizarSelectModelos(modelos) {
@@ -1678,7 +1750,7 @@ function checkPwd() {
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
       document.getElementById('scrollArea').scrollTop=0;
-      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
+      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); renderModelosConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
     } else if(S.pwdTarget==='stats') {
       renderStatsPage();
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -2503,7 +2575,7 @@ function switchTab(tab) {
     statsContent.style.display='none'; cfgContent.style.display='block';
     tabCfg.style.background='var(--rojo)'; tabCfg.style.color='white';
     tabStats.style.background='transparent'; tabStats.style.color='var(--gris4)';
-    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); loadConfig(); },50);
+    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderModelosConfig(); loadConfig(); },50);
   }
 }
 
@@ -3293,6 +3365,13 @@ async function sincronizarMateriales() {
     setLS('t2-mat', S.materiales);
     renderMaterilesConfig();
     renderMaterialesOptions();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.materiales.map(m=>({cod:m.cod, descripcion:m.desc}));
+      const {error} = await sb.from('materiales').upsert(rows, {onConflict:'cod'});
+      if(error) console.warn('SB materiales sync warn:', error.message);
+    } catch(e) { console.warn('SB materiales sync error:', e.message); }
     toast(`${S.materiales.length} MATERIALES SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3305,6 +3384,13 @@ async function sincronizarSolicitantes() {
     const sols = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
     setLS('t2-solicitantes', sols);
     actualizarSelectSolicitantes();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = sols.map(nombre=>({nombre}));
+      const {error} = await sb.from('solicitantes').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB solicitantes sync warn:', error.message);
+    } catch(e) { console.warn('SB solicitantes sync error:', e.message); }
     toast(`${sols.length} SOLICITANTES SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3318,6 +3404,13 @@ async function sincronizarTecnicos() {
     setLS('t2-tec', tecnicos);
     renderTecnicosConfig();
     actualizarSelectTecnicos(tecnicos);
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = tecnicos.map(nombre=>({nombre}));
+      const {error} = await sb.from('tecnicos').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB tecnicos sync warn:', error.message);
+    } catch(e) { console.warn('SB tecnicos sync error:', e.message); }
     toast(`${tecnicos.length} TÉCNICOS SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3330,6 +3423,13 @@ async function sincronizarFrases() {
     S.frases = res.values.map(r=>(r[0]||'').trim()).filter(Boolean);
     setLS('t2-fr', S.frases);
     renderFrasesConfig();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.frases.map(texto=>({texto}));
+      const {error} = await sb.from('frases').upsert(rows, {onConflict:'texto'});
+      if(error) console.warn('SB frases sync warn:', error.message);
+    } catch(e) { console.warn('SB frases sync error:', e.message); }
     toast(`${S.frases.length} FRASES SINCRONIZADAS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3345,6 +3445,13 @@ async function sincronizarBaremos() {
     setLS('t2-bar', S.baremos);
     renderBaremosOptions();
     renderBaremosEditList();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.baremos.map(b=>({cod:b.cod, descripcion:b.desc, pts:b.pts, fav:b.fav}));
+      const {error} = await sb.from('baremos').upsert(rows, {onConflict:'cod'});
+      if(error) console.warn('SB baremos sync warn:', error.message);
+    } catch(e) { console.warn('SB baremos sync error:', e.message); }
     toast(`${S.baremos.length} BAREMOS SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
