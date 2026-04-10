@@ -1200,7 +1200,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.80';
+const APP_VERSION = 'v2.81';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4379,7 +4379,18 @@ async function migrarASupabase() {
     toast('MIGRANDO CENTROS...','warn');
     const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
     const headers = hRes?.values?.[0] || [];
-    const parseFechaSB = (f) => { if(!f) return null; const d=parseFecha(f); return d?new Date(d).toISOString().slice(0,10):null; };
+    const parseFechaSB = (f) => {
+      if(!f || f==='' || f==='0' || f==='00/00/0000') return null;
+      try {
+        const d = parseFecha(f);
+        if(!d) return null;
+        const dt = new Date(d);
+        if(isNaN(dt.getTime())) return null;
+        const y = dt.getFullYear();
+        if(y < 1900 || y > 2100) return null;
+        return dt.toISOString().slice(0,10);
+      } catch(e) { return null; }
+    };
     let allCentros = [];
     const loteSize = 500;
     for(let lote=0; lote<10; lote++) {
