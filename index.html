@@ -97,10 +97,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .btn-row{display:flex;gap:8px;}
 
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.stat-card{background:var(--blanco);border-radius:var(--r);padding:13px;box-shadow:var(--sombra);border-left:3px solid var(--rojo);}
-.stat-n{font-size:30px;font-weight:700;color:var(--rojo);line-height:1;font-family:Consolas,monospace;}
-.stat-l{font-size:11px;color:var(--gris3);margin-top:3px;font-weight:500;}
+.stats-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
+.stat-card{background:var(--blanco);border-radius:var(--r);padding:16px 14px 10px;box-shadow:var(--sombra2);border-left:3px solid var(--gris4);overflow:hidden;position:relative;}
+.stat-n{font-size:42px;font-weight:700;color:var(--negro);line-height:1;font-family:Consolas,monospace;letter-spacing:-1px;}
+.stat-l{font-size:11px;color:var(--gris3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
 
 /* LIST ITEM */
 .li{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;border-left:3px solid transparent;}
@@ -258,8 +258,25 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Intervenciones</div></div>
-      <div class="stat-card" id="statMesCard"><div class="stat-n" id="statMes">0</div><div class="stat-l" id="statMesLabel">Este mes</div></div>
+      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris3);">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;">
+          <div>
+            <div class="stat-n" id="statTotal">0</div>
+            <div class="stat-l" style="margin-top:2px;">Total intervenciones</div>
+          </div>
+        </div>
+        <canvas id="chartTotal" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
+      </div>
+      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;">
+          <div>
+            <div class="stat-n" id="statMes">0</div>
+            <div class="stat-l" id="statMesLabel" style="margin-top:2px;">Este mes</div>
+          </div>
+          <div id="statMesTrend" style="font-size:11px;font-weight:600;"></div>
+        </div>
+        <canvas id="chartMes" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
+      </div>
     </div>
     <div class="card" id="semanaCard" style="margin-bottom:10px;">
       <div class="card-head"><div class="card-title">Semana en curso</div></div>
@@ -552,7 +569,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar
         </button>
-        <button class="btn btn-red" style="flex:1;padding:14px;" onclick="confirmarGenerar()">
+        <button class="btn btn-red" style="flex:1;padding:14px;" id="btnGenerarPDF" onclick="confirmarGenerar()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Generar PDF
         </button>
@@ -1183,7 +1200,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.70';
+const APP_VERSION = 'v2.75';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2014,6 +2031,8 @@ function nuevoInforme() {
   if(eb) { eb.textContent='Borrador'; eb.className='badge badge-orange'; }
   const banner = document.getElementById('cancelarPlanifBanner');
   if(banner) banner.style.display = 'none';
+  const btnPDF = document.getElementById('btnGenerarPDF');
+  if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
 }
 
 function borrarBorradorActual() {
@@ -2536,7 +2555,7 @@ function cancelarVyP(id) {
       }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
     }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
-    setLS('t2-pl',S.planificacion); renderPlanif();
+    setLS('t2-pl',S.planificacion); renderPlanif(); renderStats();
     // Mark as CANCELADO in Drive
     if(S.auth) {
       gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET').then(res=>{
@@ -2706,7 +2725,7 @@ function addVyPManual() {
   else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord','mv-telefono'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
-  closeModal('modalNuevoVyP'); renderPlanif(); toast('TRABAJO AÑADIDO','ok');
+  closeModal('modalNuevoVyP'); renderPlanif(); renderStats(); toast('TRABAJO AÑADIDO','ok');
 }
 
 async function sincronizarVyP() {
@@ -2824,6 +2843,8 @@ function editarInforme(intId) {
   // Show edit mode indicator
   document.getElementById('estadoBorrador').textContent = '✏️ Editando';
   document.getElementById('estadoBorrador').className = 'badge badge-orange';
+  const btnPDF = document.getElementById('btnGenerarPDF');
+  if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modificar Informe';
   toast('MODO EDICIÓN — ' + iv.intId, 'warn');
   goPage('p-informe');
 }
@@ -2876,8 +2897,9 @@ function showInterv(intId,centro) {
 function renderCentros(f='') {
   const el=document.getElementById('centroList');
   const list=S.centros.filter(c=>!f||Object.values(c).join(' ').toUpperCase().includes(f.toUpperCase()));
-  const incompletos = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo).length;
-  document.getElementById('centrosSub').textContent=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletos?` · ${incompletos} INCOMPLETAS`:''}`;
+  const incompletosCount = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo).length;
+  const incompletosLink = incompletosCount ? ` · <span style="color:var(--rojo);cursor:pointer;text-decoration:underline;" onclick="filtrarIncompletos()">${incompletosCount} INCOMPLETAS</span>` : '';
+  document.getElementById('centrosSub').innerHTML=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletosLink}`;
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="empty-t">SIN INSTALACIONES</div><div class="empty-s">Importa tu Excel desde Ajustes</div></div>`;return;}
 
   // Group by zone — mine first
@@ -2912,6 +2934,16 @@ function centroHtml(c,esNorte=false) {
     <div class="li-alias">${alias}</div>
     <div class="li-meta"><span>${c.Area||''}</span><span>${muni}</span><span style="font-size:10px;">${c.RTU_marca||''} ${c.RTU_Mod||''}</span></div>
   </div>`;
+}
+
+function filtrarIncompletos() {
+  const el = document.getElementById('centroSearch');
+  if(el) { el.value = ''; }
+  const elList = document.getElementById('centroList');
+  const incompletos = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo);
+  if(!incompletos.length) { toast('NO HAY INSTALACIONES INCOMPLETAS','ok'); return; }
+  elList.innerHTML = incompletos.map(c=>centroHtml(c)).join('');
+  document.getElementById('centrosSub').innerHTML = `<span style="color:var(--rojo);font-weight:600;">${incompletos.length} INSTALACIONES INCOMPLETAS</span> · <span style="cursor:pointer;text-decoration:underline;" onclick="renderCentros()">Ver todas</span>`;
 }
 
 function filtrarCentros(){renderCentros(document.getElementById('centroSearch').value);}
@@ -4755,16 +4787,60 @@ function getSemanaActual() {
   return { start, end };
 }
 
+function drawSparkline(canvasId, data, color) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || canvas.parentElement.offsetWidth || 140;
+  // Fill remaining height of card
+  const card = canvas.closest('.stat-card');
+  const cardH = card ? card.offsetHeight : 0;
+  const usedH = canvas.offsetTop || 60;
+  const h = Math.max(32, cardH - usedH - 10);
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0,0,w,h);
+  if(!data.length || data.every(v=>v===0)) return;
+  const max = Math.max(...data, 1);
+  const pad = 3;
+  const n = data.length;
+  const step = (w - pad*2) / (n - 1 || 1);
+
+  const px = (i) => pad + i * step;
+  const py = (v) => h - pad - (v / max) * (h - pad*2);
+
+  // Area fill
+  ctx.beginPath();
+  ctx.moveTo(px(0), h - pad);
+  data.forEach((v,i) => ctx.lineTo(px(i), py(v)));
+  ctx.lineTo(px(n-1), h - pad);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, color + '30');
+  grad.addColorStop(1, color + '00');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  data.forEach((v,i) => i===0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Dot at last point
+  ctx.beginPath();
+  ctx.arc(px(n-1), py(data[n-1]), 2.5, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
 function renderStats() {
   document.getElementById('statTotal').textContent = S.intervenciones.length;
 
-  // Monthly stats with trend indicator
   const now = new Date();
-  const mesActual = now.toISOString().slice(0,7);
-  const dayOfMonth = now.getDate();
-  // Previous month same period
-  const prevMonth = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().slice(0,7);
-  
   const parseFechaSort = (f) => {
     if(!f) return null;
     const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
@@ -4772,6 +4848,21 @@ function renderStats() {
     return new Date(f);
   };
 
+  // --- GRÁFICA TOTAL: últimos 12 meses ---
+  const mesesData = [];
+  for(let i=11;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = d.toISOString().slice(0,7);
+    const count = S.intervenciones.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      return fd && fd.toISOString().slice(0,7)===key;
+    }).length;
+    mesesData.push(count);
+  }
+  drawSparkline('chartTotal', mesesData, '#bbbbbb');
+
+  // --- STATS MES ACTUAL ---
+  const dayOfMonth = now.getDate();
   const ivMesActual = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
     return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()<=dayOfMonth;
@@ -4783,55 +4874,55 @@ function renderStats() {
     return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth() && d.getDate()<=dayOfMonth;
   });
 
-  // Count working days (days with any intervention or planif)
-  const diasActual = new Set(ivMesActual.map(iv=>(iv.fecha||'').slice(0,10))).size;
-  const diasAnterior = new Set(ivMesAnterior.map(iv=>(iv.fecha||'').slice(0,10))).size;
-  
-  const ratioActual = diasActual > 0 ? ivMesActual.length / diasActual : 0;
-  const ratioAnterior = diasAnterior > 0 ? ivMesAnterior.length / diasAnterior : 0;
   const diff = ivMesActual.length - ivMesAnterior.length;
-
   document.getElementById('statMes').textContent = ivMesActual.length;
 
-  // Color indicator
+  // Color indicator mes — sistema de colores restaurado
   const card = document.getElementById('statMesCard');
   const label = document.getElementById('statMesLabel');
-  if(card && diasAnterior > 0) {
+  const trend = document.getElementById('statMesTrend');
+  if(card && ivMesAnterior.length > 0) {
     if(diff >= 5) {
-      card.style.borderLeftColor = '#4caf50';
-      label.textContent = `Este mes (+${diff})`;
+      card.style.borderLeftColor = 'var(--azul)';
+      if(trend) trend.textContent = `▲ +${diff} vs mes anterior`;
+      if(trend) trend.style.color = 'var(--azul)';
     } else if(diff <= -5) {
       card.style.borderLeftColor = 'var(--rojo)';
-      label.textContent = `Este mes (${diff})`;
+      if(trend) trend.textContent = `▼ ${diff} vs mes anterior`;
+      if(trend) trend.style.color = 'var(--rojo)';
     } else {
       card.style.borderLeftColor = 'var(--naranja)';
-      label.textContent = `Este mes (${diff>=0?'+':''}${diff})`;
+      if(trend) trend.textContent = `${diff>=0?'▲ +':'▼ '}${diff} vs mes anterior`;
+      if(trend) trend.style.color = 'var(--naranja)';
     }
-  } else if(label) {
-    label.textContent = 'Este mes';
+  } else {
+    if(card) card.style.borderLeftColor = 'var(--rojo)';
+    if(trend) { trend.textContent = ''; trend.style.color='var(--gris4)'; }
   }
 
-  // Weekly stats
+  // --- GRÁFICA MES: días del mes actual ---
+  const diasMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const diasData = [];
+  for(let d=1;d<=diasMes;d++) {
+    const count = ivMesActual.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      return fd && fd.getDate()===d;
+    }).length;
+    diasData.push(count);
+  }
+  drawSparkline('chartMes', diasData, '#bbbbbb');
+
+  // --- SEMANA EN CURSO ---
   const { start, end } = getSemanaActual();
-  
-  // Todos los trabajos planificados para esta semana
-  // S.planificacion only has PENDING (COMPLETADO/CANCELADO filtered on load)
-  // So total = completados del historial + pendientes + cancelados locales
   const planifSemana = S.planificacion.filter(p => {
     const f = parseFechaSort(p.fecha);
     return f && f >= start && f < end;
   });
-
-  // Completados esta semana (intervenciones en historial con fecha en semana)
   const completadosSemana = S.intervenciones.filter(iv => {
     const f = parseFechaSort(iv.fecha);
     return f && f >= start && f < end;
   });
-
-  // Cancelados esta semana
   const canceladosSemana = planifSemana.filter(p => p.estado === 'CANCELADO').length;
-
-  // Total planificados = completados (historial) + pendientes + cancelados
   const completados = completadosSemana.length;
   const cancelados = canceladosSemana;
   const pendientesPlanif = planifSemana.filter(p=>p.estado==='PENDIENTE').length;
@@ -4841,21 +4932,20 @@ function renderStats() {
   document.getElementById('semCompletados').textContent = completados;
   document.getElementById('semCancelados').textContent = cancelados;
 
-  // Status indicator
-  const statusEl = document.getElementById('semanaStatus');
   const card2 = document.getElementById('semanaCard');
   if(card2) {
-    if(completados + cancelados === planif) {
-      card2.style.borderLeft = '3px solid #4caf50';
-    } else {
-      card2.style.borderLeft = '';
-    }
+    card2.style.borderLeft = (completados + cancelados === planif && planif > 0) ? '3px solid #4caf50' : '';
   }
 }
 
 function renderRecent() {
   const el=document.getElementById('recentList');
-  const r=S.intervenciones.slice(0,3);
+  const sorted = [...S.intervenciones].sort((a,b)=>{
+    const fa = parseFecha(a.fecha)||0;
+    const fb = parseFecha(b.fecha)||0;
+    return fb-fa;
+  });
+  const r=sorted.slice(0,3);
   if(!r.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;">Sin intervenciones todavía</p>';return;}
   el.innerHTML=r.map(iv=>`<div class="li ${colorResultado(iv.resultado||iv.RESULTADO)}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
@@ -4896,21 +4986,8 @@ function updateBorradorBadge() {
 }
 
 function checkAlertasInicio() {
-  if(!S.centros.length) return;
-  const viejas=S.centros.filter(c=>{
-    if(!esMiZona(c.Area)) return false;
-    const d=parseFecha(c.Fechasus);
-    return d&&(Date.now()-d)/(1000*60*60*24*365)>5;
-  });
   const el=document.getElementById('alertasInicio');
-  if(viejas.length) el.innerHTML=`<div class="alert alert-warn" onclick="goPage('p-centros')" style="cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-    <span style="font-size:22px;">🔋</span>
-    <div style="flex:1;">
-      <div style="font-weight:700;font-size:14px;">${viejas.length} instalaciones con baterías &gt;5 años</div>
-      <div style="font-size:12px;opacity:0.8;">En tus zonas · pulsa para ver</div>
-    </div>
-    <span style="color:var(--rojo);font-size:18px;">→</span>
-  </div>`;
+  if(el) el.innerHTML='';
 }
 
 // ═══════════════════════════════════════════════════
