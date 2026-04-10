@@ -1200,7 +1200,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.77';
+const APP_VERSION = 'v2.79';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3003,20 +3003,28 @@ async function escribirCentroEnDrive(c, esEdicion) {
   if(!S.auth) return;
   try {
     if(esEdicion) {
-      // Find row with this centro name
       const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!B:B`,'GET');
-      if(!res?.values) return;
-      const rowIdx = res.values.findIndex(r=>r[0]===c.Nombre);
-      if(rowIdx<0) return;
-      const row = rowIdx+1;
-      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
-      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
+      if(!res?.values) { console.warn('escribirCentroEnDrive: no values from B:B'); return; }
+      const nombreBuscar = String(c.Nombre||'').toUpperCase().trim();
+      const rowIdx = res.values.findIndex(r=>String(r[0]||'').toUpperCase().trim()===nombreBuscar);
+      if(rowIdx<0) {
+        console.warn('escribirCentroEnDrive: centro no encontrado en Drive:', nombreBuscar);
+        toast('CENTRO NO ENCONTRADO EN DRIVE — AÑADIENDO COMO NUEVO','warn');
+        // Si no lo encuentra, lo añade como nuevo
+        const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+        await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
+      } else {
+        const row = rowIdx+1;
+        const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+        await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
+        console.log('Centro actualizado en Drive fila', row, nombreBuscar);
+      }
     } else {
       const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
       await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
     }
     escribirCentroSupabase(c).catch(()=>{});
-  } catch(e) { console.error('Error escribiendo centro en Drive:', e); }
+  } catch(e) { console.error('Error escribiendo centro en Drive:', e); toast('ERROR AL GUARDAR CENTRO: '+e.message,'err'); }
 }
 
 function editarCentro(nombre) {
@@ -4367,15 +4375,24 @@ async function migrarASupabase() {
       log(`Solicitantes: ${rows.length}`, !!error);
     }
 
-    // 2. CENTROS
+    // 2. CENTROS — leer en lotes de 1000 filas
     toast('MIGRANDO CENTROS...','warn');
     const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
     const headers = hRes?.values?.[0] || [];
-    const rRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A2:Z5000`,'GET');
-    if(rRes?.values) {
-      const parseFechaSB = (f) => { if(!f) return null; const d=parseFecha(f); return d?new Date(d).toISOString().slice(0,10):null; };
-      const centros = rRes.values.map(row=>{ const obj={}; headers.forEach((h,i)=>{if(h) obj[h]=row[i]||'';}); return obj; }).filter(c=>c.Nombre);
-      const rows = centros.map(c=>({
+    const parseFechaSB = (f) => { if(!f) return null; const d=parseFecha(f); return d?new Date(d).toISOString().slice(0,10):null; };
+    let allCentros = [];
+    const loteSize = 1000;
+    for(let lote=0; lote<5; lote++) {
+      const desde = 2 + lote*loteSize;
+      const hasta = desde + loteSize - 1;
+      const rRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${desde}:Z${hasta}`,'GET');
+      if(!rRes?.values?.length) break;
+      const centrosLote = rRes.values.map(row=>{ const obj={}; headers.forEach((h,i)=>{if(h) obj[h]=row[i]||'';}); return obj; }).filter(c=>c.Nombre);
+      allCentros = [...allCentros, ...centrosLote];
+      if(rRes.values.length < loteSize) break; // última página
+    }
+    if(allCentros.length) {
+      const rows = allCentros.map(c=>({
         nombre:c.Nombre||'', alias:c.Alias||'', area:c.Area||'', tipo:c.Tipo||'',
         ubicacion:c['Ubicación']||'', direccion:c.Direccion||'', municipio:c.Municipio||'',
         coord:c.Coord||'', fecha_tmt:parseFechaSB(c.FechaTMT), via_com:c.Via_Com||'',
@@ -4384,11 +4401,11 @@ async function migrarASupabase() {
         fechasus:parseFechaSB(c.Fechasus), bat_marca:c.Bat_Marca||'', bat_modelo:c.Bat_Modelo||'',
         bat_tipo:c.Bat_Tipo||'', rec_marca:c.Rec_Marca||'', comentario:c.Comentario||'',
       }));
-      // Supabase tiene límite de 1000 filas por upsert, hacemos lotes
       for(let i=0;i<rows.length;i+=500) {
         const {error} = await sb.from('centros').upsert(rows.slice(i,i+500), {onConflict:'nombre'});
         log(`Centros lote ${i/500+1}: ${Math.min(500,rows.length-i)}`, !!error);
       }
+      toast(`CENTROS: ${rows.length} migrados`,'ok');
     }
 
     // 3. PLANIFICACIÓN
