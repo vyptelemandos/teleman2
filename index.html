@@ -1150,7 +1150,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.65';
+const APP_VERSION = 'v2.66';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1337,11 +1337,36 @@ function actualizarSelectZonas(zonas) {
 async function writeConfigValue(sheet, value) {
   if(!S.auth) return;
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:A:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[[value]]});
+  // Supabase en paralelo
+  try {
+    const sb = getSB();
+    const tabla = {
+      'Frases':       () => sb.from('frases').upsert({texto: value}, {onConflict: 'texto'}),
+      'Tecnicos':     () => sb.from('tecnicos').upsert({nombre: value}, {onConflict: 'nombre'}),
+      'Solicitantes': () => sb.from('solicitantes').upsert({nombre: value}, {onConflict: 'nombre'}),
+      'Modelos_Remota': () => sb.from('modelos_remota').upsert({nombre: value}, {onConflict: 'nombre'}),
+    }[sheet];
+    if(tabla) { const {error} = await tabla(); if(error) console.warn('SB config warn:', error.message); }
+  } catch(e) { console.warn('SB config error:', e.message); }
 }
 
 async function writeConfigRow(sheet, rowValues) {
   if(!S.auth) return;
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:Z:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[rowValues]});
+  // Supabase en paralelo
+  try {
+    const sb = getSB();
+    if(sheet === 'Materiales') {
+      const {error} = await sb.from('materiales').upsert({cod: rowValues[0], descripcion: rowValues[1]}, {onConflict: 'cod'});
+      if(error) console.warn('SB materiales warn:', error.message);
+    } else if(sheet === 'Baremos') {
+      const {error} = await sb.from('baremos').upsert({cod: rowValues[0], descripcion: rowValues[1], pts: parseFloat(rowValues[2])||0, fav: (rowValues[3]||'').toUpperCase()==='SI'}, {onConflict: 'cod'});
+      if(error) console.warn('SB baremos warn:', error.message);
+    } else if(sheet === 'Zonas') {
+      const {error} = await sb.from('zonas').upsert({zona: rowValues[0], codigo: rowValues[1]}, {onConflict: 'zona'});
+      if(error) console.warn('SB zonas warn:', error.message);
+    }
+  } catch(e) { console.warn('SB config row error:', e.message); }
 }
 
 // Delete a value from config sheet (find and clear row)
@@ -3361,6 +3386,7 @@ function addBaremoConfig() {
   S.baremos.push({cod,desc,pts,fav:false});
   setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions();
   sv('newBarCod','');sv('newBarDesc','');sv('newBarPts','');
+  if(S.auth) writeConfigRow('Baremos', [cod, desc, pts, 'NO']);
   toast('BAREMO AÑADIDO','ok');
 }
 
