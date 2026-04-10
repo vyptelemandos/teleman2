@@ -1149,7 +1149,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.60';
+const APP_VERSION = 'v2.61';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2213,11 +2213,15 @@ async function generarInforme() {
       S._editIntId = null;
     } else {
       d._esEdicion = false;
-      // ID secuencial
-      const lastId = S.intervenciones.reduce((max,iv)=>{
-        const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-      },0);
-      d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+      // ID único basado en fecha+hora+random (evita duplicados aunque el historial no esté sincronizado)
+      const now = new Date();
+      const ymd = now.getFullYear().toString() +
+                  String(now.getMonth()+1).padStart(2,'0') +
+                  String(now.getDate()).padStart(2,'0');
+      const hm  = String(now.getHours()).padStart(2,'0') +
+                  String(now.getMinutes()).padStart(2,'0');
+      const rnd = Math.random().toString(36).substring(2,5).toUpperCase();
+      d.intId = `INT-${ymd}-${hm}-${rnd}`;
       S.intervenciones.unshift(d);
       setLS('t2-iv',S.intervenciones);
     }
