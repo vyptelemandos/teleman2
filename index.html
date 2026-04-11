@@ -257,41 +257,44 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
   <div class="page on" id="p-inicio">
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
-    <div class="stats-grid">
-      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris2);position:relative;min-height:130px;padding-bottom:14px;background:var(--gris7);">
-        <canvas id="chartTotal" style="position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);display:block;opacity:0.35;"></canvas>
-        <div style="position:relative;z-index:1;">
-          <div class="card-title" style="margin-bottom:4px;">Total intervenciones</div>
-          <div class="stat-n" id="statTotal">0</div>
+    <div class="stats-grid" style="grid-template-columns:1fr;">
+      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="card-title">Intervenciones</div>
+          <div id="statMesTrend" style="font-size:11px;font-weight:600;font-family:'Roboto Mono',monospace;"></div>
         </div>
-      </div>
-      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);position:relative;min-height:130px;padding-bottom:14px;background:var(--gris7);">
-        <canvas id="chartMes" style="position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);display:block;opacity:0.35;"></canvas>
-        <div style="position:relative;z-index:1;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-            <div class="card-title" id="statMesLabel">Este mes</div>
-            <div id="statMesTrend" style="font-size:11px;font-weight:600;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div>
+            <div class="stat-n" id="statMes" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">ESTE MES</div>
           </div>
-          <div class="stat-n" id="statMes">0</div>
+          <div>
+            <div class="stat-n" id="statMesPasado" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MES PASADO</div>
+          </div>
+          <div>
+            <div class="stat-n" id="statMedia" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MEDIA 12M</div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);min-height:130px;">
-      <div class="card-head"><div class="card-title">Semana en curso</div></div>
-      <div class="card-body" style="padding:10px 14px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-          <div>
-            <div class="stat-n" style="color:var(--gris2);" id="semPlanif">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">PLANIFICADOS</div>
-          </div>
-          <div>
-            <div class="stat-n" style="color:#4caf50;" id="semCompletados">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">COMPLETADOS</div>
-          </div>
-          <div>
-            <div class="stat-n" style="color:var(--naranja);" id="semCancelados">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">CANCELADOS</div>
-          </div>
+    <div class="stat-card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title">Semana en curso</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div>
+          <div class="stat-n" style="color:var(--gris2);" id="semPlanif">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">PLANIFICADOS</div>
+        </div>
+        <div>
+          <div class="stat-n" style="color:#4caf50;" id="semCompletados">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">COMPLETADOS</div>
+        </div>
+        <div>
+          <div class="stat-n" style="color:var(--naranja);" id="semCancelados">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">CANCELADOS</div>
         </div>
       </div>
     </div>
@@ -1186,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.09';
+const APP_VERSION = 'v3.13';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5076,8 +5079,6 @@ function drawSparkline(canvasId, data, color, dotColors) {
 }
 
 function renderStats() {
-  document.getElementById('statTotal').textContent = S.intervenciones.length;
-
   const now = new Date();
   const parseFechaSort = (f) => {
     if(!f) return null;
@@ -5086,137 +5087,58 @@ function renderStats() {
     return new Date(f);
   };
 
-  // --- GRÁFICA TOTAL: historial completo por meses ---
-  // Encontrar el primer y último mes con datos
-  const todasFechas = S.intervenciones.map(iv=>parseFechaSort(iv.fecha)).filter(Boolean);
-  const mesesData = [];
-  const mesesDotColors = [];
-  const mesesKeys = [];
-
-  if(todasFechas.length) {
-    const minFecha = new Date(Math.min(...todasFechas.map(d=>d.getTime())));
-    const primerMes = new Date(minFecha.getFullYear(), minFecha.getMonth(), 1);
-    const ultimoMes = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // Construir mapa de conteos por mes
-    const conteoPorMes = {};
-    S.intervenciones.forEach(iv => {
-      const fd = parseFechaSort(iv.fecha);
-      if(!fd) return;
-      const key = fd.toISOString().slice(0,7);
-      conteoPorMes[key] = (conteoPorMes[key]||0) + 1;
-    });
-
-    // Iterar todos los meses desde el primero hasta hoy
-    let cur = new Date(primerMes);
-    while(cur <= ultimoMes) {
-      const key = cur.toISOString().slice(0,7);
-      mesesKeys.push(key);
-      mesesData.push(conteoPorMes[key]||0);
-      cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
-    }
-
-    // Interpolar meses vacíos (media anterior+posterior)
-    for(let i=1;i<mesesData.length-1;i++) {
-      if(mesesData[i]===0) {
-        const prev = mesesData[i-1]||0;
-        const next = mesesData[i+1]||0;
-        if(prev>0 || next>0) mesesData[i] = Math.round((prev+next)/2);
-      }
-    }
-
-    // Calcular colores de puntos
-    mesesKeys.forEach((key, i) => {
-      const d = new Date(key+'-01');
-      const keyAnterior = new Date(d.getFullYear()-1, d.getMonth(), 1).toISOString().slice(0,7);
-      const countAnterior = conteoPorMes[keyAnterior]||0;
-      let ref;
-      if(countAnterior > 0) {
-        ref = countAnterior;
-      } else {
-        const añoActual = d.getFullYear();
-        const totalAño = Object.entries(conteoPorMes)
-          .filter(([k])=>k.startsWith(String(añoActual)))
-          .reduce((s,[,v])=>s+v,0);
-        ref = totalAño / 12;
-      }
-      const diff = mesesData[i] - ref;
-      if(diff > 10) mesesDotColors.push('#4caf50');
-      else if(diff < -10) mesesDotColors.push('#cc0000');
-      else mesesDotColors.push('#d97706');
-    });
-  }
-  setTimeout(()=>drawSparkline('chartTotal', mesesData, '#bbbbbb', mesesDotColors), 50);
-
-  // --- STATS MES ACTUAL ---
   const dayOfMonth = now.getDate();
+
+  // Este mes (días transcurridos)
   const ivMesActual = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
-    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()<=dayOfMonth;
+    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
   });
-  const ivMesAnterior = S.intervenciones.filter(iv => {
+
+  // Mes pasado (mes completo)
+  const ivMesPasado = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
     if(!d) return false;
     const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth() && d.getDate()<=dayOfMonth;
+    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth();
   });
 
-  const diff = ivMesActual.length - ivMesAnterior.length;
-  document.getElementById('statMes').textContent = ivMesActual.length;
+  // Media mensual últimos 12 meses
+  let totalUltimos12 = 0;
+  for(let i=1;i<=12;i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    totalUltimos12 += S.intervenciones.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      return fd && fd.getFullYear()===d.getFullYear() && fd.getMonth()===d.getMonth();
+    }).length;
+  }
+  const media = Math.round(totalUltimos12 / 12 * 10) / 10;
 
-  // Color indicator mes — sistema de colores restaurado
+  document.getElementById('statMes').textContent = ivMesActual.length;
+  document.getElementById('statMesPasado').textContent = ivMesPasado.length;
+  document.getElementById('statMedia').textContent = media % 1 === 0 ? media : media.toFixed(1);
+
+  // Color borde mes
+  const diff = ivMesActual.length - ivMesPasado.length;
   const card = document.getElementById('statMesCard');
-  const label = document.getElementById('statMesLabel');
   const trend = document.getElementById('statMesTrend');
-  if(card && ivMesAnterior.length > 0) {
+  if(card && ivMesPasado.length > 0) {
     if(diff >= 5) {
       card.style.borderLeftColor = 'var(--azul)';
-      if(trend) trend.textContent = `▲ +${diff} vs mes anterior`;
-      if(trend) trend.style.color = 'var(--azul)';
+      if(trend) { trend.textContent = `▲ +${diff}`; trend.style.color='var(--azul)'; }
     } else if(diff <= -5) {
       card.style.borderLeftColor = 'var(--rojo)';
-      if(trend) trend.textContent = `▼ ${diff} vs mes anterior`;
-      if(trend) trend.style.color = 'var(--rojo)';
+      if(trend) { trend.textContent = `▼ ${diff}`; trend.style.color='var(--rojo)'; }
     } else {
       card.style.borderLeftColor = 'var(--naranja)';
-      if(trend) trend.textContent = `${diff>=0?'▲ +':'▼ '}${diff} vs mes anterior`;
-      if(trend) trend.style.color = 'var(--naranja)';
+      if(trend) { trend.textContent = `${diff>=0?'▲ +':'▼ '}${diff}`; trend.style.color='var(--naranja)'; }
     }
   } else {
     if(card) card.style.borderLeftColor = 'var(--rojo)';
-    if(trend) { trend.textContent = ''; trend.style.color='var(--gris4)'; }
+    if(trend) { trend.textContent = ''; }
   }
 
-  // --- GRÁFICA MES: días del mes actual, sin puntos en días sin datos ---
-  const diasMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  const diasData = [];
-  const diasDotColors = [];
-  for(let d=1;d<=diasMes;d++) {
-    const count = ivMesActual.filter(iv=>{
-      const fd = parseFechaSort(iv.fecha);
-      return fd && fd.getDate()===d;
-    }).length;
-    const countMesAnt = S.intervenciones.filter(iv=>{
-      const fd = parseFechaSort(iv.fecha);
-      if(!fd) return false;
-      const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-      return fd.getFullYear()===pm.getFullYear() && fd.getMonth()===pm.getMonth() && fd.getDate()===d;
-    }).length;
-    diasData.push(count);
-    // Sin punto si no hay datos ese día (null = sin punto)
-    if(count === 0) {
-      diasDotColors.push(null);
-    } else if(count > countMesAnt) {
-      diasDotColors.push('#4caf50');
-    } else if(count < countMesAnt) {
-      diasDotColors.push('#cc0000');
-    } else {
-      diasDotColors.push('#d97706');
-    }
-  }
-  setTimeout(()=>drawSparkline('chartMes', diasData, '#bbbbbb', diasDotColors), 50);
-
-  // --- SEMANA EN CURSO ---
+  // Semana en curso
   const { start, end } = getSemanaActual();
   const planifSemana = S.planificacion.filter(p => {
     const f = parseFechaSort(p.fecha);
