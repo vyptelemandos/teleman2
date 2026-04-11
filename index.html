@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.92';
+const APP_VERSION = 'v2.93';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2040,6 +2040,8 @@ function nuevoInforme() {
   if(eb) { eb.textContent='Borrador'; eb.className='badge badge-orange'; }
   const banner = document.getElementById('cancelarPlanifBanner');
   if(banner) banner.style.display = 'none';
+  const pInforme = document.getElementById('p-informe');
+  if(pInforme) pInforme.style.outline = '';
   const btnPDF = document.getElementById('btnGenerarPDF');
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
 }
@@ -2316,18 +2318,24 @@ function confirmarGenerar() {
   const camposFaltan = validarInforme();
   if(camposFaltan.length) { toast('FALTAN: '+camposFaltan.join(', '),'err'); return; }
 
-  // Show confirm modal
-  document.getElementById('mIntervTitle').textContent = 'Confirmar informe';
+  const esEdicion = S._editMode && S._editIntId;
+
+  document.getElementById('mIntervTitle').textContent = esEdicion ? 'Modificar informe' : 'Confirmar informe';
   document.getElementById('mIntervBody').innerHTML = `
-    <div class="alert alert-warn" style="margin-bottom:12px;">⚠️ Esta acción guardará el informe en Drive y no se puede deshacer.</div>
+    <div class="alert ${esEdicion?'alert-warn':'alert-warn'}" style="margin-bottom:12px;">
+      ${esEdicion
+        ? '✏️ Vas a modificar un informe existente. Se actualizará el registro y se generará un PDF en la carpeta de modificados.'
+        : '⚠️ Esta acción guardará el informe en Drive y no se puede deshacer.'}
+    </div>
     <div class="dr"><div class="dr-l">CENTRO</div><div class="dr-v">${d.centro}</div></div>
     <div class="dr"><div class="dr-l">FECHA</div><div class="dr-v">${d.fecha}</div></div>
     <div class="dr"><div class="dr-l">TÉCNICO</div><div class="dr-v">${d.tec1}</div></div>
     <div class="dr"><div class="dr-l">MOTIVO</div><div class="dr-v">${d.motivo||'—'}</div></div>
     <div class="dr"><div class="dr-l">RESULTADO</div><div class="dr-v">${d.resultado||'—'}</div></div>
+    ${esEdicion?`<div class="dr"><div class="dr-l">ID</div><div class="dr-v" style="font-family:Consolas;color:var(--naranja);">${S._editIntId}</div></div>`:''}
     <div class="div"></div>
-    <button class="btn btn-red" onclick="closeModal('modalInterv');generarInforme();">
-      ✓ Confirmar y generar
+    <button class="btn ${esEdicion?'btn-dark':'btn-red'}" onclick="closeModal('modalInterv');generarInforme();">
+      ${esEdicion?'✏️ Confirmar modificación':'✓ Confirmar y generar'}
     </button>
     <button class="btn btn-gray" style="margin-top:8px;" onclick="closeModal('modalInterv')">
       Cancelar
@@ -2854,6 +2862,9 @@ function editarInforme(intId) {
   document.getElementById('estadoBorrador').className = 'badge badge-orange';
   const btnPDF = document.getElementById('btnGenerarPDF');
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modificar Informe';
+  // Borde naranja en la página de informe
+  const pInforme = document.getElementById('p-informe');
+  if(pInforme) pInforme.style.outline = '3px solid var(--naranja)';
   toast('MODO EDICIÓN — ' + iv.intId, 'warn');
   goPage('p-informe');
 }
