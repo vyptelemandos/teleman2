@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.94';
+const APP_VERSION = 'v2.95';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4014,6 +4014,7 @@ async function generarPDFDrive(d, esModificado=false) {
   const baseNombre = `${d.centro}-${zonaCode}`;
 
   const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
+  console.log('generarPDFDrive: esModificado=', esModificado, 'carpeta=', carpetaDestino===CARPETA_MODIFICADOS?'MODIFICADOS':'PENDIENTES');
   // Check for duplicates in the correct folder
   toast('GENERANDO INFORME EN DRIVE...','warn');
   let nombreArchivo = baseNombre;
@@ -4154,9 +4155,10 @@ async function generarPDFDrive(d, esModificado=false) {
       { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
       { range:`${sheetName}!A21`, values:[[up(d.resolucion)]] },
     ];
-    // Si es modificación, añadir indicador
+    // Si es modificación, añadir indicador antes de la resolución
     if(esModificado) {
-      data.push({ range:`${sheetName}!AN4`, values:[[`${up(d.tdc)} ★MOD`]] });
+      data.find(x=>x.range===`${sheetName}!A21`).values = [[`**INFORME MODIFICADO** || ${up(d.resolucion)}`]];
+      data.find(x=>x.range===`${sheetName}!AN4`).values = [[up(d.tdc)]]; // restaurar TDC sin sufijo
     }
     // Baremos
     const baremoRows = [30,31,32,33,34,35];
