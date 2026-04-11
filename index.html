@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.17';
+const APP_VERSION = 'v3.18';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5123,11 +5123,11 @@ function renderStats() {
   document.getElementById('statMesPasado').textContent = ivMesPasado.length;
   document.getElementById('statMedia').textContent = media;
 
-  // Color borde mes
-  const diff = ivMesActual.length - ivMesPasado.length;
+  // Color borde mes — comparar este mes vs media 12m
+  const diff = ivMesActual.length - media;
   const card = document.getElementById('statMesCard');
   const trend = document.getElementById('statMesTrend');
-  if(card && ivMesPasado.length > 0) {
+  if(card && media > 0) {
     if(diff >= 5) {
       card.style.borderLeftColor = 'var(--azul)';
       if(trend) { trend.textContent = `▲ +${diff}`; trend.style.color='var(--azul)'; }
