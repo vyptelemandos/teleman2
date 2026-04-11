@@ -585,7 +585,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <input type="text" id="centroSearch" placeholder="Nº centro, alias, municipio, modelo..." oninput="filtrarCentros()">
     </div>
     <div class="btn-row" style="margin-bottom:10px;">
-      <button class="btn btn-red btn-sm" onclick="openModal('modalNuevoCentro')">+ Nueva instalación</button>
+      <button class="btn btn-red btn-sm" onclick="abrirNuevoCentro()">+ Nueva instalación</button>
       <button class="btn btn-gray btn-sm" onclick="sincronizarCentros()">↻ Actualizar desde Drive</button>
     </div>
     <div id="centroList"></div>
@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.88';
+const APP_VERSION = 'v2.90';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3008,6 +3008,29 @@ async function escribirCentroEnDrive(c, esEdicion) {
   } catch(e) { console.error('Error escribiendo centro en Drive:', e); toast('ERROR AL GUARDAR CENTRO: '+e.message,'err'); }
 }
 
+function abrirNuevoCentro() {
+  // Limpiar todos los campos del modal
+  ['nc-nombre','nc-alias','nc-area','nc-municipio','nc-dir','nc-coord',
+   'nc-ubicacion','nc-viacom','nc-comadress','nc-comentario',
+   'nc-rtumarca','nc-rtumod','nc-ctrlmarca','nc-ctrlmod',
+   'nc-batmarca','nc-batmod','nc-recmarca'].forEach(id=>sv(id,''));
+  document.getElementById('nc-fechatmt') && (document.getElementById('nc-fechatmt').value='');
+  document.getElementById('nc-fechasus') && (document.getElementById('nc-fechasus').value='');
+  const t = document.getElementById('nc-tipo'); if(t) t.value='CD';
+  const ncTitle = document.getElementById('ncModalTitle');
+  if(ncTitle) ncTitle.textContent = 'Nueva instalación';
+  // Resetear selects con opción manual
+  ['nc-rtumarca-manual','nc-rtumod-manual','nc-ctrlmarca-manual',
+   'nc-ctrlmod-manual','nc-batmarca-manual','nc-battipo-manual',
+   'nc-recmarca-manual'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) { el.value=''; el.style.display='none'; }
+  });
+  const bat = document.getElementById('nc-battipo'); if(bat) bat.value='';
+  renderCentroSelects();
+  openModal('modalNuevoCentro');
+}
+
 function editarCentro(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
   sv('nc-nombre',c.Nombre||''); sv('nc-alias',c.Alias||'');
@@ -3058,7 +3081,9 @@ function altaCentro() {
   };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
   setLS('t2-ct',S.centros);
+  console.log('altaCentro: idx=',idx,' esEdicion=',idx>=0,' auth=',!!S.auth,' nombre=',nombre);
   if(S.auth) escribirCentroEnDrive(c, idx>=0);
+  else toast('SIN CONEXIÓN — GUARDADO SOLO LOCAL','warn');
   closeModal('modalNuevoCentro'); renderCentros();
   toast(idx>=0?'CENTRO ACTUALIZADO ✓':'CENTRO DADO DE ALTA ✓','ok');
 }
@@ -4195,71 +4220,87 @@ async function generarPDFDrive(d, esModificado=false) {
 //  LEER HISTORIAL DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerHistorialDrive() {
-  if(!S.auth) return false;
+  // Primero Supabase
   try {
-    // Headers are fixed - no ID column, starts with INSTALACIÓN
-    // Columns: A=INSTALACIÓN B=FECHA C=TECNICOS D=ALIAS E=ZONA F=POBLACION
-    // G=RESULTADO H=COMENTARIO I=TELCO J=VYP K=TDC L=INCIDENCIA M=MOTIVO
-    // N=MANIOBRAS O=TIPO P=MARCA/MODELO Q=RESOLUCIÓN R=UNIDADES S=MATERIALES
+    const sb = getSB();
+    let allData = [];
+    let from = 0;
+    const pageSize = 1000;
+    while(true) {
+      const { data, error } = await sb.from('intervenciones').select('*').order('fecha', {ascending:false}).range(from, from+pageSize-1);
+      if(error) throw new Error(error.message);
+      if(!data?.length) break;
+      allData = [...allData, ...data];
+      if(data.length < pageSize) break;
+      from += pageSize;
+    }
+    if(allData.length) {
+      S.intervenciones = allData.map(r=>({
+        intId:      r.int_id||'',
+        centro:     r.centro||'',
+        fecha:      r.fecha||'',
+        tec1:       r.tec1||'',
+        tec2:       r.tec2||'',
+        alias:      r.alias||'',
+        zona:       r.zona||'',
+        poblacion:  r.poblacion||'',
+        resultado:  r.resultado||'',
+        vyp:        r.vyp||'',
+        tdc:        r.tdc||'',
+        motivo:     r.motivo||'',
+        maniobras:  r.maniobras||'',
+        tipo:       r.tipo||'',
+        modelo:     r.modelo||'',
+        resolucion: r.resolucion||'',
+        vale:       r.vale||false,
+        trace:      r.trace||false,
+        baremos:    Array.isArray(r.baremos)?r.baremos:[],
+        materiales: Array.isArray(r.materiales)?r.materiales:[],
+        solicitante:r.solicitante||'',
+      }));
+      setLS('t2-iv', S.intervenciones);
+      renderStats(); renderRecent();
+      console.log('Historial cargado desde Supabase:', S.intervenciones.length);
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo historial de Supabase, intentando Drive:', e.message);
+  }
 
-    // Read in two batches to avoid API limits
-    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S1500`,'GET');
+  // Fallback a Drive
+  try {
+    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
     console.log('Historial batch1:', res1?.values?.length, 'rows');
     if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
-    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:S3100`,'GET');
+    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
     console.log('Historial batch2:', res2?.values?.length, 'rows');
-
     const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
-    if(!allRows.length) {
-      toast('HISTORIAL VACÍO O SIN ACCESO','err');
-      console.error('No values from historial. res1:', JSON.stringify(res1));
-      return false;
-    }
-
+    if(!allRows.length) { toast('HISTORIAL VACÍO O SIN ACCESO','err'); return false; }
     S.intervenciones = allRows.map((row,i)=>{
-      // Read baremos: cols 18-35 (BAREMO1_COD=18, UD=19, DESC=20, BAREMO2_COD=21...)
       const baremos = [];
-      for(let b=0;b<6;b++) {
-        const cod = (row[18+b*3]||'').toString().trim();
-        const ud  = parseFloat(row[19+b*3])||0;
-        if(cod) baremos.push({cod, ud, desc:(row[20+b*3]||'').toString().trim()});
-      }
-      // Read materiales: cols 36-53 (MAT1_COD=36, UD=37, DESC=38...)
+      for(let b=0;b<6;b++) { const cod=(row[18+b*3]||'').toString().trim(); if(cod) baremos.push({cod,ud:parseFloat(row[19+b*3])||0,desc:(row[20+b*3]||'').toString().trim()}); }
       const materiales = [];
-      for(let m=0;m<6;m++) {
-        const cod = (row[36+m*3]||'').toString().trim();
-        const qty = parseFloat(row[37+m*3])||0;
-        if(cod) materiales.push({cod, qty, desc:(row[38+m*3]||'').toString().trim()});
-      }
+      for(let m=0;m<6;m++) { const cod=(row[36+m*3]||'').toString().trim(); if(cod) materiales.push({cod,qty:parseFloat(row[37+m*3])||0,desc:(row[38+m*3]||'').toString().trim()}); }
       return {
-        intId: (row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
-        centro: (row[1]||'').toUpperCase().trim(),
-        fecha: parseDateStr(row[2]||''),
-        tec1: (row[3]||'').toUpperCase().trim(),
-        tec2: (row[4]||'').toUpperCase().trim(),
-        alias: (row[5]||'').toUpperCase().trim(),
-        zona: (row[6]||'').toUpperCase().trim(),
-        poblacion: (row[7]||'').toUpperCase().trim(),
-        resultado: (row[8]||'').toUpperCase().trim(),
-        vyp: (row[9]||'').toString().trim(),
-        tdc: (row[10]||'').toString().trim(),
-        motivo: (row[11]||'').toUpperCase().trim(),
-        maniobras: (row[12]||'').toUpperCase().trim(),
-        tipo: (row[13]||'').toUpperCase().trim(),
-        modelo: (row[14]||'').toUpperCase().trim(),
-        resolucion: (row[15]||'').toUpperCase().trim(),
-        vale: (row[16]||'').toUpperCase()==='SI',
-        trace: (row[17]||'').toUpperCase()==='OK',
-        baremos,
-        materiales,
+        intId:(row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
+        centro:(row[1]||'').toUpperCase().trim(), fecha:parseDateStr(row[2]||''),
+        tec1:(row[3]||'').toUpperCase().trim(), tec2:(row[4]||'').toUpperCase().trim(),
+        alias:(row[5]||'').toUpperCase().trim(), zona:(row[6]||'').toUpperCase().trim(),
+        poblacion:(row[7]||'').toUpperCase().trim(), resultado:(row[8]||'').toUpperCase().trim(),
+        vyp:(row[9]||'').toString().trim(), tdc:(row[10]||'').toString().trim(),
+        motivo:(row[11]||'').toUpperCase().trim(), maniobras:(row[12]||'').toUpperCase().trim(),
+        tipo:(row[13]||'').toUpperCase().trim(), modelo:(row[14]||'').toUpperCase().trim(),
+        resolucion:(row[15]||'').toUpperCase().trim(),
+        vale:(row[16]||'').toUpperCase()==='SI', trace:(row[17]||'').toUpperCase()==='OK',
+        baremos, materiales,
       };
     }).filter(iv=>iv.centro);
-
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
+    console.log('Historial cargado desde Drive (fallback):', S.intervenciones.length);
     return true;
   } catch(e) {
-    console.error('Error leyendo historial:',e);
+    console.error('Error leyendo historial:', e);
     toast('ERROR HISTORIAL: '+e.message,'err');
     return false;
   }
@@ -4343,7 +4384,6 @@ async function leerRemotasDrive() {
 }
 
 // escribirIntervDrive = alias of guardarEnSheets
-async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 async function migrarASupabase() {
   if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
@@ -4535,7 +4575,39 @@ function resetearDatosLocales() {
 //  PLANIFICACIÓN EN DRIVE
 // ═══════════════════════════════════════════════════
 async function leerPlanificacionDrive() {
-  if(!S.auth) return false;
+  // Primero Supabase
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.from('planificacion')
+      .select('*')
+      .not('estado', 'in', '("COMPLETADO","CANCELADO")')
+      .order('fecha', {ascending:true});
+    if(error) throw new Error(error.message);
+    if(data) {
+      S.planificacion = data.map(r=>({
+        id:          r.id||'',
+        centro:      r.centro||'',
+        alias:       r.alias||'',
+        fecha:       r.fecha||'',
+        hora:        r.hora||'',
+        vyp:         r.vyp||'',
+        tdc:         r.tdc||'',
+        trabajo:     r.trabajo||'',
+        coord:       r.coord||'',
+        estado:      r.estado||'PENDIENTE',
+        solicitante: r.solicitante||'',
+        telefono:    r.telefono||'',
+        calEventId:  r.cal_event_id||null,
+      }));
+      setLS('t2-pl', S.planificacion);
+      console.log('Planificación cargada desde Supabase:', S.planificacion.length);
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo planificación de Supabase, intentando Drive:', e.message);
+  }
+
+  // Fallback a Drive
   try {
     const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
     if(!res?.values) return false;
@@ -4554,6 +4626,7 @@ async function leerPlanificacionDrive() {
       telefono:    row[11]||'',
     })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
+    console.log('Planificación cargada desde Drive (fallback):', S.planificacion.length);
     return true;
   } catch(e) { console.error('Error leyendo planificación:', e); return false; }
 }
