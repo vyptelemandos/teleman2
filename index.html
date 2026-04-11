@@ -258,7 +258,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
     <div class="stats-grid">
-      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris3);">
+      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris2);">
         <div class="card-title" style="margin-bottom:8px;">Total intervenciones</div>
         <div class="stat-n" id="statTotal">0</div>
         <canvas id="chartTotal" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
@@ -272,7 +272,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <canvas id="chartMes" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
       </div>
     </div>
-    <div class="card" id="semanaCard" style="margin-bottom:10px;">
+    <div class="card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
       <div class="card-head"><div class="card-title">Semana en curso</div></div>
       <div class="card-body" style="padding:10px 14px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
@@ -292,11 +292,11 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
     <div id="alertasInicio"></div>
-    <div class="card">
+    <div class="card" id="borradoresCard" style="border-left:3px solid var(--verde);">
       <div class="card-head"><div class="card-title">Borradores</div></div>
       <div class="card-body" id="borradorListInicio"></div>
     </div>
-    <div class="card">
+    <div class="card" id="recentCard" style="border-left:3px solid var(--gris4);">
       <div class="card-head"><div class="card-title">Últimas intervenciones</div></div>
       <div class="card-body" id="recentList"></div>
     </div>
@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.84';
+const APP_VERSION = 'v2.88';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4269,7 +4269,57 @@ async function leerHistorialDrive() {
 //  LEER PARQUE DE REMOTAS DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerRemotasDrive() {
-  if(!S.auth) return false;
+  // Primero intentamos Supabase — más rápido y completo
+  try {
+    const sb = getSB();
+    // Supabase devuelve máx 1000 por defecto, usamos range para paginar
+    let allCentros = [];
+    let from = 0;
+    const pageSize = 1000;
+    while(true) {
+      const { data, error } = await sb.from('centros').select('*').range(from, from+pageSize-1);
+      if(error) throw new Error(error.message);
+      if(!data?.length) break;
+      allCentros = [...allCentros, ...data];
+      if(data.length < pageSize) break;
+      from += pageSize;
+    }
+    if(allCentros.length) {
+      // Mapear de snake_case (Supabase) a PascalCase (app)
+      S.centros = allCentros.map(c=>({
+        Nombre:             c.nombre||'',
+        Alias:              c.alias||'',
+        Area:               c.area||'',
+        Tipo:               c.tipo||'',
+        'Ubicación':        c.ubicacion||'',
+        Direccion:          c.direccion||'',
+        Municipio:          c.municipio||'',
+        Coord:              c.coord||'',
+        FechaTMT:           c.fecha_tmt||'',
+        Via_Com:            c.via_com||'',
+        COMADRESS:          c.comadress||'',
+        RTU_marca:          c.rtu_marca||'',
+        RTU_Mod:            c.rtu_mod||'',
+        Controlador_Marca:  c.controlador_marca||'',
+        Controlador_Modelo: c.controlador_modelo||'',
+        Fechasus:           c.fechasus||'',
+        Bat_Marca:          c.bat_marca||'',
+        Bat_Modelo:         c.bat_modelo||'',
+        Bat_Tipo:           c.bat_tipo||'',
+        Rec_Marca:          c.rec_marca||'',
+        Comentario:         c.comentario||'',
+      }));
+      setLS('t2-ct', S.centros);
+      checkAlertasInicio();
+      renderCentroSelects();
+      console.log('Centros cargados desde Supabase:', S.centros.length);
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo centros de Supabase, intentando Drive:', e.message);
+  }
+
+  // Fallback a Drive si Supabase falla
   try {
     const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
     const headers = hRes?.values?.[0] || [];
@@ -4283,9 +4333,10 @@ async function leerRemotasDrive() {
     setLS('t2-ct', S.centros);
     checkAlertasInicio();
     renderCentroSelects();
+    console.log('Centros cargados desde Drive (fallback):', S.centros.length);
     return true;
   } catch(e) {
-    console.error('Error leyendo remotas:',e);
+    console.error('Error leyendo remotas:', e);
     toast('ERROR REMOTAS: '+e.message,'err');
     return false;
   }
@@ -4952,19 +5003,45 @@ function renderStats() {
 
   const card2 = document.getElementById('semanaCard');
   if(card2) {
-    card2.style.borderLeft = (completados + cancelados === planif && planif > 0) ? '3px solid #4caf50' : '';
+    if(planif === 0 || completados + cancelados === planif) {
+      card2.style.borderLeft = '3px solid var(--verde)';
+    } else if(completados + cancelados >= planif * 0.5) {
+      card2.style.borderLeft = '3px solid var(--naranja)';
+    } else {
+      card2.style.borderLeft = '3px solid var(--rojo)';
+    }
   }
 }
 
 function renderRecent() {
   const el=document.getElementById('recentList');
+  const card=document.getElementById('recentCard');
   const sorted = [...S.intervenciones].sort((a,b)=>{
     const fa = parseFecha(a.fecha)||0;
     const fb = parseFecha(b.fecha)||0;
     return fb-fa;
   });
-  const r=sorted.slice(0,3);
+  const r=sorted.slice(0,5);
   if(!r.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;">Sin intervenciones todavía</p>';return;}
+
+  // Calcular color del borde según las últimas 5 intervenciones
+  // verde=3, naranja=1, rojo=0, gris=1
+  if(card && r.length) {
+    const puntos = r.map(iv => {
+      const c = colorResultado(iv.resultado||iv.RESULTADO);
+      if(c==='verde') return 3;
+      if(c==='rojo') return 0;
+      return 1;
+    });
+    const media = puntos.reduce((a,b)=>a+b,0) / puntos.length;
+    // Con variación: pesos recientes cuentan más
+    const ponderado = puntos.reduce((acc,p,i)=>acc+p*(i===0?2:1),0) / (puntos.length+1);
+    // Umbrales: >2 verde, >1.2 naranja, resto rojo
+    if(ponderado > 2) card.style.borderLeft='3px solid var(--verde)';
+    else if(ponderado > 1.2) card.style.borderLeft='3px solid var(--naranja)';
+    else card.style.borderLeft='3px solid var(--rojo)';
+  }
+
   el.innerHTML=r.map(iv=>`<div class="li ${colorResultado(iv.resultado||iv.RESULTADO)}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
     <div class="li-alias">${iv.alias||iv.ALIAS||'—'}</div>
@@ -4973,9 +5050,17 @@ function renderRecent() {
 
 function renderBorradoresInicio() {
   const el=document.getElementById('borradorListInicio');
-  const keys=Object.keys(S.borradores);
-  if(!keys.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;padding:4px 0;">Sin borradores pendientes</p>';return;}
-  el.innerHTML=keys.filter(k=>S.borradores[k]).map(k=>{const d=S.borradores[k];return`<div class="li naranja" onclick="cargarBorrador('${k}');goPage('p-informe')">
+  const card=document.getElementById('borradoresCard');
+  const keys=Object.keys(S.borradores).filter(k=>S.borradores[k]);
+  const n = keys.length;
+  // Borde según número de borradores
+  if(card) {
+    if(n===0||n===1) card.style.borderLeft='3px solid var(--verde)';
+    else if(n===2) card.style.borderLeft='3px solid var(--naranja)';
+    else card.style.borderLeft='3px solid var(--rojo)';
+  }
+  if(!n){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;padding:4px 0;">Sin borradores pendientes</p>';return;}
+  el.innerHTML=keys.map(k=>{const d=S.borradores[k];return`<div class="li naranja" onclick="cargarBorrador('${k}');goPage('p-informe')">
     <div class="li-top"><span class="li-id">${d.centro||'SIN CENTRO'}</span><span class="li-fecha">${fmtFecha(d.fecha)}</span></div>
     <div class="li-alias">${d.alias||'BORRADOR SIN ALIAS'}</div>
     <div class="li-meta"><span class="badge badge-orange">BORRADOR</span></div>
