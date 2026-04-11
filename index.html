@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.18';
+const APP_VERSION = 'v3.19';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1188,6 +1188,65 @@ let sbClient  = null;
 function getSB() {
   if(!sbClient) sbClient = supabase.createClient(SB_URL, SB_KEY);
   return sbClient;
+}
+
+function iniciarRealtime() {
+  try {
+    const sb = getSB();
+    // Canal para planificación e historial
+    sb.channel('teleman2-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'planificacion' }, payload => {
+        console.log('Realtime planif:', payload.eventType);
+        leerPlanificacionDrive().then(()=>{ renderPlanif(); renderStats(); });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intervenciones' }, payload => {
+        console.log('Realtime interv INSERT:', payload.new?.int_id);
+        // Añadir solo si no existe ya
+        const existe = S.intervenciones.find(x=>x.intId===payload.new?.int_id);
+        if(!existe) {
+          const r = payload.new;
+          S.intervenciones.unshift({
+            intId:r.int_id||'', centro:r.centro||'', fecha:r.fecha||'',
+            tec1:r.tec1||'', tec2:r.tec2||'', alias:r.alias||'',
+            zona:r.zona||'', poblacion:r.poblacion||'', resultado:r.resultado||'',
+            vyp:r.vyp||'', tdc:r.tdc||'', motivo:r.motivo||'',
+            maniobras:r.maniobras||'', tipo:r.tipo||'', modelo:r.modelo||'',
+            resolucion:r.resolucion||'', vale:r.vale||false, trace:r.trace||false,
+            baremos:Array.isArray(r.baremos)?r.baremos:[],
+            materiales:Array.isArray(r.materiales)?r.materiales:[],
+            solicitante:r.solicitante||'',
+          });
+          setLS('t2-iv', S.intervenciones);
+          renderStats(); renderRecent(); renderHistorial();
+          toast('Nueva intervención recibida','ok');
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'intervenciones' }, payload => {
+        console.log('Realtime interv UPDATE:', payload.new?.int_id);
+        const idx = S.intervenciones.findIndex(x=>x.intId===payload.new?.int_id);
+        if(idx>=0) {
+          const r = payload.new;
+          S.intervenciones[idx] = {
+            intId:r.int_id||'', centro:r.centro||'', fecha:r.fecha||'',
+            tec1:r.tec1||'', tec2:r.tec2||'', alias:r.alias||'',
+            zona:r.zona||'', poblacion:r.poblacion||'', resultado:r.resultado||'',
+            vyp:r.vyp||'', tdc:r.tdc||'', motivo:r.motivo||'',
+            maniobras:r.maniobras||'', tipo:r.tipo||'', modelo:r.modelo||'',
+            resolucion:r.resolucion||'', vale:r.vale||false, trace:r.trace||false,
+            baremos:Array.isArray(r.baremos)?r.baremos:[],
+            materiales:Array.isArray(r.materiales)?r.materiales:[],
+            solicitante:r.solicitante||'',
+          };
+          setLS('t2-iv', S.intervenciones);
+          renderStats(); renderRecent(); renderHistorial();
+        }
+      })
+      .subscribe(status => {
+        console.log('Realtime status:', status);
+      });
+  } catch(e) {
+    console.warn('Error iniciando Realtime:', e.message);
+  }
 }
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
@@ -1562,6 +1621,7 @@ function runSplash() {
       await leerRemotasDrive();
       setSyncStatus('ok');
       renderStats(); renderRecent(); checkAlertasInicio();
+      iniciarRealtime(); // Activar Realtime tras carga inicial
     } catch(e) { console.error('Background sync error:', e); }
   };
 
@@ -1576,6 +1636,7 @@ function runSplash() {
     setProgress(92, 'CARGANDO INSTALACIONES...');
     await leerRemotasDrive();
     finishSplash();
+    iniciarRealtime(); // Activar Realtime
   };
 
   const doSplash = async () => {
