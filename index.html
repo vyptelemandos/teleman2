@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.93';
+const APP_VERSION = 'v2.94';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2041,7 +2041,7 @@ function nuevoInforme() {
   const banner = document.getElementById('cancelarPlanifBanner');
   if(banner) banner.style.display = 'none';
   const pInforme = document.getElementById('p-informe');
-  if(pInforme) pInforme.style.outline = '';
+  if(pInforme) { pInforme.style.border = ''; pInforme.style.borderRadius = ''; }
   const btnPDF = document.getElementById('btnGenerarPDF');
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
 }
@@ -2864,7 +2864,7 @@ function editarInforme(intId) {
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modificar Informe';
   // Borde naranja en la página de informe
   const pInforme = document.getElementById('p-informe');
-  if(pInforme) pInforme.style.outline = '3px solid var(--naranja)';
+  if(pInforme) { pInforme.style.border = '3px solid var(--naranja)'; pInforme.style.borderRadius = 'var(--r)'; }
   toast('MODO EDICIÓN — ' + iv.intId, 'warn');
   goPage('p-informe');
 }
@@ -4013,16 +4013,16 @@ async function generarPDFDrive(d, esModificado=false) {
   const zonaCode = getZonaCode(d.zona);
   const baseNombre = `${d.centro}-${zonaCode}`;
 
-  // Check for duplicates in Informes Pendientes and add suffix if needed
+  const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
+  // Check for duplicates in the correct folder
   toast('GENERANDO INFORME EN DRIVE...','warn');
   let nombreArchivo = baseNombre;
   try {
     const existing = await gFetch(
-      `https://www.googleapis.com/drive/v3/files?q='${CARPETA_PENDIENTES}'+in+parents+and+name+contains+'${baseNombre}'+and+trashed=false&fields=files(name)`,
+      `https://www.googleapis.com/drive/v3/files?q='${carpetaDestino}'+in+parents+and+name+contains+'${baseNombre}'+and+trashed=false&fields=files(name)`,
       'GET'
     );
     if(existing?.files?.length) {
-      // Find highest suffix
       const nums = existing.files.map(f=>{
         const escaped = baseNombre.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
         const m = f.name.match(new RegExp(escaped + '(?:\\s(\\d+))?\\.pdf$'));
@@ -4038,7 +4038,7 @@ async function generarPDFDrive(d, esModificado=false) {
       `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
-        body: JSON.stringify({name: nombreArchivo, parents:[esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES]})
+        body: JSON.stringify({name: nombreArchivo, parents:[carpetaDestino]})
       }
     );
     const copyData = await copyRes.json();
@@ -4154,6 +4154,10 @@ async function generarPDFDrive(d, esModificado=false) {
       { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
       { range:`${sheetName}!A21`, values:[[up(d.resolucion)]] },
     ];
+    // Si es modificación, añadir indicador
+    if(esModificado) {
+      data.push({ range:`${sheetName}!AN4`, values:[[`${up(d.tdc)} ★MOD`]] });
+    }
     // Baremos
     const baremoRows = [30,31,32,33,34,35];
     baremoRows.forEach((row,i) => {
