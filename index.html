@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.16';
+const APP_VERSION = 'v3.17';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5100,16 +5100,24 @@ function renderStats() {
   const diasComparables = new Set(diasTrabajadosPasado.slice(0, nDiasTrabajados));
   const ivMesPasado = ivMesPasadoTodos.filter(iv=>diasComparables.has((iv.fecha||'').slice(0,10)));
 
-  // Media mensual últimos 12 meses
-  let totalUltimos12 = 0;
+  // Media mensual últimos 12 meses — normalizada a mismos días trabajados
+  let totalRatio = 0;
+  let mesesConDatos = 0;
   for(let i=1;i<=12;i++) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    totalUltimos12 += S.intervenciones.filter(iv=>{
+    const ivsMes = S.intervenciones.filter(iv=>{
       const fd = parseFechaSort(iv.fecha);
       return fd && fd.getFullYear()===d.getFullYear() && fd.getMonth()===d.getMonth();
-    }).length;
+    });
+    const diasMes = new Set(ivsMes.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)).size;
+    if(diasMes > 0) {
+      totalRatio += ivsMes.length / diasMes;
+      mesesConDatos++;
+    }
   }
-  const media = Math.round(totalUltimos12 / 12);
+  // Media de intervenciones/día × días trabajados este mes
+  const mediaPorDia = mesesConDatos > 0 ? totalRatio / mesesConDatos : 0;
+  const media = Math.round(mediaPorDia * nDiasTrabajados);
 
   document.getElementById('statMes').textContent = ivMesActual.length;
   document.getElementById('statMesPasado').textContent = ivMesPasado.length;
