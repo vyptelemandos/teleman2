@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --rojo:#cc0000; --rojo-dark:#990000; --rojo-light:#fff0f0; --rojo-border:#ffcccc;
@@ -99,7 +99,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
 .stat-card{background:var(--blanco);border-radius:var(--r);padding:16px 14px 10px;box-shadow:var(--sombra2);border-left:3px solid var(--gris4);overflow:hidden;position:relative;}
-.stat-n{font-size:42px;font-weight:700;color:var(--negro);line-height:1;font-family:Consolas,monospace;letter-spacing:-1px;}
+.stat-n{font-size:42px;font-weight:700;color:var(--negro);line-height:1;font-family:'Roboto Mono',monospace;letter-spacing:-1px;}
 .stat-l{font-size:11px;color:var(--gris3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
 
 /* LIST ITEM */
@@ -110,7 +110,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 .li.naranja{border-left-color:var(--naranja);}
 .li.gris{border-left-color:var(--gris4);}
 .li-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;}
-.li-id{font-family:Consolas,monospace;font-weight:700;font-size:14px;color:var(--rojo);}
+.li-id{font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;color:var(--rojo);}
 .li-fecha{font-size:11px;color:var(--gris3);}
 .li-alias{font-weight:600;font-size:13px;margin-bottom:3px;}
 .li-meta{font-size:11px;color:var(--gris3);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
@@ -138,7 +138,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 
 /* BAREMO/MATERIAL ADDED */
 .added-item{display:flex;align-items:center;justify-content:space-between;background:var(--gris7);border:1px solid var(--gris5);border-radius:var(--rs);padding:8px 11px;margin-bottom:6px;}
-.added-info{font-family:Consolas,monospace;font-size:13px;font-weight:600;}
+.added-info{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;}
 .added-info span{color:var(--rojo);}
 .added-sub{font-size:10px;color:var(--gris3);margin-top:1px;}
 .added-rm{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:20px;padding:0 2px;line-height:1;flex-shrink:0;}
@@ -147,7 +147,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 .qty-wrap{display:flex;align-items:center;gap:7px;}
 .qty-btn{width:32px;height:32px;background:var(--gris6);border:1.5px solid var(--gris5);border-radius:7px;color:var(--negro);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .qty-btn:active{background:var(--gris5);}
-.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:Consolas,monospace;}
+.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:'Roboto Mono',monospace;}
 
 /* CHECK */
 .check-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;}
@@ -196,7 +196,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 /* PWD SCREEN */
 .pwd-screen{position:fixed;inset:0;background:var(--negro2);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;}
 .pwd-screen.on{display:flex !important;}
-.pwd-logo{font-family:Consolas,monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
+.pwd-logo{font-family:'Roboto Mono',monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
 .pwd-title{color:var(--blanco);font-size:18px;font-weight:600;margin-bottom:6px;}
 .pwd-sub{color:var(--gris3);font-size:13px;margin-bottom:28px;text-align:center;}
 .pwd-input{width:100%;max-width:260px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:var(--r);color:var(--blanco);font-family:'Inter',sans-serif;font-size:16px;padding:12px;outline:none;text-align:center;margin-bottom:12px;text-transform:none;}
@@ -207,7 +207,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 .planif-head{padding:12px 13px;display:flex;justify-content:space-between;align-items:flex-start;}
 .planif-info{flex:1;}
 .planif-fecha-hora{font-size:11px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
-.planif-centro{font-family:Consolas,monospace;font-weight:700;font-size:15px;}
+.planif-centro{font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;}
 .planif-alias{font-size:13px;font-weight:600;margin:2px 0;}
 .planif-trabajo{font-size:11px;color:var(--gris3);margin-bottom:4px;}
 .planif-actions{display:flex;gap:6px;padding:0 13px 12px;}
@@ -221,12 +221,12 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 /* STATS PAGE */
 .stats-period{background:var(--negro2);border-radius:var(--r);padding:14px;margin-bottom:10px;color:var(--blanco);}
 .stats-period-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gris4);margin-bottom:10px;}
-.stats-big{font-family:Consolas,monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
+.stats-big{font-family:'Roboto Mono',monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
 .stats-big-label{font-size:12px;color:var(--gris4);margin-top:3px;}
 .stats-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;}
 .stats-row:last-child{border-bottom:none;}
 .stats-row-label{color:var(--gris4);}
-.stats-row-val{font-weight:700;color:var(--blanco);font-family:Consolas,monospace;}
+.stats-row-val{font-weight:700;color:var(--blanco);font-family:'Roboto Mono',monospace;}
 
 /* FILE DROP */
 .file-drop{border:2px dashed var(--gris5);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:8px;}
@@ -281,16 +281,16 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-body" style="padding:10px 14px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--gris2);" id="semPlanif">0</div>
-            <div style="font-size:11px;color:var(--gris4);">PLANIFICADOS</div>
+            <div class="stat-n" style="color:var(--gris2);" id="semPlanif">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">PLANIFICADOS</div>
           </div>
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:#4caf50;" id="semCompletados">0</div>
-            <div style="font-size:11px;color:var(--gris4);">COMPLETADOS</div>
+            <div class="stat-n" style="color:#4caf50;" id="semCompletados">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">COMPLETADOS</div>
           </div>
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--naranja);" id="semCancelados">0</div>
-            <div style="font-size:11px;color:var(--gris4);">CANCELADOS</div>
+            <div class="stat-n" style="color:var(--naranja);" id="semCancelados">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">CANCELADOS</div>
           </div>
         </div>
       </div>
@@ -1156,9 +1156,9 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 <!-- PASSWORD -->
 <!-- SPLASH SCREEN -->
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
-  <div style="font-family:Consolas,monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
+  <div style="font-family:'Roboto Mono',monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
   <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:4px;">TELEMAN2</div>
-  <div style="font-family:Consolas,monospace;font-size:12px;color:var(--gris3);margin-bottom:44px;letter-spacing:1px;" id="splashVersion"></div>
+  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:var(--gris3);margin-bottom:44px;letter-spacing:1px;" id="splashVersion"></div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
@@ -1186,7 +1186,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.05';
+const APP_VERSION = 'v3.09';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2123,14 +2123,14 @@ function renderBaremosOptions() {
   let html = '<div style="font-size:10px;font-weight:700;color:var(--rojo);letter-spacing:1px;padding:4px 0 6px;">⭐ HABITUALES</div>';
   favs.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
   html += '<div style="font-size:10px;font-weight:700;color:var(--gris3);letter-spacing:1px;padding:8px 0 6px;border-top:1px solid var(--gris5);margin-top:4px;">TODOS</div>';
   rest.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
@@ -2204,7 +2204,7 @@ function renderMaterialesOptions() {
     const cod = m.cod||m;
     const desc = m.desc||'';
     html += `<div class="picker-item" onclick="selMaterialPicker(${i})">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:13px;">${desc}</span>
     </div>`;
   });
@@ -3225,7 +3225,7 @@ function cargarHoras() {
           <div class="fg"><label class="fl">Entrada</label><input class="fi" type="time" id="entrada-${fecha}" value="07:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
           <div class="fg"><label class="fl">Salida</label><input class="fi" type="time" id="salida-${fecha}" value="15:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
         </div>
-        <div id="reparto-${fecha}" style="font-family:Consolas,monospace;font-size:13px;line-height:1.8;color:var(--blanco);background:var(--negro2);padding:10px;border-radius:8px;"></div>
+        <div id="reparto-${fecha}" style="font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.8;color:var(--blanco);background:var(--negro2);padding:10px;border-radius:8px;"></div>
       </div>
     </div>`;
   }).join('');
@@ -3452,7 +3452,7 @@ function renderMaterilesConfig() {
   el.innerHTML = S.materiales.map((m,i) => {
     const cod = m.cod||m; const desc = m.desc||'';
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
-      <span style="font-family:Consolas,monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:12px;">${desc}</span>
       <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeMaterialConfig(${i})">×</button>
     </div>`;
@@ -5044,23 +5044,29 @@ function drawSparkline(canvasId, data, color, dotColors) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  // Line
+  // Line — skip gaps (null dotColor = no data)
   ctx.beginPath();
-  data.forEach((v,i) => i===0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+  let lineStarted = false;
+  data.forEach((v,i) => {
+    const skip = dotColors && dotColors[i] === null && v === 0;
+    if(skip) { lineStarted = false; return; }
+    if(!lineStarted) { ctx.moveTo(px(i), py(v)); lineStarted = true; }
+    else ctx.lineTo(px(i), py(v));
+  });
   ctx.strokeStyle = color;
   ctx.lineWidth = 2.5;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.stroke();
 
-  // Dots — colored if dotColors provided
+  // Dots — colored if dotColors provided, skip if null
   data.forEach((v,i) => {
     const dc = dotColors ? dotColors[i] : color;
+    if(dc === null) return; // sin punto
     ctx.beginPath();
     ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
     ctx.fillStyle = dc || color;
     ctx.fill();
-    // Borde blanco para que destaquen
     ctx.beginPath();
     ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
@@ -5080,45 +5086,65 @@ function renderStats() {
     return new Date(f);
   };
 
-  // --- GRÁFICA TOTAL: últimos 12 meses con puntos de colores ---
+  // --- GRÁFICA TOTAL: historial completo por meses ---
+  // Encontrar el primer y último mes con datos
+  const todasFechas = S.intervenciones.map(iv=>parseFechaSort(iv.fecha)).filter(Boolean);
   const mesesData = [];
   const mesesDotColors = [];
-  for(let i=11;i>=0;i--) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    const key = d.toISOString().slice(0,7);
-    const keyAnterior = new Date(d.getFullYear()-1, d.getMonth(), 1).toISOString().slice(0,7);
-    const count = S.intervenciones.filter(iv=>{
-      const fd = parseFechaSort(iv.fecha);
-      return fd && fd.toISOString().slice(0,7)===key;
-    }).length;
+  const mesesKeys = [];
 
-    // Referencia: mismo mes año anterior, o media del año si no hay datos
-    const countAnterior = S.intervenciones.filter(iv=>{
-      const fd = parseFechaSort(iv.fecha);
-      return fd && fd.toISOString().slice(0,7)===keyAnterior;
-    }).length;
+  if(todasFechas.length) {
+    const minFecha = new Date(Math.min(...todasFechas.map(d=>d.getTime())));
+    const primerMes = new Date(minFecha.getFullYear(), minFecha.getMonth(), 1);
+    const ultimoMes = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    let ref;
-    if(countAnterior > 0) {
-      ref = countAnterior;
-    } else {
-      // Media mensual de ese año
-      const añoActual = d.getFullYear();
-      const totalAño = S.intervenciones.filter(iv=>{
-        const fd = parseFechaSort(iv.fecha);
-        return fd && fd.getFullYear()===añoActual;
-      }).length;
-      ref = totalAño / 12;
+    // Construir mapa de conteos por mes
+    const conteoPorMes = {};
+    S.intervenciones.forEach(iv => {
+      const fd = parseFechaSort(iv.fecha);
+      if(!fd) return;
+      const key = fd.toISOString().slice(0,7);
+      conteoPorMes[key] = (conteoPorMes[key]||0) + 1;
+    });
+
+    // Iterar todos los meses desde el primero hasta hoy
+    let cur = new Date(primerMes);
+    while(cur <= ultimoMes) {
+      const key = cur.toISOString().slice(0,7);
+      mesesKeys.push(key);
+      mesesData.push(conteoPorMes[key]||0);
+      cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
     }
 
-    const diff = count - ref;
-    let dotColor;
-    if(diff > 10) dotColor = '#4caf50';
-    else if(diff < -10) dotColor = '#cc0000';
-    else dotColor = '#d97706';
+    // Interpolar meses vacíos (media anterior+posterior)
+    for(let i=1;i<mesesData.length-1;i++) {
+      if(mesesData[i]===0) {
+        const prev = mesesData[i-1]||0;
+        const next = mesesData[i+1]||0;
+        if(prev>0 || next>0) mesesData[i] = Math.round((prev+next)/2);
+      }
+    }
 
-    mesesData.push(count);
-    mesesDotColors.push(dotColor);
+    // Calcular colores de puntos
+    mesesKeys.forEach((key, i) => {
+      const d = new Date(key+'-01');
+      const keyAnterior = new Date(d.getFullYear()-1, d.getMonth(), 1).toISOString().slice(0,7);
+      const countAnterior = conteoPorMes[keyAnterior]||0;
+      let ref;
+      if(countAnterior > 0) {
+        ref = countAnterior;
+      } else {
+        const añoActual = d.getFullYear();
+        const totalAño = Object.entries(conteoPorMes)
+          .filter(([k])=>k.startsWith(String(añoActual)))
+          .reduce((s,[,v])=>s+v,0);
+        ref = totalAño / 12;
+      }
+      const diff = mesesData[i] - ref;
+      if(diff > 10) mesesDotColors.push('#4caf50');
+      else if(diff < -10) mesesDotColors.push('#cc0000');
+      else mesesDotColors.push('#d97706');
+    });
   }
   setTimeout(()=>drawSparkline('chartTotal', mesesData, '#bbbbbb', mesesDotColors), 50);
 
@@ -5161,7 +5187,7 @@ function renderStats() {
     if(trend) { trend.textContent = ''; trend.style.color='var(--gris4)'; }
   }
 
-  // --- GRÁFICA MES: días del mes actual con puntos de colores ---
+  // --- GRÁFICA MES: días del mes actual, sin puntos en días sin datos ---
   const diasMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const diasData = [];
   const diasDotColors = [];
@@ -5170,19 +5196,23 @@ function renderStats() {
       const fd = parseFechaSort(iv.fecha);
       return fd && fd.getDate()===d;
     }).length;
-    // Comparar con mismo día del mes anterior
     const countMesAnt = S.intervenciones.filter(iv=>{
       const fd = parseFechaSort(iv.fecha);
       if(!fd) return false;
       const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
       return fd.getFullYear()===pm.getFullYear() && fd.getMonth()===pm.getMonth() && fd.getDate()===d;
     }).length;
-    let dotColor;
-    if(count > countMesAnt) dotColor = '#4caf50';
-    else if(count < countMesAnt) dotColor = '#cc0000';
-    else dotColor = '#d97706';
     diasData.push(count);
-    diasDotColors.push(dotColor);
+    // Sin punto si no hay datos ese día (null = sin punto)
+    if(count === 0) {
+      diasDotColors.push(null);
+    } else if(count > countMesAnt) {
+      diasDotColors.push('#4caf50');
+    } else if(count < countMesAnt) {
+      diasDotColors.push('#cc0000');
+    } else {
+      diasDotColors.push('#d97706');
+    }
   }
   setTimeout(()=>drawSparkline('chartMes', diasData, '#bbbbbb', diasDotColors), 50);
 
