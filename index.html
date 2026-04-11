@@ -28,7 +28,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:14px;}
+body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:14px;}
 
 /* HEADER */
 .hdr{background:var(--negro2);padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
@@ -258,21 +258,25 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
     <div class="stats-grid">
-      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris2);">
-        <div class="card-title" style="margin-bottom:8px;">Total intervenciones</div>
-        <div class="stat-n" id="statTotal">0</div>
-        <canvas id="chartTotal" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
-      </div>
-      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div class="card-title" id="statMesLabel">Este mes</div>
-          <div id="statMesTrend" style="font-size:11px;font-weight:600;"></div>
+      <div class="stat-card" id="statTotalCard" style="border-left-color:var(--gris2);position:relative;min-height:130px;padding-bottom:14px;background:var(--gris7);">
+        <canvas id="chartTotal" style="position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);display:block;opacity:0.35;"></canvas>
+        <div style="position:relative;z-index:1;">
+          <div class="card-title" style="margin-bottom:4px;">Total intervenciones</div>
+          <div class="stat-n" id="statTotal">0</div>
         </div>
-        <div class="stat-n" id="statMes">0</div>
-        <canvas id="chartMes" height="32" style="margin-top:10px;width:100%;display:block;"></canvas>
+      </div>
+      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);position:relative;min-height:130px;padding-bottom:14px;background:var(--gris7);">
+        <canvas id="chartMes" style="position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);display:block;opacity:0.35;"></canvas>
+        <div style="position:relative;z-index:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div class="card-title" id="statMesLabel">Este mes</div>
+            <div id="statMesTrend" style="font-size:11px;font-weight:600;"></div>
+          </div>
+          <div class="stat-n" id="statMes">0</div>
+        </div>
       </div>
     </div>
-    <div class="card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
+    <div class="card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);min-height:130px;">
       <div class="card-head"><div class="card-title">Semana en curso</div></div>
       <div class="card-body" style="padding:10px 14px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
@@ -570,8 +574,16 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="histSearch" placeholder="Centro, alias, ticket, técnico..." oninput="filtrarHistorial()">
     </div>
-    <div style="padding:0 16px 8px;">
-      <input class="fi" id="histFecha" type="month" oninput="filtrarHistorial()" style="width:100%;text-transform:none;" placeholder="Filtrar por mes">
+    <div class="btn-row" style="padding:0 0 8px;gap:6px;">
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label class="fl">Desde</label>
+        <input class="fi" id="histFechaDesde" type="date" oninput="filtrarHistorial()" style="text-transform:none;">
+      </div>
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label class="fl">Hasta</label>
+        <input class="fi" id="histFechaHasta" type="date" oninput="filtrarHistorial()" style="text-transform:none;">
+      </div>
+      <button class="btn btn-gray btn-sm" onclick="limpiarFiltrosHistorial()" style="flex-shrink:0;align-self:flex-end;margin-bottom:0;">✕</button>
     </div>
     <div id="histList"></div>
   </div>
@@ -722,7 +734,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addBaremoConfig()">+ Añadir baremo</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarBaremos()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -735,7 +746,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addFrase()">+ Añadir frase</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarFrases()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -748,7 +758,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nuevo técnico</label><input class="fi" id="newTecNombre" type="text" placeholder="NOMBRE COMPLETO"></div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addTecnicoConfig()">+ Añadir técnico</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarTecnicos()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -761,7 +770,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nuevo solicitante</label><input class="fi" id="newSolNombre" type="text" placeholder="NOMBRE COMPLETO" oninput="toUpper(this)"></div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addSolicitanteConfig()">+ Añadir</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarSolicitantes()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -777,7 +785,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addMaterialConfig()">+ Añadir</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarMateriales()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -790,19 +797,17 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nuevo modelo</label><input class="fi" id="newModeloNombre" type="text" placeholder="MARCA / MODELO RTU"></div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addModeloConfig()">+ Añadir modelo</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarModelos()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
 
     <div class="div"></div>
-    <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:8px;">
+    <div class="alert alert-warn" style="margin-bottom:8px;">
+      ⚠️ El botón de recuperación solo debe usarse si los datos de la app son incorrectos o si Supabase ha fallado. Sobreescribirá la configuración actual con los datos de Google Drive.
+    </div>
+    <button class="btn btn-dark" onclick="confirmarSincronizarTodo()" style="margin-bottom:8px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-      Sincronizar todo desde Drive
-    </button>
-    <button class="btn btn-green" onclick="migrarASupabase()" style="margin-bottom:8px;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-      Migrar todo a Supabase
+      Recuperar datos desde Drive
     </button>
     <button class="btn btn-gray" onclick="resetearDatosLocales()" style="margin-bottom:12px;color:var(--rojo);">
       🗑 Borrar datos locales y reiniciar
@@ -1181,7 +1186,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.97';
+const APP_VERSION = 'v3.05';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1307,7 +1312,7 @@ async function sincronizarConfig() {
       actualizarSelectSolicitantes();
     }
     setLS('t2-config-ts', Date.now());
-    console.log('Config cargada desde Supabase ✓');
+    // Config cargada desde Supabase
     return true;
   } catch(e) {
     console.warn('Error cargando config de Supabase, intentando Drive:', e.message);
@@ -1346,7 +1351,7 @@ async function sincronizarConfig() {
       actualizarSelectZonas(data.Zonas);
     }
     setLS('t2-config-ts', Date.now());
-    console.log('Config cargada desde Drive (fallback) ✓');
+    // Config cargada desde Drive (fallback)
     return true;
   } catch(e) {
     console.error('Error sincronizando config:', e);
@@ -2044,9 +2049,21 @@ function nuevoInforme() {
   if(pInforme) { pInforme.style.border = ''; pInforme.style.borderRadius = ''; }
   const btnPDF = document.getElementById('btnGenerarPDF');
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
+  const btnBorrar = document.querySelector('#p-informe .btn-gray.btn-sm[onclick*="borrar"]');
+  if(btnBorrar) btnBorrar.textContent = '🗑 Borrar informe';
 }
 
 function borrarBorradorActual() {
+  // En modo edición, cancelar la edición
+  if(S._editMode && S._editIntId) {
+    confirmar('editcancel', 'CANCELAR EDICIÓN', () => {
+      S._editMode = false;
+      S._editIntId = null;
+      nuevoInforme();
+      toast('EDICIÓN CANCELADA');
+    });
+    return;
+  }
   if(!S.borradoresActual) { toast('No hay borrador activo','warn'); return; }
   const d = S.borradores[S.borradoresActual];
   const centro = d?.centro || 'SIN CENTRO';
@@ -2395,7 +2412,6 @@ async function generarInforme() {
       return;
     }
     const isEdit = !!d._esEdicion;
-    console.log('generarInforme: isEdit=', isEdit, '_editMode=', S._editMode, '_editIntId=', S._editIntId, '_esEdicion=', d._esEdicion);
     if(S.auth) {
       if(isEdit) {
         await actualizarEnSheets(d);
@@ -2735,7 +2751,7 @@ function addVyPManual() {
   const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),telefono:v('mv-telefono')||'',trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
-  console.log('S.auth al añadir planif:', !!S.auth);
+  
   if(S.auth) {
     escribirPlanifDrive(newPlanif);
     crearEventoCalendario(newPlanif);
@@ -2747,11 +2763,11 @@ function addVyPManual() {
 }
 
 async function sincronizarVyP() {
-  console.log('sincronizarVyP called, S.auth:', !!S.auth);
+  
   if(!S.auth){toast('CONECTA GOOGLE DRIVE PRIMERO','warn');return;}
   toast('SINCRONIZANDO PLANIFICACIÓN...','warn');
   const ok = await leerPlanificacionDrive();
-  console.log('leerPlanificacionDrive result:', ok, 'count:', S.planificacion.length);
+  
   if(ok) {
     renderPlanif();
     toast(`${S.planificacion.length} TRABAJOS CARGADOS ✓`,'ok');
@@ -2765,17 +2781,19 @@ async function sincronizarVyP() {
 // ═══════════════════════════════════════════════════
 function renderHistorial(f='') {
   const el=document.getElementById('histList');
-  const fechaFiltro = document.getElementById('histFecha')?.value||'';
+  const desde = document.getElementById('histFechaDesde')?.value||'';
+  const hasta = document.getElementById('histFechaHasta')?.value||'';
   const parseFechaSort = (f) => {
     if(!f) return 0;
-    // Handle DD/MM/YYYY
     const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
     if(dm) return new Date(`${dm[3]}-${dm[2]}-${dm[1]}`).getTime();
     return new Date(f).getTime() || 0;
   };
   const sorted = [...S.intervenciones].sort((a,b)=> parseFechaSort(b.fecha) - parseFechaSort(a.fecha));
   const list=sorted.filter(iv=>{
-    if(fechaFiltro && !(iv.fecha||'').startsWith(fechaFiltro)) return false;
+    const fechaIv = (iv.fecha||'').slice(0,10);
+    if(desde && fechaIv < desde) return false;
+    if(hasta && fechaIv > hasta) return false;
     if(!f) return true;
     return [iv.centro,iv.alias,iv.tdc,iv.vyp,iv.zona,iv.poblacion,iv.tec1,iv.resultado].join(' ').toUpperCase().includes(f.toUpperCase());
   });
@@ -2789,6 +2807,7 @@ function renderHistorial(f='') {
     return `<div class="li ${lc}"
       onclick="showInterv('${_id}','${(iv.centro||'').replace(/'/g,"\\'")}')"
       oncontextmenu="event.preventDefault();editarInformeAuth('${_id}')"
+      ondblclick="editarInformeAuth('${_id}')"
       ontouchstart="startLongPress('${_id}',event)"
       ontouchend="cancelLongPress()"
       ontouchmove="cancelLongPress()">
@@ -2797,6 +2816,13 @@ function renderHistorial(f='') {
       <div class="li-meta"><span>TDC: ${iv.tdc||iv.TDC||'—'}</span><span>${iv.tec1||iv.TECNICOS||''}</span>${res?`<span class="badge ${bc}">${res}</span>`:''}</div>
     </div>`;
   }).join('');
+}
+
+function limpiarFiltrosHistorial() {
+  const s = document.getElementById('histSearch'); if(s) s.value='';
+  const d = document.getElementById('histFechaDesde'); if(d) d.value='';
+  const h = document.getElementById('histFechaHasta'); if(h) h.value='';
+  renderHistorial();
 }
 
 function filtrarHistorial(){renderHistorial(document.getElementById('histSearch')?.value||'');}
@@ -2863,6 +2889,8 @@ function editarInforme(intId) {
   document.getElementById('estadoBorrador').className = 'badge badge-orange';
   const btnPDF = document.getElementById('btnGenerarPDF');
   if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modificar Informe';
+  const btnBorrar = document.querySelector('#p-informe .btn-gray.btn-sm[onclick*="borrar"]');
+  if(btnBorrar) btnBorrar.textContent = '✕ Cancelar edición';
   // Borde naranja en la página de informe
   const pInforme = document.getElementById('p-informe');
   if(pInforme) { pInforme.style.border = '3px solid var(--naranja)'; pInforme.style.borderRadius = 'var(--r)'; }
@@ -3038,7 +3066,7 @@ async function escribirCentroEnDrive(c, esEdicion) {
         const row = rowIdx+1;
         const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
         await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
-        console.log('Centro actualizado en Drive fila', row, nombreBuscar);
+        
       }
     } else {
       const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
@@ -3121,7 +3149,7 @@ function altaCentro() {
   };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
   setLS('t2-ct',S.centros);
-  console.log('altaCentro: idx=',idx,' esEdicion=',idx>=0,' auth=',!!S.auth,' nombre=',nombre);
+  
   if(S.auth) escribirCentroEnDrive(c, idx>=0);
   else toast('SIN CONEXIÓN — GUARDADO SOLO LOCAL','warn');
   closeModal('modalNuevoCentro'); renderCentros();
@@ -3219,13 +3247,16 @@ function calcularHoras(fecha) {
   if(totalMins<=0) { document.getElementById(`reparto-${fecha}`).innerHTML='<span style="color:var(--rojo);">Hora salida debe ser mayor que entrada</span>'; return; }
 
   const minsPorTDC = Math.floor(totalMins / ivs.length);
+  // Redondear a hora en punto o y media (múltiplos de 30 min)
+  const redondear30 = (mins) => Math.round(mins / 30) * 30;
   let currentMins = hE*60+mE;
   const lines = ivs.map((iv,i) => {
-    const desde = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    const desdeR = redondear30(currentMins);
+    const desde = `${String(Math.floor(desdeR/60)).padStart(2,'0')}:${String(desdeR%60).padStart(2,'0')}`;
     currentMins += minsPorTDC;
-    // Last one gets remaining time
     if(i===ivs.length-1) currentMins = hS*60+mS;
-    const hasta = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    const hastaR = redondear30(currentMins);
+    const hasta = `${String(Math.floor(hastaR/60)).padStart(2,'0')}:${String(hastaR%60).padStart(2,'0')}`;
     const tdc = iv.tdc||iv.TDC||'SIN TDC';
     return `${desde} → ${hasta}   ${tdc}`;
   });
@@ -3747,7 +3778,7 @@ async function escribirEnSupabase(d) {
     };
     const { error } = await sb.from('intervenciones').upsert(payload, { onConflict: 'int_id' });
     if(error) console.warn('Supabase write warn:', error.message);
-    else console.log('Supabase ✓', payload.int_id);
+    
   } catch(e) {
     console.warn('Supabase error (no crítico):', e.message);
   }
@@ -4015,7 +4046,7 @@ async function generarPDFDrive(d, esModificado=false) {
   const baseNombre = `${d.centro}-${zonaCode}`;
 
   const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
-  console.log('generarPDFDrive: esModificado=', esModificado, 'carpeta=', carpetaDestino===CARPETA_MODIFICADOS?'MODIFICADOS':'PENDIENTES');
+  
   // Check for duplicates in the correct folder
   toast('GENERANDO INFORME EN DRIVE...','warn');
   let nombreArchivo = baseNombre;
@@ -4306,7 +4337,7 @@ async function leerHistorialDrive() {
       }));
       setLS('t2-iv', S.intervenciones);
       renderStats(); renderRecent();
-      console.log('Historial cargado desde Supabase:', S.intervenciones.length);
+      
       return true;
     }
   } catch(e) {
@@ -4316,10 +4347,10 @@ async function leerHistorialDrive() {
   // Fallback a Drive
   try {
     const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
-    console.log('Historial batch1:', res1?.values?.length, 'rows');
+    
     if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
     const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
-    console.log('Historial batch2:', res2?.values?.length, 'rows');
+    
     const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
     if(!allRows.length) { toast('HISTORIAL VACÍO O SIN ACCESO','err'); return false; }
     S.intervenciones = allRows.map((row,i)=>{
@@ -4343,7 +4374,7 @@ async function leerHistorialDrive() {
     }).filter(iv=>iv.centro);
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
-    console.log('Historial cargado desde Drive (fallback):', S.intervenciones.length);
+    
     return true;
   } catch(e) {
     console.error('Error leyendo historial:', e);
@@ -4399,7 +4430,7 @@ async function leerRemotasDrive() {
       setLS('t2-ct', S.centros);
       checkAlertasInicio();
       renderCentroSelects();
-      console.log('Centros cargados desde Supabase:', S.centros.length);
+      
       return true;
     }
   } catch(e) {
@@ -4420,7 +4451,7 @@ async function leerRemotasDrive() {
     setLS('t2-ct', S.centros);
     checkAlertasInicio();
     renderCentroSelects();
-    console.log('Centros cargados desde Drive (fallback):', S.centros.length);
+    
     return true;
   } catch(e) {
     console.error('Error leyendo remotas:', e);
@@ -4646,7 +4677,7 @@ async function leerPlanificacionDrive() {
         calEventId:  r.cal_event_id||null,
       }));
       setLS('t2-pl', S.planificacion);
-      console.log('Planificación cargada desde Supabase:', S.planificacion.length);
+      
       return true;
     }
   } catch(e) {
@@ -4672,7 +4703,7 @@ async function leerPlanificacionDrive() {
       telefono:    row[11]||'',
     })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
-    console.log('Planificación cargada desde Drive (fallback):', S.planificacion.length);
+    
     return true;
   } catch(e) { console.error('Error leyendo planificación:', e); return false; }
 }
@@ -4719,11 +4750,11 @@ async function crearEventoCalendario(p) {
 }
 
 async function escribirPlanifDrive(p) {
-  if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
-  console.log('escribirPlanifDrive:', p.centro, p.fecha);
+  if(!S.auth) return;
+  
   const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'', p.telefono||'']];
   const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
-  console.log('escribirPlanifDrive result:', res);
+  
   escribirPlanifSupabase(p).catch(()=>{});
 }
 
@@ -4737,6 +4768,14 @@ async function completarPlanifDrive(id) {
     await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['COMPLETADO']]});
     actualizarEstadoPlanifSupabase(id, 'COMPLETADO').catch(()=>{});
   } catch(e) { console.error('Error completando planif:', e); }
+}
+
+function confirmarSincronizarTodo() {
+  confirmar('sync1', 'RECUPERAR DATOS DESDE DRIVE', () => {
+    confirmar('sync2', '¿SEGURO? ESTO SOBREESCRIBIRÁ LOS DATOS ACTUALES', () => {
+      sincronizarTodo();
+    });
+  });
 }
 
 async function sincronizarTodo() {
@@ -4975,22 +5014,18 @@ function getSemanaActual() {
   return { start, end };
 }
 
-function drawSparkline(canvasId, data, color) {
+function drawSparkline(canvasId, data, color, dotColors) {
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  const w = canvas.offsetWidth || canvas.parentElement.offsetWidth || 140;
-  // Fill remaining height of card
-  const card = canvas.closest('.stat-card');
-  const cardH = card ? card.offsetHeight : 0;
-  const usedH = canvas.offsetTop || 60;
-  const h = Math.max(32, cardH - usedH - 10);
+  const w = canvas.offsetWidth || 140;
+  const h = canvas.offsetHeight || 100;
   canvas.width = w;
   canvas.height = h;
   ctx.clearRect(0,0,w,h);
   if(!data.length || data.every(v=>v===0)) return;
   const max = Math.max(...data, 1);
-  const pad = 3;
+  const pad = 6;
   const n = data.length;
   const step = (w - pad*2) / (n - 1 || 1);
 
@@ -5013,16 +5048,25 @@ function drawSparkline(canvasId, data, color) {
   ctx.beginPath();
   data.forEach((v,i) => i===0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 2.5;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.stroke();
 
-  // Dot at last point
-  ctx.beginPath();
-  ctx.arc(px(n-1), py(data[n-1]), 2.5, 0, Math.PI*2);
-  ctx.fillStyle = color;
-  ctx.fill();
+  // Dots — colored if dotColors provided
+  data.forEach((v,i) => {
+    const dc = dotColors ? dotColors[i] : color;
+    ctx.beginPath();
+    ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
+    ctx.fillStyle = dc || color;
+    ctx.fill();
+    // Borde blanco para que destaquen
+    ctx.beginPath();
+    ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
 }
 
 function renderStats() {
@@ -5036,18 +5080,47 @@ function renderStats() {
     return new Date(f);
   };
 
-  // --- GRÁFICA TOTAL: últimos 12 meses ---
+  // --- GRÁFICA TOTAL: últimos 12 meses con puntos de colores ---
   const mesesData = [];
+  const mesesDotColors = [];
   for(let i=11;i>=0;i--) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const key = d.toISOString().slice(0,7);
+    const keyAnterior = new Date(d.getFullYear()-1, d.getMonth(), 1).toISOString().slice(0,7);
     const count = S.intervenciones.filter(iv=>{
       const fd = parseFechaSort(iv.fecha);
       return fd && fd.toISOString().slice(0,7)===key;
     }).length;
+
+    // Referencia: mismo mes año anterior, o media del año si no hay datos
+    const countAnterior = S.intervenciones.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      return fd && fd.toISOString().slice(0,7)===keyAnterior;
+    }).length;
+
+    let ref;
+    if(countAnterior > 0) {
+      ref = countAnterior;
+    } else {
+      // Media mensual de ese año
+      const añoActual = d.getFullYear();
+      const totalAño = S.intervenciones.filter(iv=>{
+        const fd = parseFechaSort(iv.fecha);
+        return fd && fd.getFullYear()===añoActual;
+      }).length;
+      ref = totalAño / 12;
+    }
+
+    const diff = count - ref;
+    let dotColor;
+    if(diff > 10) dotColor = '#4caf50';
+    else if(diff < -10) dotColor = '#cc0000';
+    else dotColor = '#d97706';
+
     mesesData.push(count);
+    mesesDotColors.push(dotColor);
   }
-  drawSparkline('chartTotal', mesesData, '#bbbbbb');
+  setTimeout(()=>drawSparkline('chartTotal', mesesData, '#bbbbbb', mesesDotColors), 50);
 
   // --- STATS MES ACTUAL ---
   const dayOfMonth = now.getDate();
@@ -5088,17 +5161,30 @@ function renderStats() {
     if(trend) { trend.textContent = ''; trend.style.color='var(--gris4)'; }
   }
 
-  // --- GRÁFICA MES: días del mes actual ---
+  // --- GRÁFICA MES: días del mes actual con puntos de colores ---
   const diasMes = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   const diasData = [];
+  const diasDotColors = [];
   for(let d=1;d<=diasMes;d++) {
     const count = ivMesActual.filter(iv=>{
       const fd = parseFechaSort(iv.fecha);
       return fd && fd.getDate()===d;
     }).length;
+    // Comparar con mismo día del mes anterior
+    const countMesAnt = S.intervenciones.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      if(!fd) return false;
+      const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+      return fd.getFullYear()===pm.getFullYear() && fd.getMonth()===pm.getMonth() && fd.getDate()===d;
+    }).length;
+    let dotColor;
+    if(count > countMesAnt) dotColor = '#4caf50';
+    else if(count < countMesAnt) dotColor = '#cc0000';
+    else dotColor = '#d97706';
     diasData.push(count);
+    diasDotColors.push(dotColor);
   }
-  drawSparkline('chartMes', diasData, '#bbbbbb');
+  setTimeout(()=>drawSparkline('chartMes', diasData, '#bbbbbb', diasDotColors), 50);
 
   // --- SEMANA EN CURSO ---
   const { start, end } = getSemanaActual();
