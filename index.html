@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.96';
+const APP_VERSION = 'v2.97';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4227,9 +4227,9 @@ async function generarPDFDrive(d, esModificado=false) {
     const pdfBlob = await pdfRes.blob();
 
     toast('4/4 · GUARDANDO EN DRIVE...','warn');
-    // Upload PDF to Informes Pendientes
+    // Upload PDF to correct folder
     const pdfName = nombreArchivo + '.pdf';
-    const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [CARPETA_PENDIENTES] };
+    const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [carpetaDestino] };
     const formData = new FormData();
     formData.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
     formData.append('file', pdfBlob);
