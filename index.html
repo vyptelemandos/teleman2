@@ -670,21 +670,11 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card">
         <div class="card-head"><div class="card-title">🕐 Reparto de horas</div></div>
         <div class="card-body">
-          <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Selecciona el período y las horas de cada día para ver el reparto por TDC.</p>
-          <div class="fr2">
-            <div class="fg">
-              <label class="fl">Mes</label>
-              <input class="fi" id="horas-mes" type="month" style="text-transform:none;">
-            </div>
-            <div class="fg">
-              <label class="fl">Período</label>
-              <select class="fs" id="horas-periodo">
-                <option value="1">Días 16 — 25 (mismo mes)</option>
-                <option value="2">Días 26 — 15 (mes siguiente)</option>
-              </select>
-            </div>
+          <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Selecciona el mes para ver el reparto de horas por TDC.</p>
+          <div class="fg">
+            <label class="fl">Mes</label>
+            <input class="fi" id="horas-mes" type="month" style="text-transform:none;" oninput="cargarHoras()">
           </div>
-          <button class="btn btn-red" onclick="cargarHoras()" style="margin-top:8px;">Cargar días</button>
         </div>
       </div>
       <div id="horasDiasList"></div>
@@ -1189,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.14';
+const APP_VERSION = 'v3.15';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3176,20 +3166,12 @@ function fmtHoraInput(el) {
 
 function cargarHoras() {
   const mes = document.getElementById('horas-mes')?.value;
-  const periodo = document.getElementById('horas-periodo')?.value;
-  if(!mes) { toast('SELECCIONA EL MES','err'); return; }
+  if(!mes) return;
 
   const [year, month] = mes.split('-').map(Number);
-  let desde, hasta;
-  if(periodo==='1') {
-    desde = new Date(year, month-1, 16);
-    hasta = new Date(year, month-1, 25);
-  } else {
-    desde = new Date(year, month-1, 26);
-    hasta = new Date(year, month, 15); // 15th of next month
-  }
+  const desde = new Date(year, month-1, 1);
+  const hasta = new Date(year, month, 0); // último día del mes
 
-  // Get my interventions in this period
   const miNombre = S.miNombre || '';
   const intervs = S.intervenciones.filter(iv => {
     const f = new Date(iv.fecha);
@@ -3198,7 +3180,6 @@ function cargarHoras() {
     return f >= desde && f <= hasta;
   });
 
-  // Group by date
   const byDay = {};
   intervs.forEach(iv => {
     const f = iv.fecha?.slice(0,10) || '';
@@ -3209,11 +3190,10 @@ function cargarHoras() {
 
   const dias = Object.keys(byDay).sort();
   if(!dias.length) {
-    document.getElementById('horasDiasList').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--gris4);">Sin intervenciones en este período</div>';
+    document.getElementById('horasDiasList').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--gris4);">Sin intervenciones en este mes</div>';
     return;
   }
 
-  // Render each day with time inputs
   document.getElementById('horasDiasList').innerHTML = dias.map(fecha => {
     const ivs = byDay[fecha];
     const d = new Date(fecha+'T12:00:00');
@@ -3233,7 +3213,6 @@ function cargarHoras() {
     </div>`;
   }).join('');
 
-  // Store day data and calculate initial
   window._horasDays = byDay;
   dias.forEach(f => calcularHoras(f));
 }
