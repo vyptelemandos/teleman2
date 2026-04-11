@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.15';
+const APP_VERSION = 'v3.16';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5074,13 +5074,31 @@ function renderStats() {
     return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
   });
 
-  // Mes pasado (mes completo)
-  const ivMesPasado = S.intervenciones.filter(iv => {
+  // Días trabajados este mes (días con al menos una intervención o planif completada)
+  const diasTrabajadosActual = new Set(
+    ivMesActual.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)
+  );
+  // Añadir días con planificación completada este mes
+  S.planificacion.filter(p=>{
+    const d = parseFechaSort(p.fecha);
+    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && p.estado==='COMPLETADO';
+  }).forEach(p=>diasTrabajadosActual.add((p.fecha||'').slice(0,10)));
+  const nDiasTrabajados = diasTrabajadosActual.size;
+
+  // Mes pasado — mismos N días trabajados (los primeros N días con actividad)
+  const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const ivMesPasadoTodos = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
     if(!d) return false;
-    const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
     return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth();
   });
+  // Días trabajados del mes pasado ordenados
+  const diasTrabajadosPasado = [...new Set(
+    ivMesPasadoTodos.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)
+  )].sort();
+  // Coger solo los primeros N días
+  const diasComparables = new Set(diasTrabajadosPasado.slice(0, nDiasTrabajados));
+  const ivMesPasado = ivMesPasadoTodos.filter(iv=>diasComparables.has((iv.fecha||'').slice(0,10)));
 
   // Media mensual últimos 12 meses
   let totalUltimos12 = 0;
