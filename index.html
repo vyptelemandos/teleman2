@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.90';
+const APP_VERSION = 'v2.91';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1256,69 +1256,97 @@ let autosaveTimer = null;
 })();
 
 // ═══════════════════════════════════════════════════
-//  SINCRONIZAR CONFIGURACIÓN DESDE DRIVE
+//  SINCRONIZAR CONFIGURACIÓN DESDE SUPABASE / DRIVE
 // ═══════════════════════════════════════════════════
 async function sincronizarConfig() {
-  if(!S.auth) return;
+  // Primero Supabase
   try {
-    // Read each sheet from the config spreadsheet
-    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
-    const data = {};
-    for(const sheet of sheets) {
-      const res = await gFetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,
-        'GET'
-      );
-      data[sheet] = res?.values || [];
-    }
+    const sb = getSB();
+    const [mRes, fRes, tRes, modRes, bRes, zRes, sRes] = await Promise.all([
+      sb.from('materiales').select('*'),
+      sb.from('frases').select('*'),
+      sb.from('tecnicos').select('*'),
+      sb.from('modelos_remota').select('*'),
+      sb.from('baremos').select('*'),
+      sb.from('zonas').select('*'),
+      sb.from('solicitantes').select('*'),
+    ]);
 
-    // Materiales - now has CODIGO + DESCRIPCION columns
-    if(data.Materiales.length) {
-      S.materiales = data.Materiales.map(r=>({
-        cod: (r[0]||'').toUpperCase().trim(),
-        desc: (r[1]||'').toUpperCase().trim()
-      })).filter(m=>m.cod);
+    if(mRes.data?.length) {
+      S.materiales = mRes.data.map(r=>({cod:r.cod||'', desc:r.descripcion||''})).filter(m=>m.cod);
       setLS('t2-mat', S.materiales);
-      renderMaterialesOptions(); // Re-render immediately after loading
+      renderMaterialesOptions();
     }
-
-    // Frases
-    if(data.Frases.length) {
-      S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
+    if(fRes.data?.length) {
+      S.frases = fRes.data.map(r=>r.texto||'').filter(Boolean);
       setLS('t2-fr', S.frases);
       renderFrasesConfig();
     }
-
-    // Tecnicos - update selects
-    if(data.Tecnicos.length) {
-      const tecnicos = data.Tecnicos.map(r=>r[0]).filter(Boolean);
+    if(tRes.data?.length) {
+      const tecnicos = tRes.data.map(r=>r.nombre||'').filter(Boolean);
       setLS('t2-tec', tecnicos);
       actualizarSelectTecnicos(tecnicos);
     }
-
-    // Modelos remota
-    if(data.Modelos_Remota.length) {
-      const modelos = data.Modelos_Remota.map(r=>r[0]).filter(Boolean);
+    if(modRes.data?.length) {
+      const modelos = modRes.data.map(r=>r.nombre||'').filter(Boolean);
       setLS('t2-modelos', modelos);
       actualizarSelectModelos(modelos);
     }
-
-    // Baremos
-    if(data.Baremos.length) {
-      S.baremos = data.Baremos.map(r=>({
-        cod: r[0]||'', desc: r[1]||'', pts: parseFloat(String(r[2]||'0').replace(',','.'))||0, fav: (r[3]||'').toUpperCase()==='SI'
-      })).filter(b=>b.cod);
+    if(bRes.data?.length) {
+      S.baremos = bRes.data.map(r=>({cod:r.cod||'', desc:r.descripcion||'', pts:r.pts||0, fav:r.fav||false})).filter(b=>b.cod);
       setLS('t2-bar', S.baremos);
       renderBaremosOptions();
     }
+    if(zRes.data?.length) {
+      zRes.data.forEach(r=>{ if(r.zona&&r.codigo) ZONA_CODES[r.zona.toUpperCase()]=r.codigo.toUpperCase(); });
+      actualizarSelectZonas(zRes.data.map(r=>[r.zona, r.codigo]));
+    }
+    if(sRes.data?.length) {
+      const sols = sRes.data.map(r=>r.nombre||'').filter(Boolean);
+      setLS('t2-solicitantes', sols);
+      actualizarSelectSolicitantes();
+    }
+    setLS('t2-config-ts', Date.now());
+    console.log('Config cargada desde Supabase ✓');
+    return true;
+  } catch(e) {
+    console.warn('Error cargando config de Supabase, intentando Drive:', e.message);
+  }
 
-    // Zonas
+  // Fallback a Drive
+  try {
+    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
+    const data = {};
+    for(const sheet of sheets) {
+      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,'GET');
+      data[sheet] = res?.values || [];
+    }
+    if(data.Materiales.length) {
+      S.materiales = data.Materiales.map(r=>({cod:(r[0]||'').toUpperCase().trim(), desc:(r[1]||'').toUpperCase().trim()})).filter(m=>m.cod);
+      setLS('t2-mat', S.materiales); renderMaterialesOptions();
+    }
+    if(data.Frases.length) {
+      S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
+      setLS('t2-fr', S.frases); renderFrasesConfig();
+    }
+    if(data.Tecnicos.length) {
+      const tecnicos = data.Tecnicos.map(r=>r[0]).filter(Boolean);
+      setLS('t2-tec', tecnicos); actualizarSelectTecnicos(tecnicos);
+    }
+    if(data.Modelos_Remota.length) {
+      const modelos = data.Modelos_Remota.map(r=>r[0]).filter(Boolean);
+      setLS('t2-modelos', modelos); actualizarSelectModelos(modelos);
+    }
+    if(data.Baremos.length) {
+      S.baremos = data.Baremos.map(r=>({cod:r[0]||'', desc:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'})).filter(b=>b.cod);
+      setLS('t2-bar', S.baremos); renderBaremosOptions();
+    }
     if(data.Zonas.length) {
-      data.Zonas.forEach(r=>{ if(r[0]&&r[1]) ZONA_CODES[r[0].toUpperCase()] = r[1].toUpperCase(); });
+      data.Zonas.forEach(r=>{ if(r[0]&&r[1]) ZONA_CODES[r[0].toUpperCase()]=r[1].toUpperCase(); });
       actualizarSelectZonas(data.Zonas);
     }
-
     setLS('t2-config-ts', Date.now());
+    console.log('Config cargada desde Drive (fallback) ✓');
     return true;
   } catch(e) {
     console.error('Error sincronizando config:', e);
