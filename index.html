@@ -1181,7 +1181,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.91';
+const APP_VERSION = 'v2.92';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2824,10 +2824,10 @@ function editarInforme(intId) {
   const iv = S.intervenciones.find(x => x.intId === intId || x.centro === intId);
   if(!iv) { toast('INTERVENCIÓN NO ENCONTRADA','err'); return; }
   closeAllModals();
-  // Mark as edit mode
+  nuevoInforme(); // Primero limpiar — resetea _editMode a false
+  // Ahora setear modo edición DESPUÉS de nuevoInforme
   S._editMode = true;
   S._editIntId = iv.intId;
-  nuevoInforme();
   // Populate form with existing data
   sv('f-centro', iv.centro||'');
   document.getElementById('f-fecha').value = iv.fecha||hoy();
