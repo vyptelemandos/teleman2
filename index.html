@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.36';
+const APP_VERSION = 'v3.37';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2962,24 +2962,31 @@ async function parsearVyP(texto) {
     if(zona === 'ALCANIZ') zona = 'ALCAÑIZ';
   }
 
-  // TDC = Origen Actividad sin T-
-  const tdcMatch = texto.match(/Origen\s*Actividad\s+T-(\d+)/);
+  // TDC = Origen Actividad — puede ser T-NNNNN, T NNNNN, TNNNNN, o solo NNNNN (LCL)
+  const tdcMatch = texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
   const tdc = tdcMatch ? tdcMatch[1] : '';
 
   // Solicitante — entre "Nombre" y el teléfono
   const solMatch = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
   const solicitante = solMatch ? solMatch[1].trim() : '';
 
-  // Trabajo previsto — texto libre ANTES de "Trabajos previstos"
-  // Formato: "PRO01 - ...; ACT130 - ...; TEXTO LIBRE  Trabajos previstos"
-  const trabajoMatch = texto.match(/(?:ACT\d+\s*-[^;]+;\s*)([^]+?)\s+Trabajos\s*previstos/);
-  let trabajo = trabajoMatch ? trabajoMatch[1].replace(/\s+/g,' ').trim() : '';
+  // Trabajo previsto — todo el texto entre los prefijos PRO/ACT y "Trabajos previstos"
+  // El texto libre puede ocupar varias líneas
+  let trabajo = '';
+  // Primero intentar: último ; seguido del texto libre hasta "Trabajos previstos"
+  const t1 = texto.match(/;([^;]+?)\s{2,}Trabajos\s*previstos/s);
+  if(t1) trabajo = t1[1].replace(/\s+/g,' ').trim();
+  // Si no, buscar todo después de ACT hasta Trabajos previstos
   if(!trabajo) {
-    // Fallback: todo después del último ; antes de "Trabajos previstos"
-    const t2 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/);
+    const t2 = texto.match(/ACT\d+\s*-[^;]+;\s*(.+?)\s{2,}Trabajos\s*previstos/s);
     if(t2) trabajo = t2[1].replace(/\s+/g,' ').trim();
   }
-  if(trabajo.length > 120) trabajo = trabajo.slice(0, 120).trim();
+  // Si sigue sin resultado, intentar con un solo espacio
+  if(!trabajo) {
+    const t3 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/s);
+    if(t3) trabajo = t3[1].replace(/\s+/g,' ').trim();
+  }
+  if(trabajo.length > 200) trabajo = trabajo.slice(0, 200).trim();
 
   // Centro desde "En CD NOMBRE/CODIGO"
   const enCDMatch = texto.match(/En\s+CD\s+([^\/\n]+?)\/([A-Z0-9]+)/i);
