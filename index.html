@@ -9,6 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -314,12 +315,13 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Planificación</p>
     <p class="pg-sub">Trabajos programados</p>
     <div class="btn-row" style="margin-bottom:10px;">
-      <button class="btn btn-red" style="flex:1;" onclick="sincronizarVyP()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Sincronizar VyP
+      <button class="btn btn-red" style="flex:1;" onclick="document.getElementById('inputVyPPDF').click()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar VyP
       </button>
       <button class="btn btn-gray btn-sm" onclick="openNuevoVyP()">+ Manual</button>
     </div>
+    <input type="file" id="inputVyPPDF" accept="application/pdf" multiple style="display:none;" onchange="importarVyPs(this.files)">
     <div id="planifList"></div>
   </div>
 
@@ -794,6 +796,14 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-head"><div class="card-title">📞 Teléfonos Centro de Control</div></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Teléfono asignado a cada zona al importar VyPs.</p>
+        <div id="zonasCCList"></div>
+      </div>
+    </div>
+
     <div class="div"></div>
     <div class="alert alert-warn" style="margin-bottom:8px;">
       ⚠️ El botón de recuperación solo debe usarse si los datos de la app son incorrectos o si Supabase ha fallado. Sobreescribirá la configuración actual con los datos de Google Drive.
@@ -1179,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.21';
+const APP_VERSION = 'v3.23';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2697,6 +2707,7 @@ function switchTab(tab) {
   if(selBtn) { selBtn.style.background='var(--rojo)'; selBtn.style.color='white'; }
   if(tab==='stats') renderStatsPage();
   if(tab==='horas') { const m=document.getElementById('horas-mes'); if(m&&!m.value) m.value=new Date().toISOString().slice(0,7); }
+  if(tab==='cfg') renderZonasCC();
   return; // old code below no longer needed
   const statsContent = document.getElementById('tab-stats-content');
   const cfgContent = document.getElementById('tab-cfg-content');
@@ -2827,6 +2838,271 @@ function addVyPManual() {
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord','mv-telefono'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
   closeModal('modalNuevoVyP'); renderPlanif(); renderStats(); toast('TRABAJO AÑADIDO','ok');
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORTAR VyP DESDE PDF
+// ═══════════════════════════════════════════════════
+
+// Cache de zonas CC
+let _zonasCCCache = null;
+
+async function cargarZonasCC() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?select=*&order=zona`, {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`
+      }
+    });
+    const data = await res.json();
+    _zonasCCCache = {};
+    (data||[]).forEach(r => { _zonasCCCache[r.zona.toUpperCase()] = r.telefono; });
+  } catch(e) {
+    console.warn('Error cargando zonas CC:', e.message);
+    _zonasCCCache = {
+      'ZARAGOZA':'976235206','ALCAÑIZ':'976225313',
+      'CALATAYUD':'976158186','SORIA':'976231467','TERUEL':'976211819'
+    };
+  }
+  return _zonasCCCache;
+}
+
+async function renderZonasCC() {
+  const zonas = await cargarZonasCC();
+  const el = document.getElementById('zonasCCList');
+  if(!el) return;
+  el.innerHTML = Object.entries(zonas).map(([zona, tel]) => `
+    <div class="fr2" style="align-items:center;margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:600;color:var(--gris2);">${zona}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="fi" type="tel" id="cc-tel-${zona}" value="${tel}" style="text-transform:none;font-family:'Roboto Mono',monospace;font-size:13px;">
+        <button class="btn btn-gray btn-sm" onclick="guardarTelefonoCC('${zona}')">✓</button>
+      </div>
+    </div>`).join('');
+}
+
+async function guardarTelefonoCC(zona) {
+  const input = document.getElementById(`cc-tel-${zona}`);
+  if(!input) return;
+  const tel = input.value.trim();
+  if(!tel) { toast('INTRODUCE UN TELÉFONO','err'); return; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?zona=eq.${encodeURIComponent(zona)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({telefono: tel})
+    });
+    if(!res.ok) throw new Error(res.statusText);
+    if(_zonasCCCache) _zonasCCCache[zona] = tel;
+    toast(`${zona} ACTUALIZADO ✓`, 'ok');
+  } catch(e) {
+    toast('ERROR AL GUARDAR', 'err');
+  }
+}
+
+async function extraerTextoPDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        const typedArray = new Uint8Array(e.target.result);
+        const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
+        let texto = '';
+        for(let i=1; i<=pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          texto += content.items.map(item=>item.str).join(' ') + '\n';
+        }
+        resolve(texto);
+      } catch(err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parsearVyP(texto) {
+  const get = (pattern, group=1) => {
+    const m = texto.match(pattern);
+    return m ? m[group].trim() : '';
+  };
+
+  // Número VyP
+  const vyp = get(/Ref\.\s*Trabajo\s*Programado:\s*(\d+)/);
+
+  // Fecha y hora inicio (DD-MM-YYYY HH:MM)
+  const fechaMatch = texto.match(/Fecha\s*Inicio\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
+  let fecha = '', hora = '';
+  if(fechaMatch) {
+    const [d,m,y] = fechaMatch[1].split('-');
+    fecha = `${y}-${m}-${d}`;
+    hora = fechaMatch[2];
+  }
+
+  // TDC = Origen Actividad sin T-
+  const tdcMatch = texto.match(/Origen\s*Actividad\s+T-(\d+)/);
+  const tdc = tdcMatch ? tdcMatch[1] : '';
+
+  // Zona desde A. resp. (ARA-Alcañiz → ALCAÑIZ)
+  const zonaMatch = texto.match(/A\.\s*resp\.\s+ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
+  let zona = '';
+  if(zonaMatch) {
+    zona = zonaMatch[1].toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace('ALCANIZ','ALCAÑIZ');
+  }
+
+  // Solicitante
+  const solMatch = texto.match(/Solicitante\s+Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+Teléfono/);
+  const solicitante = solMatch ? solMatch[1].trim() : '';
+
+  // Trabajo previsto — todo después de "Trabajos previstos" hasta "Afectaciones"
+  const trabajoMatch = texto.match(/Trabajos\s*previstos\s+(.+?)(?:Afectaciones|$)/s);
+  let trabajo = trabajoMatch ? trabajoMatch[1].replace(/\s+/g,' ').trim() : '';
+  // Quitar prefijo PRO01... ACT130...
+  trabajo = trabajo.replace(/^(?:PRO\d+[^;]*;\s*)*(?:ACT\d+[^;]*;\s*)*/i,'').trim();
+
+  // Centro y alias desde última hoja (buscar patrón Zxxxxx o número + CDT-)
+  // Buscamos el patrón en la sección de vistas
+  const centroMatch = texto.match(/(?:Vistas asociadas.*?\n)([\s\S]*)/);
+  const vistaTexto = centroMatch ? centroMatch[1] : texto;
+
+  // Número centro: Z seguido de dígitos, o solo dígitos de 5+
+  const numCentroMatch = vistaTexto.match(/\b(Z\d{4,6}|\d{5,6})\b/);
+  const centro = numCentroMatch ? numCentroMatch[1] : '';
+
+  // Alias: CDT-... buscamos en el texto de vistas
+  const aliasMatch = vistaTexto.match(/CDT-([A-ZÁÉÍÓÚÑ0-9\s\.\-\/]+?)(?:\n|TELECONTROLADO|GEN\.CLI)/i);
+  const alias = aliasMatch ? ('CDT-' + aliasMatch[1].trim().replace(/\s+/g,' ')) : '';
+
+  return { vyp, fecha, hora, tdc, zona, solicitante, trabajo, centro, alias };
+}
+
+async function importarVyPs(files) {
+  if(!files || !files.length) return;
+  const zonas = await cargarZonasCC();
+  let importados = 0, duplicados = 0, errores = 0;
+  const resultados = [];
+
+  toast(`PROCESANDO ${files.length} PDF${files.length>1?'s':''}...`, 'warn');
+
+  for(const file of files) {
+    try {
+      const texto = await extraerTextoPDF(file);
+      const datos = parsearVyP(texto);
+
+      if(!datos.vyp) { errores++; continue; }
+
+      // Comprobar duplicado en Supabase
+      const sb = getSB();
+      const { data: existe } = await sb.from('planificacion').select('id').eq('vyp', datos.vyp).single();
+      if(existe) { duplicados++; continue; }
+
+      // Teléfono según zona
+      const telefono = zonas[datos.zona] || '';
+
+      resultados.push({ ...datos, telefono });
+    } catch(e) {
+      console.warn('Error procesando PDF:', file.name, e.message);
+      errores++;
+    }
+  }
+
+  // Mostrar modal de confirmación con los resultados
+  if(!resultados.length) {
+    let msg = '';
+    if(duplicados) msg += `${duplicados} ya importados. `;
+    if(errores) msg += `${errores} con error.`;
+    toast(msg || 'SIN VyPs NUEVOS', 'warn');
+    document.getElementById('inputVyPPDF').value = '';
+    return;
+  }
+
+  mostrarModalConfirmacionVyP(resultados, duplicados, errores);
+  document.getElementById('inputVyPPDF').value = '';
+}
+
+function mostrarModalConfirmacionVyP(resultados, duplicados, errores) {
+  // Crear modal dinámico
+  let modal = document.getElementById('modalImportVyP');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalImportVyP';
+    modal.className = 'modal';
+    document.body.appendChild(modal);
+  }
+
+  const filas = resultados.map((d,i) => `
+    <div style="background:var(--gris7);border-radius:var(--rs);padding:10px;margin-bottom:8px;border-left:3px solid var(--rojo);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:13px;color:var(--rojo);">VyP ${d.vyp}</span>
+        <span style="font-size:11px;color:var(--gris3);">${d.fecha} ${d.hora}</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;">${d.centro} — ${d.alias||'SIN ALIAS'}</div>
+      <div style="font-size:12px;color:var(--gris2);margin-top:2px;">TDC: ${d.tdc} · ${d.zona} · ☎ ${d.telefono||'—'}</div>
+      <div style="font-size:11px;color:var(--gris3);margin-top:2px;">${d.trabajo}</div>
+    </div>`).join('');
+
+  let info = '';
+  if(duplicados) info += `<div style="font-size:12px;color:var(--naranja);margin-bottom:8px;">⚠️ ${duplicados} VyP${duplicados>1?'s':''} ya existente${duplicados>1?'s':''}, omitido${duplicados>1?'s':''}.</div>`;
+  if(errores) info += `<div style="font-size:12px;color:var(--rojo);margin-bottom:8px;">❌ ${errores} PDF${errores>1?'s':''} con error.</div>`;
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-height:80vh;overflow-y:auto;">
+      <div class="modal-head">
+        <div class="modal-title">Importar ${resultados.length} VyP${resultados.length>1?'s':''}</div>
+        <button class="modal-close" onclick="closeModal('modalImportVyP')">×</button>
+      </div>
+      <div class="modal-body">
+        ${info}
+        ${filas}
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modalImportVyP')">Cancelar</button>
+          <button class="btn btn-red" style="flex:1;" onclick="confirmarImportVyP(${JSON.stringify(resultados).replace(/"/g,'&quot;')})">✓ Añadir a planificación</button>
+        </div>
+      </div>
+    </div>`;
+  openModal('modalImportVyP');
+}
+
+async function confirmarImportVyP(resultados) {
+  closeModal('modalImportVyP');
+  toast('GUARDANDO EN SUPABASE...', 'warn');
+  const sb = getSB();
+  let ok = 0;
+
+  for(const d of resultados) {
+    const payload = {
+      id: 'VYP-' + d.vyp,
+      centro: d.centro,
+      alias: d.alias,
+      fecha: d.fecha,
+      hora: d.hora,
+      vyp: d.vyp,
+      tdc: d.tdc,
+      trabajo: d.trabajo,
+      solicitante: d.solicitante,
+      telefono: d.telefono,
+      zona: d.zona,
+      estado: 'PENDIENTE',
+    };
+    const { error } = await sb.from('planificacion').insert(payload);
+    if(!error) {
+      S.planificacion.push({...payload, coord:'', calEventId:null});
+      ok++;
+    }
+  }
+
+  setLS('t2-pl', S.planificacion);
+  renderPlanif();
+  renderStats();
+  toast(`${ok} VyP${ok>1?'s':''} AÑADIDOS ✓`, 'ok');
 }
 
 async function sincronizarVyP() {
