@@ -164,7 +164,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 .alert-err{background:var(--rojo-light);border:1px solid var(--rojo-border);color:var(--rojo);}
 
 /* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:flex-end;}
 .overlay.on{display:flex;}
 .modal{background:var(--blanco);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.23';
+const APP_VERSION = 'v3.35';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2911,7 +2911,12 @@ async function extraerTextoPDF(file) {
     reader.onload = async (e) => {
       try {
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        // Intentar cargar worker externo, si falla usar fake worker
+        try {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        } catch(e) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        }
         const typedArray = new Uint8Array(e.target.result);
         const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
         let texto = '';
@@ -2927,182 +2932,260 @@ async function extraerTextoPDF(file) {
   });
 }
 
-function parsearVyP(texto) {
+async function parsearVyP(texto) {
   const get = (pattern, group=1) => {
     const m = texto.match(pattern);
     return m ? m[group].trim() : '';
   };
 
-  // Número VyP
-  const vyp = get(/Ref\.\s*Trabajo\s*Programado:\s*(\d+)/);
+  // Número VyP — aparece ANTES de "Ref. Trabajo Programado:"
+  const vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
 
-  // Fecha y hora inicio (DD-MM-YYYY HH:MM)
-  const fechaMatch = texto.match(/Fecha\s*Inicio\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
+  // Fecha y hora inicio — "Aprobado DD-MM-YYYY HH:MM ... HH:MM"
+  // Formato: "Aprobado 02-03-2026 09:00 U.O. Alcañiz ARA-Alcañiz A. resp. 02-03-2026 08:00"
+  // Fecha inicio es la SEGUNDA fecha (la de Inicio real), hora inicio también la segunda
+  const fechasMatch = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
   let fecha = '', hora = '';
-  if(fechaMatch) {
-    const [d,m,y] = fechaMatch[1].split('-');
+  if(fechasMatch) {
+    // La segunda fecha es la de inicio real
+    const [d,m,y] = fechasMatch[3].split('-');
     fecha = `${y}-${m}-${d}`;
-    hora = fechaMatch[2];
+    hora = fechasMatch[4];
+  }
+
+  // Zona desde "ARA-Alcañiz A. resp."
+  const zonaMatch = texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s+A\.\s*resp\./i);
+  let zona = '';
+  if(zonaMatch) {
+    zona = zonaMatch[1].toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(zona === 'ALCANIZ') zona = 'ALCAÑIZ';
   }
 
   // TDC = Origen Actividad sin T-
   const tdcMatch = texto.match(/Origen\s*Actividad\s+T-(\d+)/);
   const tdc = tdcMatch ? tdcMatch[1] : '';
 
-  // Zona desde A. resp. (ARA-Alcañiz → ALCAÑIZ)
-  const zonaMatch = texto.match(/A\.\s*resp\.\s+ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
-  let zona = '';
-  if(zonaMatch) {
-    zona = zonaMatch[1].toUpperCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-      .replace('ALCANIZ','ALCAÑIZ');
-  }
-
-  // Solicitante
-  const solMatch = texto.match(/Solicitante\s+Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+Teléfono/);
+  // Solicitante — entre "Nombre" y el teléfono
+  const solMatch = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
   const solicitante = solMatch ? solMatch[1].trim() : '';
 
-  // Trabajo previsto — todo después de "Trabajos previstos" hasta "Afectaciones"
-  const trabajoMatch = texto.match(/Trabajos\s*previstos\s+(.+?)(?:Afectaciones|$)/s);
+  // Trabajo previsto — texto libre ANTES de "Trabajos previstos"
+  // Formato: "PRO01 - ...; ACT130 - ...; TEXTO LIBRE  Trabajos previstos"
+  const trabajoMatch = texto.match(/(?:ACT\d+\s*-[^;]+;\s*)([^]+?)\s+Trabajos\s*previstos/);
   let trabajo = trabajoMatch ? trabajoMatch[1].replace(/\s+/g,' ').trim() : '';
-  // Quitar prefijo PRO01... ACT130...
-  trabajo = trabajo.replace(/^(?:PRO\d+[^;]*;\s*)*(?:ACT\d+[^;]*;\s*)*/i,'').trim();
+  if(!trabajo) {
+    // Fallback: todo después del último ; antes de "Trabajos previstos"
+    const t2 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/);
+    if(t2) trabajo = t2[1].replace(/\s+/g,' ').trim();
+  }
+  if(trabajo.length > 120) trabajo = trabajo.slice(0, 120).trim();
 
-  // Centro y alias desde última hoja (buscar patrón Zxxxxx o número + CDT-)
-  // Buscamos el patrón en la sección de vistas
-  const centroMatch = texto.match(/(?:Vistas asociadas.*?\n)([\s\S]*)/);
-  const vistaTexto = centroMatch ? centroMatch[1] : texto;
+  // Centro desde "En CD NOMBRE/CODIGO"
+  const enCDMatch = texto.match(/En\s+CD\s+([^\/\n]+?)\/([A-Z0-9]+)/i);
+  const alias_cd = enCDMatch ? enCDMatch[1].replace(/\s+/g,' ').trim() : '';
+  const centro = enCDMatch ? enCDMatch[2].trim() : '';
 
-  // Número centro: Z seguido de dígitos, o solo dígitos de 5+
-  const numCentroMatch = vistaTexto.match(/\b(Z\d{4,6}|\d{5,6})\b/);
-  const centro = numCentroMatch ? numCentroMatch[1] : '';
+  // Alias desde tabla centros de Supabase (o local)
+  let alias = '';
+  if(centro) {
+    // Buscar primero en local
+    const centroLocal = S.centros.find(c =>
+      (c.Nombre||c.nombre||'').toUpperCase() === centro.toUpperCase()
+    );
+    if(centroLocal) {
+      alias = centroLocal.Alias || centroLocal.alias || '';
+    } else {
+      // Buscar en Supabase si hay conexión
+      try {
+        const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+          signal: AbortSignal.timeout(3000)
+        });
+        const data = await res.json();
+        if(data?.[0]?.alias) alias = data[0].alias;
+      } catch(e) { /* sin conexión, alias vacío */ }
+    }
+  }
 
-  // Alias: CDT-... buscamos en el texto de vistas
-  const aliasMatch = vistaTexto.match(/CDT-([A-ZÁÉÍÓÚÑ0-9\s\.\-\/]+?)(?:\n|TELECONTROLADO|GEN\.CLI)/i);
-  const alias = aliasMatch ? ('CDT-' + aliasMatch[1].trim().replace(/\s+/g,' ')) : '';
-
-  return { vyp, fecha, hora, tdc, zona, solicitante, trabajo, centro, alias };
+  return {
+    vyp,
+    fecha,
+    hora,
+    tdc,
+    zona: zona.toUpperCase(),
+    solicitante: solicitante.toUpperCase(),
+    trabajo: trabajo.toUpperCase(),
+    centro: centro.toUpperCase(),
+    alias: alias.toUpperCase(),
+  };
 }
+
+// Estado del proceso de importación VyP
+let _importVyPQueue = [];
+let _importVyPIdx = 0;
+let _importVyPStats = {ok:0, dup:0, err:0};
 
 async function importarVyPs(files) {
   if(!files || !files.length) return;
+  
+  _importVyPQueue = [];
+  _importVyPIdx = 0;
+  _importVyPStats = {ok:0, dup:0, err:0};
+  
   const zonas = await cargarZonasCC();
-  let importados = 0, duplicados = 0, errores = 0;
-  const resultados = [];
-
-  toast(`PROCESANDO ${files.length} PDF${files.length>1?'s':''}...`, 'warn');
+  toast(`ANALIZANDO ${files.length} PDF${files.length>1?'s':''}...`, 'warn');
 
   for(const file of files) {
     try {
       const texto = await extraerTextoPDF(file);
-      const datos = parsearVyP(texto);
+      const datos = await parsearVyP(texto);
+      if(!datos.vyp) { _importVyPStats.err++; continue; }
 
-      if(!datos.vyp) { errores++; continue; }
+      // Comprobar duplicado solo si hay conexión
+      try {
+        const res = await fetch(`${SB_URL}/rest/v1/planificacion?vyp=eq.${datos.vyp}&select=id`, {
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+          signal: AbortSignal.timeout(3000)
+        });
+        const existe = await res.json();
+        if(existe && existe.length > 0) { _importVyPStats.dup++; continue; }
+      } catch(e) {
+        // Sin conexión — comprobar solo en local
+        const existe = S.planificacion.find(p => p.vyp === datos.vyp);
+        if(existe) { _importVyPStats.dup++; continue; }
+      }
 
-      // Comprobar duplicado en Supabase
-      const sb = getSB();
-      const { data: existe } = await sb.from('planificacion').select('id').eq('vyp', datos.vyp).single();
-      if(existe) { duplicados++; continue; }
-
-      // Teléfono según zona
-      const telefono = zonas[datos.zona] || '';
-
-      resultados.push({ ...datos, telefono });
+      datos.telefono = zonas[datos.zona] || '';
+      _importVyPQueue.push(datos);
     } catch(e) {
-      console.warn('Error procesando PDF:', file.name, e.message);
-      errores++;
+      console.error('Error procesando PDF:', file.name, e);
+      _importVyPStats.err++;
     }
   }
 
-  // Mostrar modal de confirmación con los resultados
-  if(!resultados.length) {
+  document.getElementById('inputVyPPDF').value = '';
+
+  if(!_importVyPQueue.length) {
     let msg = '';
-    if(duplicados) msg += `${duplicados} ya importados. `;
-    if(errores) msg += `${errores} con error.`;
+    if(_importVyPStats.dup) msg += `${_importVyPStats.dup} ya importados. `;
+    if(_importVyPStats.err) msg += `${_importVyPStats.err} con error.`;
     toast(msg || 'SIN VyPs NUEVOS', 'warn');
-    document.getElementById('inputVyPPDF').value = '';
     return;
   }
 
-  mostrarModalConfirmacionVyP(resultados, duplicados, errores);
-  document.getElementById('inputVyPPDF').value = '';
+  mostrarVyPUno();
 }
 
-function mostrarModalConfirmacionVyP(resultados, duplicados, errores) {
-  // Crear modal dinámico
-  let modal = document.getElementById('modalImportVyP');
-  if(!modal) {
-    modal = document.createElement('div');
-    modal.id = 'modalImportVyP';
-    modal.className = 'modal';
-    document.body.appendChild(modal);
+function mostrarVyPUno() {
+  if(_importVyPIdx >= _importVyPQueue.length) {
+    const overlay = document.getElementById('overlayImportVyP');
+    if(overlay) overlay.style.display = 'none';
+    renderPlanif(); renderStats();
+    let msg = `${_importVyPStats.ok} VyP${_importVyPStats.ok!==1?'s':''} AÑADIDOS ✓`;
+    if(_importVyPStats.dup) msg += ` · ${_importVyPStats.dup} duplicados`;
+    if(_importVyPStats.err) msg += ` · ${_importVyPStats.err} errores`;
+    toast(msg, 'ok');
+    return;
   }
 
-  const filas = resultados.map((d,i) => `
-    <div style="background:var(--gris7);border-radius:var(--rs);padding:10px;margin-bottom:8px;border-left:3px solid var(--rojo);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:13px;color:var(--rojo);">VyP ${d.vyp}</span>
-        <span style="font-size:11px;color:var(--gris3);">${d.fecha} ${d.hora}</span>
-      </div>
-      <div style="font-size:13px;font-weight:600;">${d.centro} — ${d.alias||'SIN ALIAS'}</div>
-      <div style="font-size:12px;color:var(--gris2);margin-top:2px;">TDC: ${d.tdc} · ${d.zona} · ☎ ${d.telefono||'—'}</div>
-      <div style="font-size:11px;color:var(--gris3);margin-top:2px;">${d.trabajo}</div>
-    </div>`).join('');
+  const d = _importVyPQueue[_importVyPIdx];
+  const total = _importVyPQueue.length;
+  const actual = _importVyPIdx + 1;
 
-  let info = '';
-  if(duplicados) info += `<div style="font-size:12px;color:var(--naranja);margin-bottom:8px;">⚠️ ${duplicados} VyP${duplicados>1?'s':''} ya existente${duplicados>1?'s':''}, omitido${duplicados>1?'s':''}.</div>`;
-  if(errores) info += `<div style="font-size:12px;color:var(--rojo);margin-bottom:8px;">❌ ${errores} PDF${errores>1?'s':''} con error.</div>`;
+  let overlay = document.getElementById('overlayImportVyP');
+  if(!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'overlayImportVyP';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
 
-  modal.innerHTML = `
-    <div class="modal-box" style="max-height:80vh;overflow-y:auto;">
-      <div class="modal-head">
-        <div class="modal-title">Importar ${resultados.length} VyP${resultados.length>1?'s':''}</div>
-        <button class="modal-close" onclick="closeModal('modalImportVyP')">×</button>
+  overlay.innerHTML = `
+    <div style="background:var(--blanco);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:80vh;overflow-y:auto;padding-bottom:80px;">
+      <div style="width:36px;height:4px;background:var(--gris5);border-radius:2px;margin:11px auto 0;"></div>
+      <div style="padding:12px 15px 11px;border-bottom:1px solid var(--gris5);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:700;font-size:16px;">VyP ${actual} de ${total}</div>
+        <button onclick="cerrarOverlayVyP()" style="background:none;border:none;font-size:22px;color:var(--gris3);cursor:pointer;">×</button>
       </div>
-      <div class="modal-body">
-        ${info}
-        ${filas}
-        <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-gray" style="flex:1;" onclick="closeModal('modalImportVyP')">Cancelar</button>
-          <button class="btn btn-red" style="flex:1;" onclick="confirmarImportVyP(${JSON.stringify(resultados).replace(/"/g,'&quot;')})">✓ Añadir a planificación</button>
+      <div style="padding:13px 15px;">
+        <div style="border-left:3px solid var(--rojo);padding-left:12px;margin-bottom:12px;">
+          <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;color:var(--rojo);margin-bottom:8px;">VyP ${d.vyp}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Fecha</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.fecha}</div></div>
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Hora</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.hora}</div></div>
+          </div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Centro</div><div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;">${d.centro} — ${d.alias||'SIN ALIAS'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">TDC</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.tdc||'—'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Zona · Tel. CC</div><div style="font-size:13px;">${d.zona||'—'} · ☎ ${d.telefono||'—'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Trabajo</div><div style="font-size:13px;">${d.trabajo||'—'}</div></div>
+          <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Solicitante</div><div style="font-size:13px;">${d.solicitante||'—'}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="saltarVyP()">Omitir</button>
+          <button class="btn btn-red" style="flex:2;" onclick="añadirVyPActual()">✓ Añadir</button>
         </div>
       </div>
     </div>`;
-  openModal('modalImportVyP');
 }
 
-async function confirmarImportVyP(resultados) {
-  closeModal('modalImportVyP');
-  toast('GUARDANDO EN SUPABASE...', 'warn');
-  const sb = getSB();
-  let ok = 0;
+function cerrarOverlayVyP() {
+  const overlay = document.getElementById('overlayImportVyP');
+  if(overlay) overlay.style.display = 'none';
+}
 
-  for(const d of resultados) {
-    const payload = {
-      id: 'VYP-' + d.vyp,
-      centro: d.centro,
-      alias: d.alias,
-      fecha: d.fecha,
-      hora: d.hora,
-      vyp: d.vyp,
-      tdc: d.tdc,
-      trabajo: d.trabajo,
-      solicitante: d.solicitante,
-      telefono: d.telefono,
-      zona: d.zona,
-      estado: 'PENDIENTE',
-    };
-    const { error } = await sb.from('planificacion').insert(payload);
-    if(!error) {
+function saltarVyP() {
+  _importVyPIdx++;
+  mostrarVyPUno();
+}
+
+async function añadirVyPActual() {
+  const d = _importVyPQueue[_importVyPIdx];
+  const payload = {
+    id: 'VYP-' + d.vyp,
+    centro: d.centro,
+    alias: d.alias,
+    fecha: d.fecha,
+    hora: d.hora,
+    vyp: d.vyp,
+    tdc: d.tdc,
+    trabajo: d.trabajo,
+    solicitante: d.solicitante,
+    telefono: d.telefono,
+    zona: d.zona,
+    estado: 'PENDIENTE',
+  };
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000)
+    });
+    if(res.ok || res.status === 201) {
       S.planificacion.push({...payload, coord:'', calEventId:null});
-      ok++;
+      setLS('t2-pl', S.planificacion);
+      _importVyPStats.ok++;
+    } else {
+      _importVyPStats.err++;
     }
+  } catch(e) {
+    // Sin conexión — guardar solo en local
+    S.planificacion.push({...payload, coord:'', calEventId:null});
+    setLS('t2-pl', S.planificacion);
+    _importVyPStats.ok++;
+    toast('SIN CONEXIÓN — GUARDADO LOCAL','warn');
   }
 
-  setLS('t2-pl', S.planificacion);
-  renderPlanif();
-  renderStats();
-  toast(`${ok} VyP${ok>1?'s':''} AÑADIDOS ✓`, 'ok');
+  _importVyPIdx++;
+  mostrarVyPUno();
 }
 
 async function sincronizarVyP() {
