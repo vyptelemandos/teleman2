@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.19';
+const APP_VERSION = 'v3.20';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1283,6 +1283,7 @@ const S = {
   residuos: [],
   qtys: {baremoQty:1, matQty:1, resQty:1},
   pwdTarget: null, miNombre: '',
+  canceladosSemana: [], // planifs canceladas esta semana {id, fecha}
 };
 
 let autosaveTimer = null;
@@ -1769,13 +1770,19 @@ window.onload = () => {
   S.centros = getLS('t2-ct') || [];
   S.planificacion = getLS('t2-pl') || [];
   S.borradores = getLS('t2-bo') || {};
-  // Clean corrupted borradores
   Object.keys(S.borradores).forEach(k=>{ if(!S.borradores[k]||typeof S.borradores[k]!=='object') delete S.borradores[k]; });
   S.baremos = getLS('t2-bar') || BAREMOS_DEFAULT;
   S.frases = getLS('t2-fr') || FRASES_DEFAULT;
   S.materiales = getLS('t2-mat') || MATERIALES_DEFAULT;
   S.miNombre = getLS('t2-nombre') || '';
   S.miCompanero = getLS('t2-companero') || '';
+  // Cargar cancelados semana y limpiar los de semanas anteriores
+  const { start: semStart, end: semEnd } = getSemanaActual();
+  S.canceladosSemana = (getLS('t2-cancelados') || []).filter(c => {
+    const f = c.fecha ? new Date(c.fecha) : null;
+    return f && f >= semStart && f < semEnd;
+  });
+  setLS('t2-cancelados', S.canceladosSemana);
 
   loadConfig();
   // Auto-renew token every 50 minutes
@@ -2636,6 +2643,12 @@ function cancelarVyP(id) {
   if(window._cancelPending===id) {
     window._cancelPending=null;
     const cancelP = S.planificacion.find(x=>x.id===id);
+    // Guardar fecha de cancelación para stats de semana
+    if(cancelP?.fecha) {
+      if(!S.canceladosSemana) S.canceladosSemana = [];
+      S.canceladosSemana.push({id, fecha: cancelP.fecha});
+      setLS('t2-cancelados', S.canceladosSemana);
+    }
     // Delete calendar event if exists
     if(S.auth && cancelP?.calEventId) {
       fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${cancelP.calEventId}`, {
@@ -5214,7 +5227,10 @@ function renderStats() {
     const f = parseFechaSort(iv.fecha);
     return f && f >= start && f < end;
   });
-  const canceladosSemana = planifSemana.filter(p => p.estado === 'CANCELADO').length;
+  const canceladosSemana = (S.canceladosSemana||[]).filter(c=>{
+    const f = parseFechaSort(c.fecha);
+    return f && f >= start && f < end;
+  }).length;
   const completados = completadosSemana.length;
   const cancelados = canceladosSemana;
   const pendientesPlanif = planifSemana.filter(p=>p.estado==='PENDIENTE').length;
