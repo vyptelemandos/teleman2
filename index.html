@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.37';
+const APP_VERSION = 'v3.38';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3176,17 +3176,22 @@ async function añadirVyPActual() {
       signal: AbortSignal.timeout(5000)
     });
     if(res.ok || res.status === 201) {
-      S.planificacion.push({...payload, coord:'', calEventId:null});
+      const planifEntry = {...payload, coord:'', calEventId:null};
+      S.planificacion.push(planifEntry);
       setLS('t2-pl', S.planificacion);
       _importVyPStats.ok++;
+      // Crear evento en calendario si hay auth
+      if(S.auth) crearEventoCalendario(planifEntry);
     } else {
       _importVyPStats.err++;
     }
   } catch(e) {
     // Sin conexión — guardar solo en local
-    S.planificacion.push({...payload, coord:'', calEventId:null});
+    const planifEntry = {...payload, coord:'', calEventId:null};
+    S.planificacion.push(planifEntry);
     setLS('t2-pl', S.planificacion);
     _importVyPStats.ok++;
+    if(S.auth) crearEventoCalendario(planifEntry);
     toast('SIN CONEXIÓN — GUARDADO LOCAL','warn');
   }
 
