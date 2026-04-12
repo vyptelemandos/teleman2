@@ -1179,7 +1179,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.20';
+const APP_VERSION = 'v3.21';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2562,18 +2562,18 @@ function generarValeA1() {
 // ═══════════════════════════════════════════════════
 function renderPlanif() {
   const el = document.getElementById('planifList');
-  if(!S.planificacion.length) {
+  const pendientes = S.planificacion.filter(p=>p.estado==='PENDIENTE'||!p.estado);
+  if(!pendientes.length) {
     el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Sin trabajos planificados</div><div class="empty-s">Sincroniza los VyP desde Drive<br>o añade uno manualmente</div></div>`;
     return;
   }
   const toSortable = (p) => {
     const f = p.fecha || '';
-    // Handle DD/MM/YYYY or YYYY-MM-DD
     const iso = f.includes('/') ? f.split('/').reverse().join('-') : f;
     const hora = p.hora || '00:00';
     return iso + 'T' + hora;
   };
-  const sorted = [...S.planificacion].sort((a,b)=>toSortable(a).localeCompare(toSortable(b)));
+  const sorted = [...pendientes].sort((a,b)=>toSortable(a).localeCompare(toSortable(b)));
   el.innerHTML = sorted.map(p=>{
     const c = findCentro(p.centro);
     const batDate = c ? parseFecha(c.Fechasus) : null;
@@ -4711,9 +4711,14 @@ async function leerPlanificacionDrive() {
   // Primero Supabase
   try {
     const sb = getSB();
+    const { start, end } = getSemanaActual();
+    const semStart = start.toISOString().slice(0,10);
+    const semEnd = end.toISOString().slice(0,10);
+
+    // Traer pendientes + completadas/canceladas de esta semana
     const { data, error } = await sb.from('planificacion')
       .select('*')
-      .not('estado', 'in', '("COMPLETADO","CANCELADO")')
+      .or(`estado.not.in.("COMPLETADO","CANCELADO"),and(fecha.gte.${semStart},fecha.lt.${semEnd})`)
       .order('fecha', {ascending:true});
     if(error) throw new Error(error.message);
     if(data) {
@@ -5227,9 +5232,9 @@ function renderStats() {
     const f = parseFechaSort(iv.fecha);
     return f && f >= start && f < end;
   });
-  const canceladosSemana = (S.canceladosSemana||[]).filter(c=>{
-    const f = parseFechaSort(c.fecha);
-    return f && f >= start && f < end;
+  const canceladosSemana = S.planificacion.filter(p => {
+    const f = parseFechaSort(p.fecha);
+    return f && f >= start && f < end && p.estado === 'CANCELADO';
   }).length;
   const completados = completadosSemana.length;
   const cancelados = canceladosSemana;
