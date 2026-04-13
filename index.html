@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.51';
+const APP_VERSION = 'v3.52';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1778,112 +1778,27 @@ function runSplash() {
   };
 
   const doSplashContinue = async (cfg) => {
-
-    // If we have local data, show app immediately
     if(hasLocalData) {
       setProgress(100, 'CARGANDO...');
       await new Promise(r=>setTimeout(r,300));
       finishSplash();
-      // Then connect and sync in background
-      const connectBackground = () => {
-        if(!window.google?.accounts?.oauth2) {
-          setTimeout(connectBackground, 300);
-          return;
-        }
-        try {
-          const client = google.accounts.oauth2.initTokenClient({
-            client_id: cfg.clientId,
-            scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
-            callback: async (resp) => {
-              if(!resp.error) {
-                S.auth = resp.access_token;
-                setSyncStatus('ok');
-                syncInBackground();
-              }
-            }
-          });
-          window._oauthClient = client;
-          client.requestAccessToken({prompt:''});
-        } catch(e) { console.error('Background auth error:', e); }
-      };
-      setTimeout(connectBackground, 500);
+      // SA token en background
+      setTimeout(async function() {
+        var t = await getSAToken();
+        if(t){ S.auth=t; setSyncStatus('ok'); syncInBackground(); }
+      }, 500);
       return;
     }
-
-    // No local data — must wait for Drive (first launch)
-    setProgress(10, 'INICIANDO...');
-    await new Promise(r=>setTimeout(r,200));
-
-    if(!cfg.clientId) {
-      setProgress(50, 'CONFIGURA GOOGLE DRIVE EN MI ÁREA');
-      await new Promise(r=>setTimeout(r,1200));
-      finishSplash();
-      return;
-    }
-
-    setProgress(25, 'CONECTANDO CON GOOGLE...');
-    window._splashCfg = cfg;
-    window._syncAll = syncAll;
-    window._finishSplash = finishSplash;
-
-    const connectAndSync = () => {
-      try {
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: cfg.clientId,
-          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
-          callback: async (resp) => {
-            document.getElementById('splashConnectBtn').style.display = 'none';
-            if(resp.error) {
-              // Token silencioso falló — mostrar botón solo si hay datos locales
-              if(hasLocalData) {
-                setProgress(40, 'SIN CONEXIÓN CON DRIVE');
-                await new Promise(r=>setTimeout(r,800));
-                finishSplash();
-              } else {
-                // Primera vez sin datos — necesita autorización
-                setProgress(30, 'AUTORIZA GOOGLE DRIVE');
-                document.getElementById('splashConnectBtn').style.display = 'block';
-              }
-              return;
-            }
-            S.auth = resp.access_token;
-            setSyncStatus('ok');
-            await syncAll();
-          }
-        });
-        window._oauthClient = client;
-        client.requestAccessToken({prompt:''});
-      } catch(e) {
-        setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
-        setTimeout(finishSplash, 800);
-      }
-    };
-
-    if(window.google?.accounts?.oauth2) {
-      connectAndSync();
-    } else {
-      const s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client';
-      s.onload = connectAndSync;
-      s.onerror = () => { setProgress(40, 'ERROR CARGANDO GOOGLE'); finishSplash(); };
-      document.head.appendChild(s);
-    }
+    // Sin datos locales — primera vez
+    setProgress(25, 'CONECTANDO...');
+    var t = await getSAToken();
+    if(t){ S.auth=t; await syncAll(); }
+    else { setProgress(50,'SIN CONEXIÓN'); await new Promise(r=>setTimeout(r,1000)); finishSplash(); }
   }; // end doSplashContinue
 
   const doSplash = async () => {
     const cfg = getLS('t2-cfg') || {};
     if(!cfg.clientId) cfg.clientId = CLIENT_ID;
-    setProgress(10, 'VERIFICANDO SESIÓN...');
-    const sbOk = await sbRestoreSession();
-    if(!sbOk) {
-      setProgress(20, '');
-      mostrarLoginForm(async () => {
-        setProgress(30, 'SESIÓN INICIADA ✓');
-        await new Promise(r=>setTimeout(r,300));
-        await doSplashContinue(cfg);
-      });
-      return;
-    }
     await doSplashContinue(cfg);
   };
 
