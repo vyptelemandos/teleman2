@@ -248,7 +248,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
   <div class="sync-pill" onclick="handleSync()">
     <div class="sync-dot" id="syncDot" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;"></div>
-    <span class="sync-label" id="syncLabel" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;">Sin conectar</span>
+    <span class="sync-label" id="syncLabel" style="cursor:default;">Cargando...</span>
   </div>
 </header>
 
@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.44';
+const APP_VERSION = 'v3.45';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1800,11 +1800,12 @@ function runSplash() {
           }
         });
         window._oauthClient = client;
-        setProgress(25, 'TOCA PARA CONECTAR');
-        document.getElementById('splashConnectBtn').style.display = 'block';
+        // Intentar token silencioso — si falla, continuar sin Drive
+        client.requestAccessToken({prompt:''});
       } catch(e) {
-        setProgress(25, 'TOCA PARA CONECTAR');
-        document.getElementById('splashConnectBtn').style.display = 'block';
+        // Sin Google — continuar con datos locales
+        setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
+        setTimeout(finishSplash, 800);
       }
     };
 
