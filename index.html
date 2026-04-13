@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.52';
+const APP_VERSION = 'v3.53';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2739,7 +2739,7 @@ function cancelarVyP(id) {
     }
     // Delete calendar event if exists
     if(S.auth && cancelP?.calEventId) {
-      fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${cancelP.calEventId}`, {
+      fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent('vyptelemandos@gmail.com')}/events/${cancelP.calEventId}`, {
         method:'DELETE', headers:{'Authorization':'Bearer '+S.auth}
       }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
     }
@@ -5324,7 +5324,8 @@ async function crearEventoCalendario(p) {
       colorId: '8', // Graphite gray
     };
 
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    const calId = encodeURIComponent('vyptelemandos@gmail.com');
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/'+calId+'/events', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + S.auth, 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
