@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.47';
+const APP_VERSION = 'v3.48';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1645,17 +1645,17 @@ async function sbLogin() {
 async function sbRestoreSession() {
   try {
     const sb = getSB();
-    // Primero intentar sesión activa
     const { data: { session } } = await sb.auth.getSession();
+    console.log('sbRestoreSession: session=', !!session, 'refresh en LS=', !!localStorage.getItem('t2-sb-refresh'));
     if(session) {
       S.sbUser = session.user;
       S.sbSession = session;
       return true;
     }
-    // Intentar con refresh token guardado manualmente
     const saved = localStorage.getItem('t2-sb-refresh');
     if(saved) {
       const { data, error } = await sb.auth.refreshSession({ refresh_token: saved });
+      console.log('refreshSession: error=', error?.message, 'ok=', !!data.session);
       if(!error && data.session) {
         S.sbUser = data.user;
         S.sbSession = data.session;
