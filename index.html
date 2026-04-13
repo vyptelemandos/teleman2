@@ -1205,14 +1205,20 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.45';
+const APP_VERSION = 'v3.46';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
 const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVscGhlY2VsaWJucmhta2JldG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzQwMzAsImV4cCI6MjA5MTQxMDAzMH0.hQ742rBgXuuNFYIdDIvM7dkgB0paEjyX7CPwge2O2-4';
 let sbClient  = null;
 function getSB() {
-  if(!sbClient) sbClient = supabase.createClient(SB_URL, SB_KEY);
+  if(!sbClient) sbClient = supabase.createClient(SB_URL, SB_KEY, {
+    auth: {
+      persistSession: true,
+      storageKey: 't2-sb-auth',
+      autoRefreshToken: true,
+    }
+  });
   return sbClient;
 }
 
@@ -1622,10 +1628,9 @@ async function sbLogin() {
     const sb = getSB();
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error) throw new Error(error.message);
-    // Login correcto — guardar sesión y continuar
+    // Login correcto — continuar
     S.sbUser = data.user;
     S.sbSession = data.session;
-    setLS('t2-sb-session', data.session);
     document.getElementById('splashLoginForm').style.display = 'none';
     window._sbLoginOk?.();
   } catch(e) {
@@ -1644,17 +1649,6 @@ async function sbRestoreSession() {
       S.sbUser = session.user;
       S.sbSession = session;
       return true;
-    }
-    // Intentar restaurar desde localStorage
-    const saved = getLS('t2-sb-session');
-    if(saved?.refresh_token) {
-      const { data, error } = await sb.auth.refreshSession({ refresh_token: saved.refresh_token });
-      if(!error && data.session) {
-        S.sbUser = data.user;
-        S.sbSession = data.session;
-        setLS('t2-sb-session', data.session);
-        return true;
-      }
     }
   } catch(e) {}
   return false;
@@ -1789,9 +1783,16 @@ function runSplash() {
           callback: async (resp) => {
             document.getElementById('splashConnectBtn').style.display = 'none';
             if(resp.error) {
-              setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
-              await new Promise(r=>setTimeout(r,800));
-              finishSplash();
+              // Token silencioso falló — mostrar botón solo si hay datos locales
+              if(hasLocalData) {
+                setProgress(40, 'SIN CONEXIÓN CON DRIVE');
+                await new Promise(r=>setTimeout(r,800));
+                finishSplash();
+              } else {
+                // Primera vez sin datos — necesita autorización
+                setProgress(30, 'AUTORIZA GOOGLE DRIVE');
+                document.getElementById('splashConnectBtn').style.display = 'block';
+              }
               return;
             }
             S.auth = resp.access_token;
@@ -1800,10 +1801,8 @@ function runSplash() {
           }
         });
         window._oauthClient = client;
-        // Intentar token silencioso — si falla, continuar sin Drive
         client.requestAccessToken({prompt:''});
       } catch(e) {
-        // Sin Google — continuar con datos locales
         setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
         setTimeout(finishSplash, 800);
       }
