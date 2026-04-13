@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.38';
+const APP_VERSION = 'v3.39';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2567,6 +2567,31 @@ function generarValeA1() {
   // TODO: generate PDF with template
 }
 
+function detectarBaterias(trabajo) {
+  const t = (trabajo||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quitar acentos
+
+  // Indicadores directos
+  const directos = [
+    'bat','bater','bateria','baterias',
+    'vida util','fin vida','final vida',
+    'fvu','bvu','f.v.u','b.v.u',
+    'cambio bat','sustitucion bat','reposicion bat','sustit bat',
+    'cambio de bat','sustitucion de bat','reposicion de bat',
+  ];
+  if(directos.some(k => t.includes(k))) return true;
+
+  // Indicadores combinados — desconexion remota + red sin tension
+  const desconRemota = t.includes('desconex') && t.includes('remota');
+  const redSinTension = (t.includes('red') && t.includes('tension')) ||
+                        (t.includes('red') && t.includes('tens')) ||
+                        (t.includes('sin tension')) ||
+                        (t.includes('sin tens'));
+  if(desconRemota && redSinTension) return true;
+
+  return false;
+}
+
 // ═══════════════════════════════════════════════════
 //  PLANIFICACIÓN
 // ═══════════════════════════════════════════════════
@@ -2588,7 +2613,7 @@ function renderPlanif() {
     const c = findCentro(p.centro);
     const batDate = c ? parseFecha(c.Fechasus) : null;
     const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>5;
-    const tieneBat = (p.trabajo||'').toLowerCase().includes('bater');
+    const tieneBat = detectarBaterias(p.trabajo);
     const coord = c?.Coord || p.coord || '';
     return `<div class="planif-item">
       <div class="planif-head" onclick="showPlanifDetalle('${p.id}')" style="cursor:pointer;">
@@ -2752,7 +2777,7 @@ function showPlanifDetalle(id) {
   const coord=c?.Coord||p.coord||'';
   const batDate=c?parseFecha(c.Fechasus):null;
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
-  const tieneBat=(p.trabajo||'').toLowerCase().includes('bater');
+  const tieneBat=detectarBaterias(p.trabajo);
 
   const drBig = (l,v) => `<div class="dr"><div class="dr-l">${l}</div><div class="dr-v" style="font-size:16px;font-weight:600;">${v}</div></div>`;
   let html='';
@@ -2966,9 +2991,11 @@ async function parsearVyP(texto) {
   const tdcMatch = texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
   const tdc = tdcMatch ? tdcMatch[1] : '';
 
-  // Solicitante — entre "Nombre" y el teléfono
+  // Solicitante — entre "Nombre" y el teléfono, con o sin coma
   const solMatch = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
-  const solicitante = solMatch ? solMatch[1].trim() : '';
+  let solicitante = solMatch ? solMatch[1].trim() : '';
+  // Normalizar: quitar coma si la hay (APELLIDO APELLIDO, NOMBRE → APELLIDO APELLIDO NOMBRE)
+  solicitante = solicitante.replace(/,/g, '').replace(/\s+/g,' ').trim();
 
   // Trabajo previsto — todo el texto entre los prefijos PRO/ACT y "Trabajos previstos"
   // El texto libre puede ocupar varias líneas
