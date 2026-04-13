@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.46';
+const APP_VERSION = 'v3.47';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1631,6 +1631,7 @@ async function sbLogin() {
     // Login correcto — continuar
     S.sbUser = data.user;
     S.sbSession = data.session;
+    localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
     document.getElementById('splashLoginForm').style.display = 'none';
     window._sbLoginOk?.();
   } catch(e) {
@@ -1644,13 +1645,25 @@ async function sbLogin() {
 async function sbRestoreSession() {
   try {
     const sb = getSB();
+    // Primero intentar sesión activa
     const { data: { session } } = await sb.auth.getSession();
     if(session) {
       S.sbUser = session.user;
       S.sbSession = session;
       return true;
     }
-  } catch(e) {}
+    // Intentar con refresh token guardado manualmente
+    const saved = localStorage.getItem('t2-sb-refresh');
+    if(saved) {
+      const { data, error } = await sb.auth.refreshSession({ refresh_token: saved });
+      if(!error && data.session) {
+        S.sbUser = data.user;
+        S.sbSession = data.session;
+        localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
+        return true;
+      }
+    }
+  } catch(e) { console.warn('sbRestoreSession error:', e.message); }
   return false;
 }
 
