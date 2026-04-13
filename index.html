@@ -1161,11 +1161,27 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
   <div style="font-family:'Roboto Mono',monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
   <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:4px;">TELEMAN2</div>
-  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:var(--gris3);margin-bottom:44px;letter-spacing:1px;" id="splashVersion"></div>
+  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:var(--gris3);margin-bottom:24px;letter-spacing:1px;" id="splashVersion"></div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
   <div id="splashMsg" style="font-size:12px;color:var(--gris3);letter-spacing:0.5px;margin-bottom:24px;">CARGANDO...</div>
+
+  <!-- Login Supabase Auth -->
+  <div id="splashLoginForm" style="display:none;width:100%;max-width:280px;">
+    <input id="sbEmail" type="email" placeholder="Email" autocomplete="email"
+      style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;color:var(--blanco);font-family:'Inter',sans-serif;font-size:15px;padding:13px;outline:none;text-align:center;margin-bottom:10px;box-sizing:border-box;text-transform:none;">
+    <input id="sbPassword" type="password" placeholder="Contraseña" autocomplete="current-password"
+      style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;color:var(--blanco);font-family:'Inter',sans-serif;font-size:15px;padding:13px;outline:none;text-align:center;margin-bottom:16px;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')sbLogin()">
+    <button onclick="sbLogin()" id="sbLoginBtn"
+      style="width:100%;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px;font-family:'Inter',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">
+      Entrar
+    </button>
+    <div id="sbLoginError" style="font-size:12px;color:#ff6b6b;text-align:center;margin-top:10px;display:none;"></div>
+  </div>
+
+  <!-- Botón Google (legacy, oculto por defecto) -->
   <button id="splashConnectBtn" onclick="splashConnect()" style="display:none;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px 32px;font-family:'Inter',sans-serif;font-weight:700;font-size:15px;cursor:pointer;width:220px;">
     Conectar con Google
   </button>
@@ -1189,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.43';
+const APP_VERSION = 'v3.44';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1293,7 +1309,8 @@ const S = {
   residuos: [],
   qtys: {baremoQty:1, matQty:1, resQty:1},
   pwdTarget: null, miNombre: '',
-  canceladosSemana: [], // planifs canceladas esta semana {id, fecha}
+  canceladosSemana: [],
+  sbUser: null, sbSession: null,
 };
 
 let autosaveTimer = null;
@@ -1585,6 +1602,71 @@ function confirmar(key, msg, fn) {
   }
 }
 
+// ═══════════════════════════════════════════════════
+//  SUPABASE AUTH
+// ═══════════════════════════════════════════════════
+async function sbLogin() {
+  const email = document.getElementById('sbEmail')?.value?.trim();
+  const password = document.getElementById('sbPassword')?.value;
+  const errEl = document.getElementById('sbLoginError');
+  const btn = document.getElementById('sbLoginBtn');
+  if(!email || !password) {
+    errEl.textContent = 'Introduce email y contraseña';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw new Error(error.message);
+    // Login correcto — guardar sesión y continuar
+    S.sbUser = data.user;
+    S.sbSession = data.session;
+    setLS('t2-sb-session', data.session);
+    document.getElementById('splashLoginForm').style.display = 'none';
+    window._sbLoginOk?.();
+  } catch(e) {
+    btn.textContent = 'Entrar';
+    btn.disabled = false;
+    errEl.textContent = 'Email o contraseña incorrectos';
+    errEl.style.display = 'block';
+  }
+}
+
+async function sbRestoreSession() {
+  try {
+    const sb = getSB();
+    const { data: { session } } = await sb.auth.getSession();
+    if(session) {
+      S.sbUser = session.user;
+      S.sbSession = session;
+      return true;
+    }
+    // Intentar restaurar desde localStorage
+    const saved = getLS('t2-sb-session');
+    if(saved?.refresh_token) {
+      const { data, error } = await sb.auth.refreshSession({ refresh_token: saved.refresh_token });
+      if(!error && data.session) {
+        S.sbUser = data.user;
+        S.sbSession = data.session;
+        setLS('t2-sb-session', data.session);
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function mostrarLoginForm(onSuccess) {
+  window._sbLoginOk = onSuccess;
+  document.getElementById('splashLoginForm').style.display = 'block';
+  document.getElementById('splashMsg').textContent = 'IDENTIFÍCATE PARA CONTINUAR';
+  setTimeout(() => document.getElementById('sbEmail')?.focus(), 100);
+}
+
 function splashConnect() {
   if(window._oauthClient) {
     document.getElementById('splashConnectBtn').style.display = 'none';
@@ -1650,9 +1732,7 @@ function runSplash() {
     iniciarRealtime(); // Activar Realtime
   };
 
-  const doSplash = async () => {
-    const cfg = getLS('t2-cfg') || {};
-    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
+  const doSplashContinue = async (cfg) => {
 
     // If we have local data, show app immediately
     if(hasLocalData) {
@@ -1737,6 +1817,23 @@ function runSplash() {
       s.onerror = () => { setProgress(40, 'ERROR CARGANDO GOOGLE'); finishSplash(); };
       document.head.appendChild(s);
     }
+  }; // end doSplashContinue
+
+  const doSplash = async () => {
+    const cfg = getLS('t2-cfg') || {};
+    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
+    setProgress(10, 'VERIFICANDO SESIÓN...');
+    const sbOk = await sbRestoreSession();
+    if(!sbOk) {
+      setProgress(20, '');
+      mostrarLoginForm(async () => {
+        setProgress(30, 'SESIÓN INICIADA ✓');
+        await new Promise(r=>setTimeout(r,300));
+        await doSplashContinue(cfg);
+      });
+      return;
+    }
+    await doSplashContinue(cfg);
   };
 
   setTimeout(doSplash, 300);
