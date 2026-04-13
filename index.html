@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.48';
+const APP_VERSION = 'v3.49';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1861,6 +1861,10 @@ try {
 } catch(e) { localStorage.removeItem('t2-bo'); }
 
 window.onload = () => {
+  // Registrar Service Worker para PWA
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/teleman2/sw.js').catch(()=>{});
+  }
   // Run splash screen
   runSplash();
   // Auto-connect Drive immediately
