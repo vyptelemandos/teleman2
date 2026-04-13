@@ -8,9 +8,11 @@
 <meta name="apple-mobile-web-app-title" content="Teleman2">
 <link rel="manifest" href="manifest.json">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --rojo:#cc0000; --rojo-dark:#990000; --rojo-light:#fff0f0; --rojo-border:#ffcccc;
@@ -27,7 +29,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
-body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:14px;}
+body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:14px;}
 
 /* HEADER */
 .hdr{background:var(--negro2);padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
@@ -96,10 +98,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .btn-row{display:flex;gap:8px;}
 
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.stat-card{background:var(--blanco);border-radius:var(--r);padding:13px;box-shadow:var(--sombra);border-left:3px solid var(--rojo);}
-.stat-n{font-size:30px;font-weight:700;color:var(--rojo);line-height:1;font-family:Consolas,monospace;}
-.stat-l{font-size:11px;color:var(--gris3);margin-top:3px;font-weight:500;}
+.stats-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px;}
+.stat-card{background:var(--blanco);border-radius:var(--r);padding:16px 14px 10px;box-shadow:var(--sombra2);border-left:3px solid var(--gris4);overflow:hidden;position:relative;}
+.stat-n{font-size:42px;font-weight:700;color:var(--negro);line-height:1;font-family:'Roboto Mono',monospace;letter-spacing:-1px;}
+.stat-l{font-size:11px;color:var(--gris3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
 
 /* LIST ITEM */
 .li{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;border-left:3px solid transparent;}
@@ -109,7 +111,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .li.naranja{border-left-color:var(--naranja);}
 .li.gris{border-left-color:var(--gris4);}
 .li-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;}
-.li-id{font-family:Consolas,monospace;font-weight:700;font-size:14px;color:var(--rojo);}
+.li-id{font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;color:var(--rojo);}
 .li-fecha{font-size:11px;color:var(--gris3);}
 .li-alias{font-weight:600;font-size:13px;margin-bottom:3px;}
 .li-meta{font-size:11px;color:var(--gris3);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
@@ -137,7 +139,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 
 /* BAREMO/MATERIAL ADDED */
 .added-item{display:flex;align-items:center;justify-content:space-between;background:var(--gris7);border:1px solid var(--gris5);border-radius:var(--rs);padding:8px 11px;margin-bottom:6px;}
-.added-info{font-family:Consolas,monospace;font-size:13px;font-weight:600;}
+.added-info{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;}
 .added-info span{color:var(--rojo);}
 .added-sub{font-size:10px;color:var(--gris3);margin-top:1px;}
 .added-rm{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:20px;padding:0 2px;line-height:1;flex-shrink:0;}
@@ -146,7 +148,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .qty-wrap{display:flex;align-items:center;gap:7px;}
 .qty-btn{width:32px;height:32px;background:var(--gris6);border:1.5px solid var(--gris5);border-radius:7px;color:var(--negro);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .qty-btn:active{background:var(--gris5);}
-.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:Consolas,monospace;}
+.qty-val{width:32px;text-align:center;font-size:15px;font-weight:700;font-family:'Roboto Mono',monospace;}
 
 /* CHECK */
 .check-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;}
@@ -162,7 +164,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .alert-err{background:var(--rojo-light);border:1px solid var(--rojo-border);color:var(--rojo);}
 
 /* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:flex-end;}
 .overlay.on{display:flex;}
 .modal{background:var(--blanco);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease;}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -195,7 +197,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 /* PWD SCREEN */
 .pwd-screen{position:fixed;inset:0;background:var(--negro2);z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;}
 .pwd-screen.on{display:flex !important;}
-.pwd-logo{font-family:Consolas,monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
+.pwd-logo{font-family:'Roboto Mono',monospace;font-size:48px;font-weight:700;color:var(--rojo);margin-bottom:8px;}
 .pwd-title{color:var(--blanco);font-size:18px;font-weight:600;margin-bottom:6px;}
 .pwd-sub{color:var(--gris3);font-size:13px;margin-bottom:28px;text-align:center;}
 .pwd-input{width:100%;max-width:260px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:var(--r);color:var(--blanco);font-family:'Inter',sans-serif;font-size:16px;padding:12px;outline:none;text-align:center;margin-bottom:12px;text-transform:none;}
@@ -206,7 +208,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 .planif-head{padding:12px 13px;display:flex;justify-content:space-between;align-items:flex-start;}
 .planif-info{flex:1;}
 .planif-fecha-hora{font-size:11px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
-.planif-centro{font-family:Consolas,monospace;font-weight:700;font-size:15px;}
+.planif-centro{font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;}
 .planif-alias{font-size:13px;font-weight:600;margin:2px 0;}
 .planif-trabajo{font-size:11px;color:var(--gris3);margin-bottom:4px;}
 .planif-actions{display:flex;gap:6px;padding:0 13px 12px;}
@@ -220,12 +222,12 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 /* STATS PAGE */
 .stats-period{background:var(--negro2);border-radius:var(--r);padding:14px;margin-bottom:10px;color:var(--blanco);}
 .stats-period-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--gris4);margin-bottom:10px;}
-.stats-big{font-family:Consolas,monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
+.stats-big{font-family:'Roboto Mono',monospace;font-size:42px;font-weight:700;color:var(--rojo);line-height:1;}
 .stats-big-label{font-size:12px;color:var(--gris4);margin-top:3px;}
 .stats-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;}
 .stats-row:last-child{border-bottom:none;}
 .stats-row-label{color:var(--gris4);}
-.stats-row-val{font-weight:700;color:var(--blanco);font-family:Consolas,monospace;}
+.stats-row-val{font-weight:700;color:var(--blanco);font-family:'Roboto Mono',monospace;}
 
 /* FILE DROP */
 .file-drop{border:2px dashed var(--gris5);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:8px;}
@@ -246,7 +248,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
   <div class="sync-pill" onclick="handleSync()">
     <div class="sync-dot" id="syncDot" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;"></div>
-    <span class="sync-label" id="syncLabel" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;">Sin conectar</span>
+    <span class="sync-label" id="syncLabel" style="cursor:default;">Cargando...</span>
   </div>
 </header>
 
@@ -256,48 +258,53 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
   <div class="page on" id="p-inicio">
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Intervenciones</div></div>
-      <div class="stat-card" id="statMesCard"><div class="stat-n" id="statMes">0</div><div class="stat-l" id="statMesLabel">Este mes</div></div>
-    </div>
-    <div class="card" id="semanaCard" style="margin-bottom:10px;">
-      <div class="card-head"><div class="card-title">Semana en curso</div></div>
-      <div class="card-body" style="padding:10px 14px;">
+    <div class="stats-grid" style="grid-template-columns:1fr;">
+      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="card-title">Intervenciones</div>
+          <div id="statMesTrend" style="font-size:11px;font-weight:600;font-family:'Roboto Mono',monospace;"></div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--gris2);" id="semPlanif">0</div>
-            <div style="font-size:11px;color:var(--gris4);">PLANIFICADOS</div>
+            <div class="stat-n" id="statMes" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">ESTE MES</div>
           </div>
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:#4caf50;" id="semCompletados">0</div>
-            <div style="font-size:11px;color:var(--gris4);">COMPLETADOS</div>
+            <div class="stat-n" id="statMesPasado" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MES PASADO</div>
           </div>
           <div>
-            <div style="font-size:22px;font-weight:700;font-family:Consolas,monospace;color:var(--naranja);" id="semCancelados">0</div>
-            <div style="font-size:11px;color:var(--gris4);">CANCELADOS</div>
+            <div class="stat-n" id="statMedia" style="color:var(--gris2);">0</div>
+            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MEDIA 12M</div>
           </div>
         </div>
       </div>
     </div>
-    <div id="alertasInicio"></div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">Acciones rápidas</div></div>
-      <div class="card-body btn-gap">
-        <button class="btn btn-red" onclick="goPage('p-informe');setTimeout(nuevoInforme,50)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Nueva intervención
-        </button>
-        <button class="btn btn-dark" onclick="goPage('p-planif')">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          Ver planificación
-        </button>
+    <div class="stat-card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title">Semana en curso</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div>
+          <div class="stat-n" style="color:var(--gris2);" id="semPlanif">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">PLANIFICADOS</div>
+        </div>
+        <div>
+          <div class="stat-n" style="color:#4caf50;" id="semCompletados">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">COMPLETADOS</div>
+        </div>
+        <div>
+          <div class="stat-n" style="color:var(--naranja);" id="semCancelados">0</div>
+          <div style="font-size:11px;color:var(--gris4);margin-top:4px;">CANCELADOS</div>
+        </div>
       </div>
     </div>
-    <div class="card">
+    <div id="alertasInicio"></div>
+    <div class="card" id="borradoresCard" style="border-left:3px solid var(--verde);">
       <div class="card-head"><div class="card-title">Borradores</div></div>
       <div class="card-body" id="borradorListInicio"></div>
     </div>
-    <div class="card">
+    <div class="card" id="recentCard" style="border-left:3px solid var(--gris4);">
       <div class="card-head"><div class="card-title">Últimas intervenciones</div></div>
       <div class="card-body" id="recentList"></div>
     </div>
@@ -308,17 +315,22 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Planificación</p>
     <p class="pg-sub">Trabajos programados</p>
     <div class="btn-row" style="margin-bottom:10px;">
-      <button class="btn btn-red" style="flex:1;" onclick="sincronizarVyP()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-        Sincronizar VyP
+      <button class="btn btn-red" style="flex:1;" onclick="document.getElementById('inputVyPPDF').click()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar VyP
       </button>
       <button class="btn btn-gray btn-sm" onclick="openNuevoVyP()">+ Manual</button>
     </div>
+    <input type="file" id="inputVyPPDF" accept="application/pdf" multiple style="display:none;" onchange="importarVyPs(this.files)">
     <div id="planifList"></div>
   </div>
 
   <!-- ══ INFORME ══ -->
   <div class="page" id="p-informe">
+    <div id="cancelarPlanifBanner" style="display:none;background:var(--naranja-light);border:1px solid var(--naranja-border);border-radius:var(--rs);padding:9px 12px;margin-bottom:10px;align-items:center;justify-content:space-between;gap:10px;">
+      <span style="font-size:12px;color:#92400e;font-weight:500;">⚠️ Informe iniciado desde planificación</span>
+      <button class="btn btn-gray btn-sm" onclick="cancelarDesdePlanif()" style="flex-shrink:0;">✕ Cancelar y volver</button>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
       <p class="pg-title">Informe</p>
       <span class="badge badge-orange" id="estadoBorrador">Borrador</span>
@@ -379,6 +391,10 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
             <label class="fl">TDC / Ticket</label>
             <input class="fi" id="f-tdc" type="text" placeholder="1694333" oninput="autosave()" style="text-transform:none;">
           </div>
+        </div>
+        <div class="fg" style="margin-top:9px;">
+          <label class="fl">Solicitante</label>
+          <input class="fi fi-auto" id="f-solicitante" type="text" placeholder="Viene de planificación" readonly style="text-transform:uppercase;">
         </div>
       </div>
     </div>
@@ -543,7 +559,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v14a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar
         </button>
-        <button class="btn btn-red" style="flex:1;padding:14px;" onclick="confirmarGenerar()">
+        <button class="btn btn-red" style="flex:1;padding:14px;" id="btnGenerarPDF" onclick="confirmarGenerar()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Generar PDF
         </button>
@@ -563,8 +579,16 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="histSearch" placeholder="Centro, alias, ticket, técnico..." oninput="filtrarHistorial()">
     </div>
-    <div style="padding:0 16px 8px;">
-      <input class="fi" id="histFecha" type="month" oninput="filtrarHistorial()" style="width:100%;text-transform:none;" placeholder="Filtrar por mes">
+    <div class="btn-row" style="padding:0 0 8px;gap:6px;">
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label class="fl">Desde</label>
+        <input class="fi" id="histFechaDesde" type="date" oninput="filtrarHistorial()" style="text-transform:none;">
+      </div>
+      <div class="fg" style="flex:1;margin-bottom:0;">
+        <label class="fl">Hasta</label>
+        <input class="fi" id="histFechaHasta" type="date" oninput="filtrarHistorial()" style="text-transform:none;">
+      </div>
+      <button class="btn btn-gray btn-sm" onclick="limpiarFiltrosHistorial()" style="flex-shrink:0;align-self:flex-end;margin-bottom:0;">✕</button>
     </div>
     <div id="histList"></div>
   </div>
@@ -578,7 +602,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <input type="text" id="centroSearch" placeholder="Nº centro, alias, municipio, modelo..." oninput="filtrarCentros()">
     </div>
     <div class="btn-row" style="margin-bottom:10px;">
-      <button class="btn btn-red btn-sm" onclick="openModal('modalNuevoCentro')">+ Nueva instalación</button>
+      <button class="btn btn-red btn-sm" onclick="abrirNuevoCentro()">+ Nueva instalación</button>
       <button class="btn btn-gray btn-sm" onclick="sincronizarCentros()">↻ Actualizar desde Drive</button>
     </div>
     <div id="centroList"></div>
@@ -648,21 +672,11 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card">
         <div class="card-head"><div class="card-title">🕐 Reparto de horas</div></div>
         <div class="card-body">
-          <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Selecciona el período y las horas de cada día para ver el reparto por TDC.</p>
-          <div class="fr2">
-            <div class="fg">
-              <label class="fl">Mes</label>
-              <input class="fi" id="horas-mes" type="month" style="text-transform:none;">
-            </div>
-            <div class="fg">
-              <label class="fl">Período</label>
-              <select class="fs" id="horas-periodo">
-                <option value="1">Días 16 — 25 (mismo mes)</option>
-                <option value="2">Días 26 — 15 (mes siguiente)</option>
-              </select>
-            </div>
+          <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Selecciona el mes para ver el reparto de horas por TDC.</p>
+          <div class="fg">
+            <label class="fl">Mes</label>
+            <input class="fi" id="horas-mes" type="month" style="text-transform:none;" oninput="cargarHoras()">
           </div>
-          <button class="btn btn-red" onclick="cargarHoras()" style="margin-top:8px;">Cargar días</button>
         </div>
       </div>
       <div id="horasDiasList"></div>
@@ -715,7 +729,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addBaremoConfig()">+ Añadir baremo</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarBaremos()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -728,7 +741,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addFrase()">+ Añadir frase</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarFrases()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -741,7 +753,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nuevo técnico</label><input class="fi" id="newTecNombre" type="text" placeholder="NOMBRE COMPLETO"></div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addTecnicoConfig()">+ Añadir técnico</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarTecnicos()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -754,7 +765,6 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nuevo solicitante</label><input class="fi" id="newSolNombre" type="text" placeholder="NOMBRE COMPLETO" oninput="toUpper(this)"></div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addSolicitanteConfig()">+ Añadir</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarSolicitantes()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
@@ -770,15 +780,37 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         </div>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="addMaterialConfig()">+ Añadir</button>
-          <button class="btn btn-dark btn-sm" onclick="sincronizarMateriales()">↻ Sincronizar</button>
         </div>
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-head"><div class="card-title">📡 Modelos de remota</div></div>
+      <div class="card-body">
+        <div id="modelosConfig"></div>
+        <div class="div"></div>
+        <div class="fg"><label class="fl">Nuevo modelo</label><input class="fi" id="newModeloNombre" type="text" placeholder="MARCA / MODELO RTU"></div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addModeloConfig()">+ Añadir modelo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-title">📞 Teléfonos Centro de Control</div></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--gris3);margin-bottom:12px;">Teléfono asignado a cada zona al importar VyPs.</p>
+        <div id="zonasCCList"></div>
+      </div>
+    </div>
+
     <div class="div"></div>
-    <button class="btn btn-dark" onclick="sincronizarTodo()" style="margin-bottom:8px;">
+    <div class="alert alert-warn" style="margin-bottom:8px;">
+      ⚠️ El botón de recuperación solo debe usarse si los datos de la app son incorrectos o si Supabase ha fallado. Sobreescribirá la configuración actual con los datos de Google Drive.
+    </div>
+    <button class="btn btn-dark" onclick="confirmarSincronizarTodo()" style="margin-bottom:8px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-      Sincronizar todo desde Drive
+      Recuperar datos desde Drive
     </button>
     <button class="btn btn-gray" onclick="resetearDatosLocales()" style="margin-bottom:12px;color:var(--rojo);">
       🗑 Borrar datos locales y reiniciar
@@ -887,6 +919,22 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-head"><div class="card-title">📡 Modelos de remota</div></div>
+      <div class="card-body">
+        <div id="modelosConfig"></div>
+        <div class="div"></div>
+        <div class="fg">
+          <label class="fl">Nuevo modelo</label>
+          <input class="fi" id="newModeloNombre" type="text" placeholder="MARCA / MODELO RTU">
+        </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="addModeloConfig()">+ Añadir modelo</button>
+          <button class="btn btn-dark btn-sm" onclick="sincronizarModelos()">↻ Sincronizar</button>
+        </div>
+      </div>
+    </div>
+
     <div style="text-align:center;padding:16px 0 8px;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span> · vyptelemandos.github.io/teleman2</div>
   </div>
 
@@ -992,6 +1040,7 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
         <div class="fg"><label class="fl">Nº VyP</label><input class="fi" id="mv-vyp" type="text" placeholder="18162931" style="text-transform:none;"></div>
       </div>
       <div class="fg"><label class="fl">TDC / Ticket</label><input class="fi" id="mv-tdc" type="text" placeholder="1694333" style="text-transform:none;"></div>
+      <div class="fg"><label class="fl">Teléfono contacto</label><input class="fi" id="mv-telefono" type="tel" placeholder="666 123 456" style="text-transform:none;" inputmode="tel"></div>
       <div class="fg">
         <label class="fl">Coordenadas GPS</label>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -1110,13 +1159,29 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 <!-- PASSWORD -->
 <!-- SPLASH SCREEN -->
 <div id="splashScreen" style="position:fixed;inset:0;background:var(--negro2);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;">
-  <div style="font-family:Consolas,monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
+  <div style="font-family:'Roboto Mono',monospace;font-size:72px;font-weight:700;color:var(--rojo);line-height:1;margin-bottom:4px;">T2</div>
   <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:white;letter-spacing:3px;margin-bottom:4px;">TELEMAN2</div>
-  <div style="font-family:Consolas,monospace;font-size:12px;color:var(--gris3);margin-bottom:44px;letter-spacing:1px;" id="splashVersion"></div>
+  <div style="font-family:'Roboto Mono',monospace;font-size:12px;color:var(--gris3);margin-bottom:24px;letter-spacing:1px;" id="splashVersion"></div>
   <div style="width:200px;height:3px;background:var(--negro3);border-radius:2px;overflow:hidden;margin-bottom:20px;">
     <div id="splashBar" style="height:100%;width:0%;background:var(--rojo);border-radius:2px;transition:width 0.3s ease;"></div>
   </div>
   <div id="splashMsg" style="font-size:12px;color:var(--gris3);letter-spacing:0.5px;margin-bottom:24px;">CARGANDO...</div>
+
+  <!-- Login Supabase Auth -->
+  <div id="splashLoginForm" style="display:none;width:100%;max-width:280px;">
+    <input id="sbEmail" type="email" placeholder="Email" autocomplete="email"
+      style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;color:var(--blanco);font-family:'Inter',sans-serif;font-size:15px;padding:13px;outline:none;text-align:center;margin-bottom:10px;box-sizing:border-box;text-transform:none;">
+    <input id="sbPassword" type="password" placeholder="Contraseña" autocomplete="current-password"
+      style="width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;color:var(--blanco);font-family:'Inter',sans-serif;font-size:15px;padding:13px;outline:none;text-align:center;margin-bottom:16px;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter')sbLogin()">
+    <button onclick="sbLogin()" id="sbLoginBtn"
+      style="width:100%;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px;font-family:'Inter',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">
+      Entrar
+    </button>
+    <div id="sbLoginError" style="font-size:12px;color:#ff6b6b;text-align:center;margin-top:10px;display:none;"></div>
+  </div>
+
+  <!-- Botón Google (legacy, oculto por defecto) -->
   <button id="splashConnectBtn" onclick="splashConnect()" style="display:none;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px 32px;font-family:'Inter',sans-serif;font-weight:700;font-size:15px;cursor:pointer;width:220px;">
     Conectar con Google
   </button>
@@ -1140,7 +1205,108 @@ body{background:var(--gris6);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v2.57';
+const APP_VERSION = 'v3.50';
+
+// ── SUPABASE (escritura doble en paralelo) ──
+const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVscGhlY2VsaWJucmhta2JldG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzQwMzAsImV4cCI6MjA5MTQxMDAzMH0.hQ742rBgXuuNFYIdDIvM7dkgB0paEjyX7CPwge2O2-4';
+let sbClient  = null;
+function getSB() {
+  if(!sbClient) sbClient = supabase.createClient(SB_URL, SB_KEY, {
+    auth: {
+      persistSession: true,
+      storageKey: 't2-sb-auth',
+      autoRefreshToken: true,
+    }
+  });
+  return sbClient;
+}
+
+// ─── SERVICE ACCOUNT ───────────────────────────────
+const SA_EMAIL = 'teleman2-bot@teleman2.iam.gserviceaccount.com';
+const SA_SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events';
+let _saToken = null;
+let _saTokenExp = 0;
+async function getSAToken() {
+  var now = Math.floor(Date.now()/1000);
+  if(_saToken && _saTokenExp > now+60) return _saToken;
+  try {
+    var raw = document.getElementById('sa-key').textContent.trim();
+    var pem = atob(raw);
+    var hdr = btoa(JSON.stringify({alg:'RS256',typ:'JWT'})).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    var pay = btoa(JSON.stringify({iss:SA_EMAIL,scope:SA_SCOPES,aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now})).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    var msg = hdr+'.'+pay;
+    var keyB64 = pem.replace(/-----[A-Z ]+-----|[\n\r]/g,'');
+    var keyBin = Uint8Array.from(atob(keyB64), function(c){return c.charCodeAt(0);});
+    var ck = await crypto.subtle.importKey('pkcs8', keyBin, {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'}, false, ['sign']);
+    var sb = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', ck, new TextEncoder().encode(msg));
+    var sig = btoa(String.fromCharCode.apply(null,new Uint8Array(sb))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    var resp = await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion='+msg+'.'+sig});
+    var d = await resp.json();
+    if(d.access_token){ _saToken=d.access_token; _saTokenExp=now+(d.expires_in||3600); return _saToken; }
+    console.warn('SA error:',JSON.stringify(d));
+  } catch(e){ console.warn('getSAToken:',e.message); }
+  return null;
+}
+
+function iniciarRealtime() {
+  try {
+    const sb = getSB();
+    // Canal para planificación e historial
+    sb.channel('teleman2-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'planificacion' }, payload => {
+        console.log('Realtime planif:', payload.eventType);
+        leerPlanificacionDrive().then(()=>{ renderPlanif(); renderStats(); });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intervenciones' }, payload => {
+        console.log('Realtime interv INSERT:', payload.new?.int_id);
+        // Añadir solo si no existe ya
+        const existe = S.intervenciones.find(x=>x.intId===payload.new?.int_id);
+        if(!existe) {
+          const r = payload.new;
+          S.intervenciones.unshift({
+            intId:r.int_id||'', centro:r.centro||'', fecha:r.fecha||'',
+            tec1:r.tec1||'', tec2:r.tec2||'', alias:r.alias||'',
+            zona:r.zona||'', poblacion:r.poblacion||'', resultado:r.resultado||'',
+            vyp:r.vyp||'', tdc:r.tdc||'', motivo:r.motivo||'',
+            maniobras:r.maniobras||'', tipo:r.tipo||'', modelo:r.modelo||'',
+            resolucion:r.resolucion||'', vale:r.vale||false, trace:r.trace||false,
+            baremos:Array.isArray(r.baremos)?r.baremos:[],
+            materiales:Array.isArray(r.materiales)?r.materiales:[],
+            solicitante:r.solicitante||'',
+          });
+          setLS('t2-iv', S.intervenciones);
+          renderStats(); renderRecent(); renderHistorial();
+          toast('Nueva intervención recibida','ok');
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'intervenciones' }, payload => {
+        console.log('Realtime interv UPDATE:', payload.new?.int_id);
+        const idx = S.intervenciones.findIndex(x=>x.intId===payload.new?.int_id);
+        if(idx>=0) {
+          const r = payload.new;
+          S.intervenciones[idx] = {
+            intId:r.int_id||'', centro:r.centro||'', fecha:r.fecha||'',
+            tec1:r.tec1||'', tec2:r.tec2||'', alias:r.alias||'',
+            zona:r.zona||'', poblacion:r.poblacion||'', resultado:r.resultado||'',
+            vyp:r.vyp||'', tdc:r.tdc||'', motivo:r.motivo||'',
+            maniobras:r.maniobras||'', tipo:r.tipo||'', modelo:r.modelo||'',
+            resolucion:r.resolucion||'', vale:r.vale||false, trace:r.trace||false,
+            baremos:Array.isArray(r.baremos)?r.baremos:[],
+            materiales:Array.isArray(r.materiales)?r.materiales:[],
+            solicitante:r.solicitante||'',
+          };
+          setLS('t2-iv', S.intervenciones);
+          renderStats(); renderRecent(); renderHistorial();
+        }
+      })
+      .subscribe(status => {
+        console.log('Realtime status:', status);
+      });
+  } catch(e) {
+    console.warn('Error iniciando Realtime:', e.message);
+  }
+}
 const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
 const CONFIG_FILE_ID = '1CmPyPsaq2W-CvrIIu2rsT-IngrszTby3vm7jNb9zK6g';
 const HISTORIAL_ID   = '1ladu5aKY48im1iXXsR63sA6fc5bqldv7eDyO_Nz_CIo';
@@ -1176,6 +1342,8 @@ const S = {
   residuos: [],
   qtys: {baremoQty:1, matQty:1, resQty:1},
   pwdTarget: null, miNombre: '',
+  canceladosSemana: [],
+  sbUser: null, sbSession: null,
 };
 
 let autosaveTimer = null;
@@ -1206,69 +1374,97 @@ let autosaveTimer = null;
 })();
 
 // ═══════════════════════════════════════════════════
-//  SINCRONIZAR CONFIGURACIÓN DESDE DRIVE
+//  SINCRONIZAR CONFIGURACIÓN DESDE SUPABASE / DRIVE
 // ═══════════════════════════════════════════════════
 async function sincronizarConfig() {
-  if(!S.auth) return;
+  // Primero Supabase
   try {
-    // Read each sheet from the config spreadsheet
-    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
-    const data = {};
-    for(const sheet of sheets) {
-      const res = await gFetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,
-        'GET'
-      );
-      data[sheet] = res?.values || [];
-    }
+    const sb = getSB();
+    const [mRes, fRes, tRes, modRes, bRes, zRes, sRes] = await Promise.all([
+      sb.from('materiales').select('*'),
+      sb.from('frases').select('*'),
+      sb.from('tecnicos').select('*'),
+      sb.from('modelos_remota').select('*'),
+      sb.from('baremos').select('*'),
+      sb.from('zonas').select('*'),
+      sb.from('solicitantes').select('*'),
+    ]);
 
-    // Materiales - now has CODIGO + DESCRIPCION columns
-    if(data.Materiales.length) {
-      S.materiales = data.Materiales.map(r=>({
-        cod: (r[0]||'').toUpperCase().trim(),
-        desc: (r[1]||'').toUpperCase().trim()
-      })).filter(m=>m.cod);
+    if(mRes.data?.length) {
+      S.materiales = mRes.data.map(r=>({cod:r.cod||'', desc:r.descripcion||''})).filter(m=>m.cod);
       setLS('t2-mat', S.materiales);
-      renderMaterialesOptions(); // Re-render immediately after loading
+      renderMaterialesOptions();
     }
-
-    // Frases
-    if(data.Frases.length) {
-      S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
+    if(fRes.data?.length) {
+      S.frases = fRes.data.map(r=>r.texto||'').filter(Boolean);
       setLS('t2-fr', S.frases);
       renderFrasesConfig();
     }
-
-    // Tecnicos - update selects
-    if(data.Tecnicos.length) {
-      const tecnicos = data.Tecnicos.map(r=>r[0]).filter(Boolean);
+    if(tRes.data?.length) {
+      const tecnicos = tRes.data.map(r=>r.nombre||'').filter(Boolean);
       setLS('t2-tec', tecnicos);
       actualizarSelectTecnicos(tecnicos);
     }
-
-    // Modelos remota
-    if(data.Modelos_Remota.length) {
-      const modelos = data.Modelos_Remota.map(r=>r[0]).filter(Boolean);
+    if(modRes.data?.length) {
+      const modelos = modRes.data.map(r=>r.nombre||'').filter(Boolean);
       setLS('t2-modelos', modelos);
       actualizarSelectModelos(modelos);
     }
-
-    // Baremos
-    if(data.Baremos.length) {
-      S.baremos = data.Baremos.map(r=>({
-        cod: r[0]||'', desc: r[1]||'', pts: parseFloat(String(r[2]||'0').replace(',','.'))||0, fav: (r[3]||'').toUpperCase()==='SI'
-      })).filter(b=>b.cod);
+    if(bRes.data?.length) {
+      S.baremos = bRes.data.map(r=>({cod:r.cod||'', desc:r.descripcion||'', pts:r.pts||0, fav:r.fav||false})).filter(b=>b.cod);
       setLS('t2-bar', S.baremos);
       renderBaremosOptions();
     }
+    if(zRes.data?.length) {
+      zRes.data.forEach(r=>{ if(r.zona&&r.codigo) ZONA_CODES[r.zona.toUpperCase()]=r.codigo.toUpperCase(); });
+      actualizarSelectZonas(zRes.data.map(r=>[r.zona, r.codigo]));
+    }
+    if(sRes.data?.length) {
+      const sols = sRes.data.map(r=>r.nombre||'').filter(Boolean);
+      setLS('t2-solicitantes', sols);
+      actualizarSelectSolicitantes();
+    }
+    setLS('t2-config-ts', Date.now());
+    // Config cargada desde Supabase
+    return true;
+  } catch(e) {
+    console.warn('Error cargando config de Supabase, intentando Drive:', e.message);
+  }
 
-    // Zonas
+  // Fallback a Drive
+  try {
+    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
+    const data = {};
+    for(const sheet of sheets) {
+      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,'GET');
+      data[sheet] = res?.values || [];
+    }
+    if(data.Materiales.length) {
+      S.materiales = data.Materiales.map(r=>({cod:(r[0]||'').toUpperCase().trim(), desc:(r[1]||'').toUpperCase().trim()})).filter(m=>m.cod);
+      setLS('t2-mat', S.materiales); renderMaterialesOptions();
+    }
+    if(data.Frases.length) {
+      S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
+      setLS('t2-fr', S.frases); renderFrasesConfig();
+    }
+    if(data.Tecnicos.length) {
+      const tecnicos = data.Tecnicos.map(r=>r[0]).filter(Boolean);
+      setLS('t2-tec', tecnicos); actualizarSelectTecnicos(tecnicos);
+    }
+    if(data.Modelos_Remota.length) {
+      const modelos = data.Modelos_Remota.map(r=>r[0]).filter(Boolean);
+      setLS('t2-modelos', modelos); actualizarSelectModelos(modelos);
+    }
+    if(data.Baremos.length) {
+      S.baremos = data.Baremos.map(r=>({cod:r[0]||'', desc:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'})).filter(b=>b.cod);
+      setLS('t2-bar', S.baremos); renderBaremosOptions();
+    }
     if(data.Zonas.length) {
-      data.Zonas.forEach(r=>{ if(r[0]&&r[1]) ZONA_CODES[r[0].toUpperCase()] = r[1].toUpperCase(); });
+      data.Zonas.forEach(r=>{ if(r[0]&&r[1]) ZONA_CODES[r[0].toUpperCase()]=r[1].toUpperCase(); });
       actualizarSelectZonas(data.Zonas);
     }
-
     setLS('t2-config-ts', Date.now());
+    // Config cargada desde Drive (fallback)
     return true;
   } catch(e) {
     console.error('Error sincronizando config:', e);
@@ -1288,6 +1484,62 @@ function actualizarSelectTecnicos(tecnicos) {
     el.innerHTML=`<option value="">${placeholder}</option>`+tecnicos.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
     if(cur) el.value=cur;
   });
+}
+
+function renderModelosConfig() {
+  const el = document.getElementById('modelosConfig');
+  if(!el) return;
+  const modelos = getLS('t2-modelos') || [];
+  if(!modelos.length) { el.innerHTML='<p style="font-size:12px;color:var(--gris4);">Sin modelos configurados.</p>'; return; }
+  el.innerHTML = modelos.map((m,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gris5);">
+      <span style="font-size:13px;font-weight:500;">${m}</span>
+      <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeModeloConfig(${i})">×</button>
+    </div>`).join('');
+}
+
+function addModeloConfig() {
+  const nombre = vu('newModeloNombre');
+  if(!nombre) { toast('INTRODUCE UN MODELO','err'); return; }
+  const modelos = getLS('t2-modelos') || [];
+  if(modelos.includes(nombre)) { toast('ESE MODELO YA EXISTE','warn'); return; }
+  modelos.push(nombre);
+  setLS('t2-modelos', modelos);
+  actualizarSelectModelos(modelos);
+  renderModelosConfig();
+  sv('newModeloNombre','');
+  if(S.auth) writeConfigValue('Modelos_Remota', nombre);
+  toast('MODELO AÑADIDO ✓','ok');
+}
+
+function removeModeloConfig(i) {
+  confirmar('modelo'+i, 'BORRAR', () => {
+    const modelos = getLS('t2-modelos') || [];
+    modelos.splice(i, 1);
+    setLS('t2-modelos', modelos);
+    actualizarSelectModelos(modelos);
+    renderModelosConfig();
+  });
+}
+
+async function sincronizarModelos() {
+  if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
+  toast('SINCRONIZANDO MODELOS...','warn');
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/Modelos_Remota!A2:A200`,'GET');
+  if(res?.values) {
+    const modelos = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
+    setLS('t2-modelos', modelos);
+    actualizarSelectModelos(modelos);
+    renderModelosConfig();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = modelos.map(nombre=>({nombre}));
+      const {error} = await sb.from('modelos_remota').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB modelos sync warn:', error.message);
+    } catch(e) { console.warn('SB modelos sync error:', e.message); }
+    toast(`${modelos.length} MODELOS SINCRONIZADOS ✓`,'ok');
+  } else toast('ERROR AL SINCRONIZAR','err');
 }
 
 function actualizarSelectModelos(modelos) {
@@ -1318,11 +1570,36 @@ function actualizarSelectZonas(zonas) {
 async function writeConfigValue(sheet, value) {
   if(!S.auth) return;
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:A:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[[value]]});
+  // Supabase en paralelo
+  try {
+    const sb = getSB();
+    const tabla = {
+      'Frases':       () => sb.from('frases').upsert({texto: value}, {onConflict: 'texto'}),
+      'Tecnicos':     () => sb.from('tecnicos').upsert({nombre: value}, {onConflict: 'nombre'}),
+      'Solicitantes': () => sb.from('solicitantes').upsert({nombre: value}, {onConflict: 'nombre'}),
+      'Modelos_Remota': () => sb.from('modelos_remota').upsert({nombre: value}, {onConflict: 'nombre'}),
+    }[sheet];
+    if(tabla) { const {error} = await tabla(); if(error) console.warn('SB config warn:', error.message); }
+  } catch(e) { console.warn('SB config error:', e.message); }
 }
 
 async function writeConfigRow(sheet, rowValues) {
   if(!S.auth) return;
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A:Z:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[rowValues]});
+  // Supabase en paralelo
+  try {
+    const sb = getSB();
+    if(sheet === 'Materiales') {
+      const {error} = await sb.from('materiales').upsert({cod: rowValues[0], descripcion: rowValues[1]}, {onConflict: 'cod'});
+      if(error) console.warn('SB materiales warn:', error.message);
+    } else if(sheet === 'Baremos') {
+      const {error} = await sb.from('baremos').upsert({cod: rowValues[0], descripcion: rowValues[1], pts: parseFloat(rowValues[2])||0, fav: (rowValues[3]||'').toUpperCase()==='SI'}, {onConflict: 'cod'});
+      if(error) console.warn('SB baremos warn:', error.message);
+    } else if(sheet === 'Zonas') {
+      const {error} = await sb.from('zonas').upsert({zona: rowValues[0], codigo: rowValues[1]}, {onConflict: 'zona'});
+      if(error) console.warn('SB zonas warn:', error.message);
+    }
+  } catch(e) { console.warn('SB config row error:', e.message); }
 }
 
 // Delete a value from config sheet (find and clear row)
@@ -1356,6 +1633,72 @@ function confirmar(key, msg, fn) {
       timer: setTimeout(() => { delete _confirmPending[key]; }, 3000)
     };
   }
+}
+
+// ═══════════════════════════════════════════════════
+//  SUPABASE AUTH
+// ═══════════════════════════════════════════════════
+async function sbLogin() {
+  const email = document.getElementById('sbEmail')?.value?.trim();
+  const password = document.getElementById('sbPassword')?.value;
+  const errEl = document.getElementById('sbLoginError');
+  const btn = document.getElementById('sbLoginBtn');
+  if(!email || !password) {
+    errEl.textContent = 'Introduce email y contraseña';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw new Error(error.message);
+    // Login correcto — continuar
+    S.sbUser = data.user;
+    S.sbSession = data.session;
+    localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
+    document.getElementById('splashLoginForm').style.display = 'none';
+    window._sbLoginOk?.();
+  } catch(e) {
+    btn.textContent = 'Entrar';
+    btn.disabled = false;
+    errEl.textContent = 'Email o contraseña incorrectos';
+    errEl.style.display = 'block';
+  }
+}
+
+async function sbRestoreSession() {
+  try {
+    const sb = getSB();
+    const { data: { session } } = await sb.auth.getSession();
+    console.log('sbRestoreSession: session=', !!session, 'refresh en LS=', !!localStorage.getItem('t2-sb-refresh'));
+    if(session) {
+      S.sbUser = session.user;
+      S.sbSession = session;
+      return true;
+    }
+    const saved = localStorage.getItem('t2-sb-refresh');
+    if(saved) {
+      const { data, error } = await sb.auth.refreshSession({ refresh_token: saved });
+      console.log('refreshSession: error=', error?.message, 'ok=', !!data.session);
+      if(!error && data.session) {
+        S.sbUser = data.user;
+        S.sbSession = data.session;
+        localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
+        return true;
+      }
+    }
+  } catch(e) { console.warn('sbRestoreSession error:', e.message); }
+  return false;
+}
+
+function mostrarLoginForm(onSuccess) {
+  window._sbLoginOk = onSuccess;
+  document.getElementById('splashLoginForm').style.display = 'block';
+  document.getElementById('splashMsg').textContent = 'IDENTIFÍCATE PARA CONTINUAR';
+  setTimeout(() => document.getElementById('sbEmail')?.focus(), 100);
 }
 
 function splashConnect() {
@@ -1405,6 +1748,7 @@ function runSplash() {
       await leerRemotasDrive();
       setSyncStatus('ok');
       renderStats(); renderRecent(); checkAlertasInicio();
+      iniciarRealtime(); // Activar Realtime tras carga inicial
     } catch(e) { console.error('Background sync error:', e); }
   };
 
@@ -1419,11 +1763,10 @@ function runSplash() {
     setProgress(92, 'CARGANDO INSTALACIONES...');
     await leerRemotasDrive();
     finishSplash();
+    iniciarRealtime(); // Activar Realtime
   };
 
-  const doSplash = async () => {
-    const cfg = getLS('t2-cfg') || {};
-    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
+  const doSplashContinue = async (cfg) => {
 
     // If we have local data, show app immediately
     if(hasLocalData) {
@@ -1480,9 +1823,16 @@ function runSplash() {
           callback: async (resp) => {
             document.getElementById('splashConnectBtn').style.display = 'none';
             if(resp.error) {
-              setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
-              await new Promise(r=>setTimeout(r,800));
-              finishSplash();
+              // Token silencioso falló — mostrar botón solo si hay datos locales
+              if(hasLocalData) {
+                setProgress(40, 'SIN CONEXIÓN CON DRIVE');
+                await new Promise(r=>setTimeout(r,800));
+                finishSplash();
+              } else {
+                // Primera vez sin datos — necesita autorización
+                setProgress(30, 'AUTORIZA GOOGLE DRIVE');
+                document.getElementById('splashConnectBtn').style.display = 'block';
+              }
               return;
             }
             S.auth = resp.access_token;
@@ -1491,11 +1841,10 @@ function runSplash() {
           }
         });
         window._oauthClient = client;
-        setProgress(25, 'TOCA PARA CONECTAR');
-        document.getElementById('splashConnectBtn').style.display = 'block';
+        client.requestAccessToken({prompt:''});
       } catch(e) {
-        setProgress(25, 'TOCA PARA CONECTAR');
-        document.getElementById('splashConnectBtn').style.display = 'block';
+        setProgress(40, 'SIN CONEXIÓN — DATOS LOCALES');
+        setTimeout(finishSplash, 800);
       }
     };
 
@@ -1508,6 +1857,23 @@ function runSplash() {
       s.onerror = () => { setProgress(40, 'ERROR CARGANDO GOOGLE'); finishSplash(); };
       document.head.appendChild(s);
     }
+  }; // end doSplashContinue
+
+  const doSplash = async () => {
+    const cfg = getLS('t2-cfg') || {};
+    if(!cfg.clientId) cfg.clientId = CLIENT_ID;
+    setProgress(10, 'VERIFICANDO SESIÓN...');
+    const sbOk = await sbRestoreSession();
+    if(!sbOk) {
+      setProgress(20, '');
+      mostrarLoginForm(async () => {
+        setProgress(30, 'SESIÓN INICIADA ✓');
+        await new Promise(r=>setTimeout(r,300));
+        await doSplashContinue(cfg);
+      });
+      return;
+    }
+    await doSplashContinue(cfg);
   };
 
   setTimeout(doSplash, 300);
@@ -1522,56 +1888,41 @@ try {
 } catch(e) { localStorage.removeItem('t2-bo'); }
 
 window.onload = () => {
+  // Registrar Service Worker para PWA
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/teleman2/sw.js').catch(()=>{});
+  }
   // Run splash screen
   runSplash();
-  // Auto-connect Drive immediately
-  const cfg = getLS('t2-cfg') || {};
-  if(!cfg.clientId) cfg.clientId = CLIENT_ID;
-  if(cfg.clientId) {
-    const tryAuth = () => {
-      if(window.google?.accounts?.oauth2) {
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: cfg.clientId,
-          scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
-          callback: (resp) => {
-            if(!resp.error) {
-              S.auth = resp.access_token;
-              setSyncStatus('ok');
-            }
-          }
-        });
-        client.requestAccessToken();
-      } else {
-        setTimeout(tryAuth, 200);
-      }
-    };
-    setTimeout(tryAuth, 500);
-  }
+  // Auto-connect via Service Account
+  setTimeout(async function(){
+    var t = await getSAToken();
+    if(t){ S.auth=t; setSyncStatus('ok'); }
+  }, 500);
   S.intervenciones = getLS('t2-iv') || [];
   S.centros = getLS('t2-ct') || [];
   S.planificacion = getLS('t2-pl') || [];
   S.borradores = getLS('t2-bo') || {};
-  // Clean corrupted borradores
   Object.keys(S.borradores).forEach(k=>{ if(!S.borradores[k]||typeof S.borradores[k]!=='object') delete S.borradores[k]; });
   S.baremos = getLS('t2-bar') || BAREMOS_DEFAULT;
   S.frases = getLS('t2-fr') || FRASES_DEFAULT;
   S.materiales = getLS('t2-mat') || MATERIALES_DEFAULT;
   S.miNombre = getLS('t2-nombre') || '';
   S.miCompanero = getLS('t2-companero') || '';
+  // Cargar cancelados semana y limpiar los de semanas anteriores
+  const { start: semStart, end: semEnd } = getSemanaActual();
+  S.canceladosSemana = (getLS('t2-cancelados') || []).filter(c => {
+    const f = c.fecha ? new Date(c.fecha) : null;
+    return f && f >= semStart && f < semEnd;
+  });
+  setLS('t2-cancelados', S.canceladosSemana);
 
   loadConfig();
-  // Auto-renew token every 50 minutes
-  setInterval(()=>{
-    if(!S.auth) return;
-    const cfg=getLS('t2-cfg')||{};
-    const clientId=cfg.clientId||CLIENT_ID;
-    if(!window.google?.accounts?.oauth2) return;
-    const client=google.accounts.oauth2.initTokenClient({
-      client_id:clientId,
-      scope:'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
-      callback:(resp)=>{ if(!resp.error){ S.auth=resp.access_token; setSyncStatus('ok'); } }
-    });
-    client.requestAccessToken({prompt:''});
+  // Renovar token SA cada 50 minutos
+  setInterval(async function(){
+    _saToken=null;
+    var t=await getSAToken();
+    if(t){ S.auth=t; setSyncStatus('ok'); }
   }, 50*60*1000);
   renderFechaHoy();
   renderStats();
@@ -1634,7 +1985,7 @@ function checkPwd() {
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
       document.getElementById('scrollArea').scrollTop=0;
-      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
+      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); renderModelosConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
     } else if(S.pwdTarget==='stats') {
       renderStatsPage();
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1879,9 +2230,27 @@ function nuevoInforme() {
   renderBaremosAdded(); renderMaterialesAdded();
   const eb = document.getElementById('estadoBorrador');
   if(eb) { eb.textContent='Borrador'; eb.className='badge badge-orange'; }
+  const banner = document.getElementById('cancelarPlanifBanner');
+  if(banner) banner.style.display = 'none';
+  const pInforme = document.getElementById('p-informe');
+  if(pInforme) { pInforme.style.border = ''; pInforme.style.borderRadius = ''; }
+  const btnPDF = document.getElementById('btnGenerarPDF');
+  if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generar PDF';
+  const btnBorrar = document.querySelector('#p-informe .btn-gray.btn-sm[onclick*="borrar"]');
+  if(btnBorrar) btnBorrar.textContent = '🗑 Borrar informe';
 }
 
 function borrarBorradorActual() {
+  // En modo edición, cancelar la edición
+  if(S._editMode && S._editIntId) {
+    confirmar('editcancel', 'CANCELAR EDICIÓN', () => {
+      S._editMode = false;
+      S._editIntId = null;
+      nuevoInforme();
+      toast('EDICIÓN CANCELADA');
+    });
+    return;
+  }
   if(!S.borradoresActual) { toast('No hay borrador activo','warn'); return; }
   const d = S.borradores[S.borradoresActual];
   const centro = d?.centro || 'SIN CENTRO';
@@ -1941,14 +2310,14 @@ function renderBaremosOptions() {
   let html = '<div style="font-size:10px;font-weight:700;color:var(--rojo);letter-spacing:1px;padding:4px 0 6px;">⭐ HABITUALES</div>';
   favs.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--rojo);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
   html += '<div style="font-size:10px;font-weight:700;color:var(--gris3);letter-spacing:1px;padding:8px 0 6px;border-top:1px solid var(--gris5);margin-top:4px;">TODOS</div>';
   rest.forEach(b => {
     html += `<div class="picker-item" onclick="selBaremoPicker('${b.cod}')">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--gris2);min-width:58px;">${b.cod}</span>
       <span style="flex:1;font-size:13px;">${b.desc}</span>
     </div>`;
   });
@@ -2022,7 +2391,7 @@ function renderMaterialesOptions() {
     const cod = m.cod||m;
     const desc = m.desc||'';
     html += `<div class="picker-item" onclick="selMaterialPicker(${i})">
-      <span style="font-family:Consolas,monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-weight:700;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:13px;">${desc}</span>
     </div>`;
   });
@@ -2153,18 +2522,24 @@ function confirmarGenerar() {
   const camposFaltan = validarInforme();
   if(camposFaltan.length) { toast('FALTAN: '+camposFaltan.join(', '),'err'); return; }
 
-  // Show confirm modal
-  document.getElementById('mIntervTitle').textContent = 'Confirmar informe';
+  const esEdicion = S._editMode && S._editIntId;
+
+  document.getElementById('mIntervTitle').textContent = esEdicion ? 'Modificar informe' : 'Confirmar informe';
   document.getElementById('mIntervBody').innerHTML = `
-    <div class="alert alert-warn" style="margin-bottom:12px;">⚠️ Esta acción guardará el informe en Drive y no se puede deshacer.</div>
+    <div class="alert ${esEdicion?'alert-warn':'alert-warn'}" style="margin-bottom:12px;">
+      ${esEdicion
+        ? '✏️ Vas a modificar un informe existente. Se actualizará el registro y se generará un PDF en la carpeta de modificados.'
+        : '⚠️ Esta acción guardará el informe en Drive y no se puede deshacer.'}
+    </div>
     <div class="dr"><div class="dr-l">CENTRO</div><div class="dr-v">${d.centro}</div></div>
     <div class="dr"><div class="dr-l">FECHA</div><div class="dr-v">${d.fecha}</div></div>
     <div class="dr"><div class="dr-l">TÉCNICO</div><div class="dr-v">${d.tec1}</div></div>
     <div class="dr"><div class="dr-l">MOTIVO</div><div class="dr-v">${d.motivo||'—'}</div></div>
     <div class="dr"><div class="dr-l">RESULTADO</div><div class="dr-v">${d.resultado||'—'}</div></div>
+    ${esEdicion?`<div class="dr"><div class="dr-l">ID</div><div class="dr-v" style="font-family:Consolas;color:var(--naranja);">${S._editIntId}</div></div>`:''}
     <div class="div"></div>
-    <button class="btn btn-red" onclick="closeModal('modalInterv');generarInforme();">
-      ✓ Confirmar y generar
+    <button class="btn ${esEdicion?'btn-dark':'btn-red'}" onclick="closeModal('modalInterv');generarInforme();">
+      ${esEdicion?'✏️ Confirmar modificación':'✓ Confirmar y generar'}
     </button>
     <button class="btn btn-gray" style="margin-top:8px;" onclick="closeModal('modalInterv')">
       Cancelar
@@ -2193,11 +2568,15 @@ async function generarInforme() {
       S._editIntId = null;
     } else {
       d._esEdicion = false;
-      // ID secuencial
-      const lastId = S.intervenciones.reduce((max,iv)=>{
-        const n=parseInt((iv.intId||'').replace(/[^0-9]/g,''))||0; return Math.max(max,n);
-      },0);
-      d.intId = 'INT-' + String(lastId+1).padStart(4,'0');
+      // ID único basado en fecha+hora+random (evita duplicados aunque el historial no esté sincronizado)
+      const now = new Date();
+      const ymd = now.getFullYear().toString() +
+                  String(now.getMonth()+1).padStart(2,'0') +
+                  String(now.getDate()).padStart(2,'0');
+      const hm  = String(now.getHours()).padStart(2,'0') +
+                  String(now.getMinutes()).padStart(2,'0');
+      const rnd = Math.random().toString(36).substring(2,5).toUpperCase();
+      d.intId = `INT-${ymd}-${hm}-${rnd}`;
       S.intervenciones.unshift(d);
       setLS('t2-iv',S.intervenciones);
     }
@@ -2223,11 +2602,13 @@ async function generarInforme() {
     if(S.auth) {
       if(isEdit) {
         await actualizarEnSheets(d);
+        actualizarEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
         const pdfOk = await generarPDFDrive(d, true); // true = modified folder
         if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
         else toast('EXCEL ACTUALIZADO. ERROR AL GENERAR PDF','warn');
       } else {
         await guardarEnSheets(d);
+        escribirEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
         const pdfOk = await generarPDFDrive(d);
         if(pdfOk) {
           toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
@@ -2237,7 +2618,9 @@ async function generarInforme() {
         }
       }
       if(S._planifId) {
-        S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
+        // Marcar como COMPLETADO en local (no filtrar, para que Realtime no lo vuelva a añadir)
+        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
         setLS('t2-pl', S.planificacion);
         renderPlanif();
         completarPlanifDrive(S._planifId);
@@ -2246,6 +2629,15 @@ async function generarInforme() {
     } else {
       const zc = getZonaCode(d.zona);
       const fd = (d.fecha||'').replace(/-/g,'');
+      // Completar planif aunque no haya auth
+      if(S._planifId) {
+        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
+        setLS('t2-pl', S.planificacion);
+        renderPlanif();
+        actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
+        S._planifId = null;
+      }
       toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
     }
     document.getElementById('estadoBorrador').textContent='Generado ✓';
@@ -2302,28 +2694,53 @@ function generarValeA1() {
   // TODO: generate PDF with template
 }
 
+function detectarBaterias(trabajo) {
+  const t = (trabajo||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quitar acentos
+
+  // Indicadores directos
+  const directos = [
+    'bat','bater','bateria','baterias',
+    'vida util','fin vida','final vida',
+    'fvu','bvu','f.v.u','b.v.u',
+    'cambio bat','sustitucion bat','reposicion bat','sustit bat',
+    'cambio de bat','sustitucion de bat','reposicion de bat',
+  ];
+  if(directos.some(k => t.includes(k))) return true;
+
+  // Indicadores combinados — desconexion remota + red sin tension
+  const desconRemota = t.includes('desconex') && t.includes('remota');
+  const redSinTension = (t.includes('red') && t.includes('tension')) ||
+                        (t.includes('red') && t.includes('tens')) ||
+                        (t.includes('sin tension')) ||
+                        (t.includes('sin tens'));
+  if(desconRemota && redSinTension) return true;
+
+  return false;
+}
+
 // ═══════════════════════════════════════════════════
 //  PLANIFICACIÓN
 // ═══════════════════════════════════════════════════
 function renderPlanif() {
   const el = document.getElementById('planifList');
-  if(!S.planificacion.length) {
+  const pendientes = S.planificacion.filter(p=>p.estado==='PENDIENTE'||!p.estado);
+  if(!pendientes.length) {
     el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Sin trabajos planificados</div><div class="empty-s">Sincroniza los VyP desde Drive<br>o añade uno manualmente</div></div>`;
     return;
   }
   const toSortable = (p) => {
     const f = p.fecha || '';
-    // Handle DD/MM/YYYY or YYYY-MM-DD
     const iso = f.includes('/') ? f.split('/').reverse().join('-') : f;
     const hora = p.hora || '00:00';
     return iso + 'T' + hora;
   };
-  const sorted = [...S.planificacion].sort((a,b)=>toSortable(a).localeCompare(toSortable(b)));
+  const sorted = [...pendientes].sort((a,b)=>toSortable(a).localeCompare(toSortable(b)));
   el.innerHTML = sorted.map(p=>{
     const c = findCentro(p.centro);
     const batDate = c ? parseFecha(c.Fechasus) : null;
     const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>5;
-    const tieneBat = (p.trabajo||'').toLowerCase().includes('bater');
+    const tieneBat = detectarBaterias(p.trabajo);
     const coord = c?.Coord || p.coord || '';
     return `<div class="planif-item">
       <div class="planif-head" onclick="showPlanifDetalle('${p.id}')" style="cursor:pointer;">
@@ -2333,7 +2750,7 @@ function renderPlanif() {
           <div class="planif-alias">${p.alias||c?.Alias||''}</div>
           <div class="planif-trabajo">${(p.trabajo||'').slice(0,80)}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
-            ${tieneBat?'<span class="badge badge-orange">🔋 CAMBIO BATERÍAS</span>':''}
+            ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
             ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
           </div>
         </div>
@@ -2346,6 +2763,16 @@ function renderPlanif() {
       </div>
     </div>`;
   }).join('');
+}
+
+function cancelarDesdePlanif() {
+  const id = S._planifId;
+  S._planifId = null;
+  nuevoInforme();
+  const banner = document.getElementById('cancelarPlanifBanner');
+  if(banner) banner.style.display = 'none';
+  goPage('p-planif');
+  if(id) toast('PLANIFICACIÓN RESTAURADA COMO PENDIENTE','ok');
 }
 
 function iniciarDesde(id) {
@@ -2362,6 +2789,8 @@ function iniciarDesde(id) {
   sv('f-tec2',S.miCompanero||'');
   if(c?.RTU_marca&&c?.RTU_Mod) sv('f-modelo',`${c.RTU_marca} / ${c.RTU_Mod}`.toUpperCase());
   if(c) buscarCentro(p.centro);
+  const banner = document.getElementById('cancelarPlanifBanner');
+  if(banner) banner.style.display = 'flex';
   goPage('p-informe');
 }
 
@@ -2376,6 +2805,12 @@ function cancelarVyP(id) {
   if(window._cancelPending===id) {
     window._cancelPending=null;
     const cancelP = S.planificacion.find(x=>x.id===id);
+    // Guardar fecha de cancelación para stats de semana
+    if(cancelP?.fecha) {
+      if(!S.canceladosSemana) S.canceladosSemana = [];
+      S.canceladosSemana.push({id, fecha: cancelP.fecha});
+      setLS('t2-cancelados', S.canceladosSemana);
+    }
     // Delete calendar event if exists
     if(S.auth && cancelP?.calEventId) {
       fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${cancelP.calEventId}`, {
@@ -2383,7 +2818,7 @@ function cancelarVyP(id) {
       }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
     }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
-    setLS('t2-pl',S.planificacion); renderPlanif();
+    setLS('t2-pl',S.planificacion); renderPlanif(); renderStats();
     // Mark as CANCELADO in Drive
     if(S.auth) {
       gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET').then(res=>{
@@ -2392,6 +2827,7 @@ function cancelarVyP(id) {
         if(rowIdx<0) return;
         gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['CANCELADO']]});
       });
+      actualizarEstadoPlanifSupabase(id, 'CANCELADO').catch(()=>{});
     }
     toast('TRABAJO CANCELADO');
   }
@@ -2423,6 +2859,7 @@ function switchTab(tab) {
   if(selBtn) { selBtn.style.background='var(--rojo)'; selBtn.style.color='white'; }
   if(tab==='stats') renderStatsPage();
   if(tab==='horas') { const m=document.getElementById('horas-mes'); if(m&&!m.value) m.value=new Date().toISOString().slice(0,7); }
+  if(tab==='cfg') renderZonasCC();
   return; // old code below no longer needed
   const statsContent = document.getElementById('tab-stats-content');
   const cfgContent = document.getElementById('tab-cfg-content');
@@ -2438,7 +2875,7 @@ function switchTab(tab) {
     statsContent.style.display='none'; cfgContent.style.display='block';
     tabCfg.style.background='var(--rojo)'; tabCfg.style.color='white';
     tabStats.style.background='transparent'; tabStats.style.color='var(--gris4)';
-    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); loadConfig(); },50);
+    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderModelosConfig(); loadConfig(); },50);
   }
 }
 
@@ -2467,7 +2904,7 @@ function showPlanifDetalle(id) {
   const coord=c?.Coord||p.coord||'';
   const batDate=c?parseFecha(c.Fechasus):null;
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
-  const tieneBat=(p.trabajo||'').toLowerCase().includes('bater');
+  const tieneBat=detectarBaterias(p.trabajo);
 
   const drBig = (l,v) => `<div class="dr"><div class="dr-l">${l}</div><div class="dr-v" style="font-size:16px;font-weight:600;">${v}</div></div>`;
   let html='';
@@ -2477,6 +2914,7 @@ function showPlanifDetalle(id) {
   html+=drBig('VyP',p.vyp||'—');
   html+=drBig('TDC / TICKET',p.tdc||'—');
   html+=drBig('SOLICITANTE',p.solicitante||'—');
+  if(p.telefono) html+=drBig('TELÉFONO',`<a href="tel:${p.telefono}" style="color:var(--azul);">${p.telefono}</a>`);
   html+=drBig('TRABAJO',p.trabajo||'—');
   if(c) {
     html+=`<div class="div"></div>`;
@@ -2510,12 +2948,94 @@ function showPlanifDetalle(id) {
     }
   }
   html+=`<div class="div"></div>`;
-  html+=`<button class="btn btn-red" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`<div class="btn-row">`;
+  html+=`<button class="btn btn-gray" style="flex:1;" onclick="closeAllModals();editarPlanif('${id}')">✏️ Editar</button>`;
+  html+=`<button class="btn btn-red" style="flex:2;" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`</div>`;
 
   // Reuse modalInterv for this
   document.getElementById('mIntervTitle').textContent=`${p.centro} — ${p.alias||c?.Alias||''}`;
   document.getElementById('mIntervBody').innerHTML=html;
   openModal('modalInterv');
+}
+
+function editarPlanif(id) {
+  const p = S.planificacion.find(x=>x.id===id);
+  if(!p) return;
+  // Precargar el modal de nuevo VyP con los datos actuales
+  actualizarSelectSolicitantes();
+  const sv = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  sv('mv-centro', p.centro);
+  sv('mv-fecha', p.fecha);
+  sv('mv-hora', p.hora);
+  sv('mv-vyp', p.vyp);
+  sv('mv-tdc', p.tdc);
+  sv('mv-telefono', p.telefono);
+  sv('mv-coord', p.coord);
+  sv('mv-trabajo', p.trabajo);
+  // Solicitante
+  const sel = document.getElementById('mv-solicitante');
+  if(sel) {
+    const opt = [...sel.options].find(o=>o.value===p.solicitante);
+    if(opt) sel.value = p.solicitante;
+    else {
+      sel.value = '__nuevo__';
+      const manual = document.getElementById('mv-solicitante-manual');
+      if(manual) { manual.style.display='block'; manual.value=p.solicitante; }
+    }
+  }
+  // Cambiar título y botón para modo edición
+  const title = document.querySelector('#modalNuevoVyP .modal-title');
+  if(title) title.textContent = 'Editar planificación';
+  const btn = document.querySelector('#modalNuevoVyP .btn-red');
+  if(btn) { btn.textContent = 'Guardar cambios'; btn.onclick = ()=>guardarEdicionPlanif(id); }
+  openModal('modalNuevoVyP');
+}
+
+async function guardarEdicionPlanif(id) {
+  const v = (id) => document.getElementById(id)?.value||'';
+  const vu = (id) => v(id).toUpperCase().trim();
+  const centro = vu('mv-centro'), fecha = v('mv-fecha');
+  if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
+  const solicitanteVal = v('mv-solicitante')==='__nuevo__' ? vu('mv-solicitante-manual') : v('mv-solicitante');
+
+  const idx = S.planificacion.findIndex(x=>x.id===id);
+  if(idx<0) return;
+
+  S.planificacion[idx] = {
+    ...S.planificacion[idx],
+    centro, fecha,
+    hora: v('mv-hora'),
+    vyp: v('mv-vyp'),
+    tdc: v('mv-tdc'),
+    telefono: v('mv-telefono'),
+    coord: v('mv-coord'),
+    trabajo: vu('mv-trabajo'),
+    solicitante: solicitanteVal,
+  };
+  setLS('t2-pl', S.planificacion);
+
+  // Actualizar en Supabase
+  const sb = getSB();
+  await sb.from('planificacion').update({
+    centro, fecha,
+    hora: v('mv-hora'),
+    vyp: v('mv-vyp'),
+    tdc: v('mv-tdc'),
+    telefono: v('mv-telefono'),
+    coord: v('mv-coord'),
+    trabajo: vu('mv-trabajo'),
+    solicitante: solicitanteVal,
+  }).eq('id', id);
+
+  closeModal('modalNuevoVyP');
+  // Restaurar modal a modo añadir
+  const title = document.querySelector('#modalNuevoVyP .modal-title');
+  if(title) title.textContent = 'Añadir trabajo manual';
+  const btn = document.querySelector('#modalNuevoVyP .btn-red');
+  if(btn) { btn.textContent = 'Añadir a planificación'; btn.onclick = addVyPManual; }
+  renderPlanif();
+  toast('PLANIFICACIÓN ACTUALIZADA ✓', 'ok');
 }
 
 function openNuevoVyP() {
@@ -2540,26 +3060,387 @@ function addVyPManual() {
       if(S.auth) writeConfigValue('Solicitantes', solicitanteVal);
     }
   }
-  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),telefono:v('mv-telefono')||'',trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
-  console.log('S.auth al añadir planif:', !!S.auth);
+  
   if(S.auth) {
     escribirPlanifDrive(newPlanif);
     crearEventoCalendario(newPlanif);
   }
   else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
-  ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord'].forEach(id=>sv(id,''));
+  ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord','mv-telefono'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
-  closeModal('modalNuevoVyP'); renderPlanif(); toast('TRABAJO AÑADIDO','ok');
+  closeModal('modalNuevoVyP'); renderPlanif(); renderStats(); toast('TRABAJO AÑADIDO','ok');
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORTAR VyP DESDE PDF
+// ═══════════════════════════════════════════════════
+
+// Cache de zonas CC
+let _zonasCCCache = null;
+
+async function cargarZonasCC() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?select=*&order=zona`, {
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`
+      }
+    });
+    const data = await res.json();
+    _zonasCCCache = {};
+    (data||[]).forEach(r => { _zonasCCCache[r.zona.toUpperCase()] = r.telefono; });
+  } catch(e) {
+    console.warn('Error cargando zonas CC:', e.message);
+    _zonasCCCache = {
+      'ZARAGOZA':'976235206','ALCAÑIZ':'976225313',
+      'CALATAYUD':'976158186','SORIA':'976231467','TERUEL':'976211819'
+    };
+  }
+  return _zonasCCCache;
+}
+
+async function renderZonasCC() {
+  const zonas = await cargarZonasCC();
+  const el = document.getElementById('zonasCCList');
+  if(!el) return;
+  el.innerHTML = Object.entries(zonas).map(([zona, tel]) => `
+    <div class="fr2" style="align-items:center;margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:600;color:var(--gris2);">${zona}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="fi" type="tel" id="cc-tel-${zona}" value="${tel}" style="text-transform:none;font-family:'Roboto Mono',monospace;font-size:13px;">
+        <button class="btn btn-gray btn-sm" onclick="guardarTelefonoCC('${zona}')">✓</button>
+      </div>
+    </div>`).join('');
+}
+
+async function guardarTelefonoCC(zona) {
+  const input = document.getElementById(`cc-tel-${zona}`);
+  if(!input) return;
+  const tel = input.value.trim();
+  if(!tel) { toast('INTRODUCE UN TELÉFONO','err'); return; }
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?zona=eq.${encodeURIComponent(zona)}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({telefono: tel})
+    });
+    if(!res.ok) throw new Error(res.statusText);
+    if(_zonasCCCache) _zonasCCCache[zona] = tel;
+    toast(`${zona} ACTUALIZADO ✓`, 'ok');
+  } catch(e) {
+    toast('ERROR AL GUARDAR', 'err');
+  }
+}
+
+async function extraerTextoPDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        // Intentar cargar worker externo, si falla usar fake worker
+        try {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        } catch(e) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+        }
+        const typedArray = new Uint8Array(e.target.result);
+        const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
+        let texto = '';
+        for(let i=1; i<=pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          texto += content.items.map(item=>item.str).join(' ') + '\n';
+        }
+        resolve(texto);
+      } catch(err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function parsearVyP(texto) {
+  const get = (pattern, group=1) => {
+    const m = texto.match(pattern);
+    return m ? m[group].trim() : '';
+  };
+
+  // Número VyP — aparece ANTES de "Ref. Trabajo Programado:"
+  const vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
+
+  // Fecha y hora inicio — "Aprobado DD-MM-YYYY HH:MM ... HH:MM"
+  // Formato: "Aprobado 02-03-2026 09:00 U.O. Alcañiz ARA-Alcañiz A. resp. 02-03-2026 08:00"
+  // Fecha inicio es la SEGUNDA fecha (la de Inicio real), hora inicio también la segunda
+  const fechasMatch = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
+  let fecha = '', hora = '';
+  if(fechasMatch) {
+    // La segunda fecha es la de inicio real
+    const [d,m,y] = fechasMatch[3].split('-');
+    fecha = `${y}-${m}-${d}`;
+    hora = fechasMatch[4];
+  }
+
+  // Zona desde "ARA-Alcañiz A. resp."
+  const zonaMatch = texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s+A\.\s*resp\./i);
+  let zona = '';
+  if(zonaMatch) {
+    zona = zonaMatch[1].toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(zona === 'ALCANIZ') zona = 'ALCAÑIZ';
+  }
+
+  // TDC = Origen Actividad — puede ser T-NNNNN, T NNNNN, TNNNNN, o solo NNNNN (LCL)
+  const tdcMatch = texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
+  const tdc = tdcMatch ? tdcMatch[1] : '';
+
+  // Solicitante — entre "Nombre" y el teléfono, con o sin coma
+  const solMatch = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
+  let solicitante = solMatch ? solMatch[1].trim() : '';
+  // Normalizar: quitar coma si la hay (APELLIDO APELLIDO, NOMBRE → APELLIDO APELLIDO NOMBRE)
+  solicitante = solicitante.replace(/,/g, '').replace(/\s+/g,' ').trim();
+
+  // Trabajo previsto — todo el texto entre los prefijos PRO/ACT y "Trabajos previstos"
+  // El texto libre puede ocupar varias líneas
+  let trabajo = '';
+  // Primero intentar: último ; seguido del texto libre hasta "Trabajos previstos"
+  const t1 = texto.match(/;([^;]+?)\s{2,}Trabajos\s*previstos/s);
+  if(t1) trabajo = t1[1].replace(/\s+/g,' ').trim();
+  // Si no, buscar todo después de ACT hasta Trabajos previstos
+  if(!trabajo) {
+    const t2 = texto.match(/ACT\d+\s*-[^;]+;\s*(.+?)\s{2,}Trabajos\s*previstos/s);
+    if(t2) trabajo = t2[1].replace(/\s+/g,' ').trim();
+  }
+  // Si sigue sin resultado, intentar con un solo espacio
+  if(!trabajo) {
+    const t3 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/s);
+    if(t3) trabajo = t3[1].replace(/\s+/g,' ').trim();
+  }
+  if(trabajo.length > 200) trabajo = trabajo.slice(0, 200).trim();
+
+  // Centro desde "En CD/DM/... NOMBRE/CODIGO"
+  const enCDMatch = texto.match(/En\s+(?:CD|DM|CT|MT)\s+([^\/\n]+?)\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
+  const alias_cd = enCDMatch ? enCDMatch[1].replace(/\s+/g,' ').trim() : '';
+  const centro = enCDMatch ? enCDMatch[2].trim().toUpperCase() : '';
+
+  // Alias desde tabla centros de Supabase (o local)
+  let alias = '';
+  if(centro) {
+    // Buscar primero en local
+    const centroLocal = S.centros.find(c =>
+      (c.Nombre||c.nombre||'').toUpperCase() === centro.toUpperCase()
+    );
+    if(centroLocal) {
+      alias = centroLocal.Alias || centroLocal.alias || '';
+    } else {
+      // Buscar en Supabase si hay conexión
+      try {
+        const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+          signal: AbortSignal.timeout(3000)
+        });
+        const data = await res.json();
+        if(data?.[0]?.alias) alias = data[0].alias;
+      } catch(e) { /* sin conexión, alias vacío */ }
+    }
+  }
+
+  return {
+    vyp,
+    fecha,
+    hora,
+    tdc,
+    zona: zona.toUpperCase(),
+    solicitante: solicitante.toUpperCase(),
+    trabajo: trabajo.toUpperCase(),
+    centro: centro.toUpperCase(),
+    alias: alias.toUpperCase(),
+  };
+}
+
+// Estado del proceso de importación VyP
+let _importVyPQueue = [];
+let _importVyPIdx = 0;
+let _importVyPStats = {ok:0, dup:0, err:0};
+
+async function importarVyPs(files) {
+  if(!files || !files.length) return;
+  
+  _importVyPQueue = [];
+  _importVyPIdx = 0;
+  _importVyPStats = {ok:0, dup:0, err:0};
+  
+  const zonas = await cargarZonasCC();
+  toast(`ANALIZANDO ${files.length} PDF${files.length>1?'s':''}...`, 'warn');
+
+  for(const file of files) {
+    try {
+      const texto = await extraerTextoPDF(file);
+      const datos = await parsearVyP(texto);
+      if(!datos.vyp) { _importVyPStats.err++; continue; }
+
+      // Comprobar duplicado solo si hay conexión
+      try {
+        const res = await fetch(`${SB_URL}/rest/v1/planificacion?vyp=eq.${datos.vyp}&select=id`, {
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+          signal: AbortSignal.timeout(3000)
+        });
+        const existe = await res.json();
+        if(existe && existe.length > 0) { _importVyPStats.dup++; continue; }
+      } catch(e) {
+        // Sin conexión — comprobar solo en local
+        const existe = S.planificacion.find(p => p.vyp === datos.vyp);
+        if(existe) { _importVyPStats.dup++; continue; }
+      }
+
+      datos.telefono = zonas[datos.zona] || '';
+      _importVyPQueue.push(datos);
+    } catch(e) {
+      console.error('Error procesando PDF:', file.name, e);
+      _importVyPStats.err++;
+    }
+  }
+
+  document.getElementById('inputVyPPDF').value = '';
+
+  if(!_importVyPQueue.length) {
+    let msg = '';
+    if(_importVyPStats.dup) msg += `${_importVyPStats.dup} ya importados. `;
+    if(_importVyPStats.err) msg += `${_importVyPStats.err} con error.`;
+    toast(msg || 'SIN VyPs NUEVOS', 'warn');
+    return;
+  }
+
+  mostrarVyPUno();
+}
+
+function mostrarVyPUno() {
+  if(_importVyPIdx >= _importVyPQueue.length) {
+    const overlay = document.getElementById('overlayImportVyP');
+    if(overlay) overlay.style.display = 'none';
+    renderPlanif(); renderStats();
+    let msg = `${_importVyPStats.ok} VyP${_importVyPStats.ok!==1?'s':''} AÑADIDOS ✓`;
+    if(_importVyPStats.dup) msg += ` · ${_importVyPStats.dup} duplicados`;
+    if(_importVyPStats.err) msg += ` · ${_importVyPStats.err} errores`;
+    toast(msg, 'ok');
+    return;
+  }
+
+  const d = _importVyPQueue[_importVyPIdx];
+  const total = _importVyPQueue.length;
+  const actual = _importVyPIdx + 1;
+
+  let overlay = document.getElementById('overlayImportVyP');
+  if(!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'overlayImportVyP';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+
+  overlay.innerHTML = `
+    <div style="background:var(--blanco);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:80vh;overflow-y:auto;padding-bottom:80px;">
+      <div style="width:36px;height:4px;background:var(--gris5);border-radius:2px;margin:11px auto 0;"></div>
+      <div style="padding:12px 15px 11px;border-bottom:1px solid var(--gris5);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:700;font-size:16px;">VyP ${actual} de ${total}</div>
+        <button onclick="cerrarOverlayVyP()" style="background:none;border:none;font-size:22px;color:var(--gris3);cursor:pointer;">×</button>
+      </div>
+      <div style="padding:13px 15px;">
+        <div style="border-left:3px solid var(--rojo);padding-left:12px;margin-bottom:12px;">
+          <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;color:var(--rojo);margin-bottom:8px;">VyP ${d.vyp}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Fecha</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.fecha}</div></div>
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Hora</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.hora}</div></div>
+          </div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Centro</div><div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;">${d.centro} — ${d.alias||'SIN ALIAS'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">TDC</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.tdc||'—'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Zona · Tel. CC</div><div style="font-size:13px;">${d.zona||'—'} · ☎ ${d.telefono||'—'}</div></div>
+          <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Trabajo</div><div style="font-size:13px;">${d.trabajo||'—'}</div></div>
+          <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Solicitante</div><div style="font-size:13px;">${d.solicitante||'—'}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-gray" style="flex:1;" onclick="saltarVyP()">Omitir</button>
+          <button class="btn btn-red" style="flex:2;" onclick="añadirVyPActual()">✓ Añadir</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function cerrarOverlayVyP() {
+  const overlay = document.getElementById('overlayImportVyP');
+  if(overlay) overlay.style.display = 'none';
+}
+
+function saltarVyP() {
+  _importVyPIdx++;
+  mostrarVyPUno();
+}
+
+async function añadirVyPActual() {
+  const d = _importVyPQueue[_importVyPIdx];
+  const payload = {
+    id: 'VYP-' + d.vyp,
+    centro: d.centro,
+    alias: d.alias,
+    fecha: d.fecha,
+    hora: d.hora,
+    vyp: d.vyp,
+    tdc: d.tdc,
+    trabajo: d.trabajo,
+    solicitante: d.solicitante,
+    telefono: d.telefono,
+    estado: 'PENDIENTE',
+  };
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000)
+    });
+    if(res.ok || res.status === 201) {
+      const planifEntry = {...payload, coord:'', calEventId:null};
+      S.planificacion.push(planifEntry);
+      setLS('t2-pl', S.planificacion);
+      _importVyPStats.ok++;
+      // Crear evento en calendario si hay auth
+      if(S.auth) crearEventoCalendario(planifEntry);
+    } else {
+      _importVyPStats.err++;
+    }
+  } catch(e) {
+    // Sin conexión — guardar solo en local
+    const planifEntry = {...payload, coord:'', calEventId:null};
+    S.planificacion.push(planifEntry);
+    setLS('t2-pl', S.planificacion);
+    _importVyPStats.ok++;
+    if(S.auth) crearEventoCalendario(planifEntry);
+    toast('SIN CONEXIÓN — GUARDADO LOCAL','warn');
+  }
+
+  _importVyPIdx++;
+  mostrarVyPUno();
 }
 
 async function sincronizarVyP() {
-  console.log('sincronizarVyP called, S.auth:', !!S.auth);
+  
   if(!S.auth){toast('CONECTA GOOGLE DRIVE PRIMERO','warn');return;}
   toast('SINCRONIZANDO PLANIFICACIÓN...','warn');
   const ok = await leerPlanificacionDrive();
-  console.log('leerPlanificacionDrive result:', ok, 'count:', S.planificacion.length);
+  
   if(ok) {
     renderPlanif();
     toast(`${S.planificacion.length} TRABAJOS CARGADOS ✓`,'ok');
@@ -2573,17 +3454,19 @@ async function sincronizarVyP() {
 // ═══════════════════════════════════════════════════
 function renderHistorial(f='') {
   const el=document.getElementById('histList');
-  const fechaFiltro = document.getElementById('histFecha')?.value||'';
+  const desde = document.getElementById('histFechaDesde')?.value||'';
+  const hasta = document.getElementById('histFechaHasta')?.value||'';
   const parseFechaSort = (f) => {
     if(!f) return 0;
-    // Handle DD/MM/YYYY
     const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
     if(dm) return new Date(`${dm[3]}-${dm[2]}-${dm[1]}`).getTime();
     return new Date(f).getTime() || 0;
   };
   const sorted = [...S.intervenciones].sort((a,b)=> parseFechaSort(b.fecha) - parseFechaSort(a.fecha));
   const list=sorted.filter(iv=>{
-    if(fechaFiltro && !(iv.fecha||'').startsWith(fechaFiltro)) return false;
+    const fechaIv = (iv.fecha||'').slice(0,10);
+    if(desde && fechaIv < desde) return false;
+    if(hasta && fechaIv > hasta) return false;
     if(!f) return true;
     return [iv.centro,iv.alias,iv.tdc,iv.vyp,iv.zona,iv.poblacion,iv.tec1,iv.resultado].join(' ').toUpperCase().includes(f.toUpperCase());
   });
@@ -2597,6 +3480,7 @@ function renderHistorial(f='') {
     return `<div class="li ${lc}"
       onclick="showInterv('${_id}','${(iv.centro||'').replace(/'/g,"\\'")}')"
       oncontextmenu="event.preventDefault();editarInformeAuth('${_id}')"
+      ondblclick="editarInformeAuth('${_id}')"
       ontouchstart="startLongPress('${_id}',event)"
       ontouchend="cancelLongPress()"
       ontouchmove="cancelLongPress()">
@@ -2605,6 +3489,13 @@ function renderHistorial(f='') {
       <div class="li-meta"><span>TDC: ${iv.tdc||iv.TDC||'—'}</span><span>${iv.tec1||iv.TECNICOS||''}</span>${res?`<span class="badge ${bc}">${res}</span>`:''}</div>
     </div>`;
   }).join('');
+}
+
+function limpiarFiltrosHistorial() {
+  const s = document.getElementById('histSearch'); if(s) s.value='';
+  const d = document.getElementById('histFechaDesde'); if(d) d.value='';
+  const h = document.getElementById('histFechaHasta'); if(h) h.value='';
+  renderHistorial();
 }
 
 function filtrarHistorial(){renderHistorial(document.getElementById('histSearch')?.value||'');}
@@ -2641,10 +3532,10 @@ function editarInforme(intId) {
   const iv = S.intervenciones.find(x => x.intId === intId || x.centro === intId);
   if(!iv) { toast('INTERVENCIÓN NO ENCONTRADA','err'); return; }
   closeAllModals();
-  // Mark as edit mode
+  nuevoInforme(); // Primero limpiar — resetea _editMode a false
+  // Ahora setear modo edición DESPUÉS de nuevoInforme
   S._editMode = true;
   S._editIntId = iv.intId;
-  nuevoInforme();
   // Populate form with existing data
   sv('f-centro', iv.centro||'');
   document.getElementById('f-fecha').value = iv.fecha||hoy();
@@ -2669,6 +3560,13 @@ function editarInforme(intId) {
   // Show edit mode indicator
   document.getElementById('estadoBorrador').textContent = '✏️ Editando';
   document.getElementById('estadoBorrador').className = 'badge badge-orange';
+  const btnPDF = document.getElementById('btnGenerarPDF');
+  if(btnPDF) btnPDF.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Modificar Informe';
+  const btnBorrar = document.querySelector('#p-informe .btn-gray.btn-sm[onclick*="borrar"]');
+  if(btnBorrar) btnBorrar.textContent = '✕ Cancelar edición';
+  // Borde naranja en la página de informe
+  const pInforme = document.getElementById('p-informe');
+  if(pInforme) { pInforme.style.border = '3px solid var(--naranja)'; pInforme.style.borderRadius = 'var(--r)'; }
   toast('MODO EDICIÓN — ' + iv.intId, 'warn');
   goPage('p-informe');
 }
@@ -2721,8 +3619,10 @@ function showInterv(intId,centro) {
 function renderCentros(f='') {
   const el=document.getElementById('centroList');
   const list=S.centros.filter(c=>!f||Object.values(c).join(' ').toUpperCase().includes(f.toUpperCase()));
-  const incompletos = S.centros.filter(c=>!c.RTU_marca||!c.Coord||!c.Bat_Tipo).length;
-  document.getElementById('centrosSub').textContent=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletos?` · ${incompletos} INCOMPLETAS`:''}`;
+  const esIncompleto = c => esMiZona(c.Area) && (!c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca);
+  const incompletosCount = S.centros.filter(esIncompleto).length;
+  const incompletosLink = incompletosCount ? ` · <span style="color:var(--rojo);cursor:pointer;text-decoration:underline;" onclick="filtrarIncompletos()">${incompletosCount} INCOMPLETAS</span>` : '';
+  document.getElementById('centrosSub').innerHTML=`${S.centros.length} INSTALACIONES · ${list.length} MOSTRADAS${incompletosLink}`;
   if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><div class="empty-t">SIN INSTALACIONES</div><div class="empty-s">Importa tu Excel desde Ajustes</div></div>`;return;}
 
   // Group by zone — mine first
@@ -2757,6 +3657,17 @@ function centroHtml(c,esNorte=false) {
     <div class="li-alias">${alias}</div>
     <div class="li-meta"><span>${c.Area||''}</span><span>${muni}</span><span style="font-size:10px;">${c.RTU_marca||''} ${c.RTU_Mod||''}</span></div>
   </div>`;
+}
+
+function filtrarIncompletos() {
+  const el = document.getElementById('centroSearch');
+  if(el) el.value = '';
+  const elList = document.getElementById('centroList');
+  const esIncompleto = c => esMiZona(c.Area) && (!c.Alias||!c.Area||!c.Tipo||!c['Ubicación']||!c.Municipio||!c.Coord||!c.FechaTMT||!c.Via_Com||!c.RTU_marca||!c.Controlador_Marca||!c.Fechasus||!c.Bat_Tipo||!c.Rec_Marca);
+  const incompletos = S.centros.filter(esIncompleto);
+  if(!incompletos.length) { toast('NO HAY INSTALACIONES INCOMPLETAS','ok'); return; }
+  elList.innerHTML = incompletos.map(c=>centroHtml(c)).join('');
+  document.getElementById('centrosSub').innerHTML = `<span style="color:var(--rojo);font-weight:600;">${incompletos.length} INSTALACIONES INCOMPLETAS</span> · <span style="cursor:pointer;text-decoration:underline;" onclick="renderCentros()">Ver todas</span>`;
 }
 
 function filtrarCentros(){renderCentros(document.getElementById('centroSearch').value);}
@@ -2814,19 +3725,51 @@ async function escribirCentroEnDrive(c, esEdicion) {
   if(!S.auth) return;
   try {
     if(esEdicion) {
-      // Find row with this centro name
       const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!B:B`,'GET');
-      if(!res?.values) return;
-      const rowIdx = res.values.findIndex(r=>r[0]===c.Nombre);
-      if(rowIdx<0) return;
-      const row = rowIdx+1;
-      const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
-      await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
+      if(!res?.values) { console.warn('escribirCentroEnDrive: no values from B:B'); return; }
+      const nombreBuscar = String(c.Nombre||'').toUpperCase().trim();
+      const rowIdx = res.values.findIndex(r=>String(r[0]||'').toUpperCase().trim()===nombreBuscar);
+      if(rowIdx<0) {
+        console.warn('escribirCentroEnDrive: centro no encontrado en Drive:', nombreBuscar);
+        toast('CENTRO NO ENCONTRADO EN DRIVE — AÑADIENDO COMO NUEVO','warn');
+        // Si no lo encuentra, lo añade como nuevo
+        const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+        await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
+      } else {
+        const row = rowIdx+1;
+        const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
+        await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${row}:V${row}?valueInputOption=RAW`,'PUT',{values});
+        
+      }
     } else {
       const values = [[c.Area,c.Nombre,c.Alias,c.Tipo,c['Ubicación'],c.Direccion,c.Municipio,c.Coord,c.FechaTMT||'',c.Via_Com,c.COMADRESS,'',c.RTU_marca,c.RTU_Mod,c.Controlador_Marca,c.Controlador_Modelo,c.Fechasus,c.Bat_Marca,c.Bat_Modelo,c.Bat_Tipo,c.Rec_Marca,c.Comentario]];
       await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A:V:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values});
     }
-  } catch(e) { console.error('Error escribiendo centro en Drive:', e); }
+    escribirCentroSupabase(c).catch(()=>{});
+  } catch(e) { console.error('Error escribiendo centro en Drive:', e); toast('ERROR AL GUARDAR CENTRO: '+e.message,'err'); }
+}
+
+function abrirNuevoCentro() {
+  // Limpiar todos los campos del modal
+  ['nc-nombre','nc-alias','nc-area','nc-municipio','nc-dir','nc-coord',
+   'nc-ubicacion','nc-viacom','nc-comadress','nc-comentario',
+   'nc-rtumarca','nc-rtumod','nc-ctrlmarca','nc-ctrlmod',
+   'nc-batmarca','nc-batmod','nc-recmarca'].forEach(id=>sv(id,''));
+  document.getElementById('nc-fechatmt') && (document.getElementById('nc-fechatmt').value='');
+  document.getElementById('nc-fechasus') && (document.getElementById('nc-fechasus').value='');
+  const t = document.getElementById('nc-tipo'); if(t) t.value='CD';
+  const ncTitle = document.getElementById('ncModalTitle');
+  if(ncTitle) ncTitle.textContent = 'Nueva instalación';
+  // Resetear selects con opción manual
+  ['nc-rtumarca-manual','nc-rtumod-manual','nc-ctrlmarca-manual',
+   'nc-ctrlmod-manual','nc-batmarca-manual','nc-battipo-manual',
+   'nc-recmarca-manual'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) { el.value=''; el.style.display='none'; }
+  });
+  const bat = document.getElementById('nc-battipo'); if(bat) bat.value='';
+  renderCentroSelects();
+  openModal('modalNuevoCentro');
 }
 
 function editarCentro(nombre) {
@@ -2879,7 +3822,9 @@ function altaCentro() {
   };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
   setLS('t2-ct',S.centros);
+  
   if(S.auth) escribirCentroEnDrive(c, idx>=0);
+  else toast('SIN CONEXIÓN — GUARDADO SOLO LOCAL','warn');
   closeModal('modalNuevoCentro'); renderCentros();
   toast(idx>=0?'CENTRO ACTUALIZADO ✓':'CENTRO DADO DE ALTA ✓','ok');
 }
@@ -2901,20 +3846,12 @@ function fmtHoraInput(el) {
 
 function cargarHoras() {
   const mes = document.getElementById('horas-mes')?.value;
-  const periodo = document.getElementById('horas-periodo')?.value;
-  if(!mes) { toast('SELECCIONA EL MES','err'); return; }
+  if(!mes) return;
 
   const [year, month] = mes.split('-').map(Number);
-  let desde, hasta;
-  if(periodo==='1') {
-    desde = new Date(year, month-1, 16);
-    hasta = new Date(year, month-1, 25);
-  } else {
-    desde = new Date(year, month-1, 26);
-    hasta = new Date(year, month, 15); // 15th of next month
-  }
+  const desde = new Date(year, month-1, 1);
+  const hasta = new Date(year, month, 0); // último día del mes
 
-  // Get my interventions in this period
   const miNombre = S.miNombre || '';
   const intervs = S.intervenciones.filter(iv => {
     const f = new Date(iv.fecha);
@@ -2923,7 +3860,6 @@ function cargarHoras() {
     return f >= desde && f <= hasta;
   });
 
-  // Group by date
   const byDay = {};
   intervs.forEach(iv => {
     const f = iv.fecha?.slice(0,10) || '';
@@ -2934,11 +3870,10 @@ function cargarHoras() {
 
   const dias = Object.keys(byDay).sort();
   if(!dias.length) {
-    document.getElementById('horasDiasList').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--gris4);">Sin intervenciones en este período</div>';
+    document.getElementById('horasDiasList').innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--gris4);">Sin intervenciones en este mes</div>';
     return;
   }
 
-  // Render each day with time inputs
   document.getElementById('horasDiasList').innerHTML = dias.map(fecha => {
     const ivs = byDay[fecha];
     const d = new Date(fecha+'T12:00:00');
@@ -2953,12 +3888,11 @@ function cargarHoras() {
           <div class="fg"><label class="fl">Entrada</label><input class="fi" type="time" id="entrada-${fecha}" value="07:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
           <div class="fg"><label class="fl">Salida</label><input class="fi" type="time" id="salida-${fecha}" value="15:00" style="text-transform:none;" oninput="calcularHoras('${fecha}')"></div>
         </div>
-        <div id="reparto-${fecha}" style="font-family:Consolas,monospace;font-size:13px;line-height:1.8;color:var(--blanco);background:var(--negro2);padding:10px;border-radius:8px;"></div>
+        <div id="reparto-${fecha}" style="font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.8;color:var(--blanco);background:var(--negro2);padding:10px;border-radius:8px;"></div>
       </div>
     </div>`;
   }).join('');
 
-  // Store day data and calculate initial
   window._horasDays = byDay;
   dias.forEach(f => calcularHoras(f));
 }
@@ -2975,13 +3909,16 @@ function calcularHoras(fecha) {
   if(totalMins<=0) { document.getElementById(`reparto-${fecha}`).innerHTML='<span style="color:var(--rojo);">Hora salida debe ser mayor que entrada</span>'; return; }
 
   const minsPorTDC = Math.floor(totalMins / ivs.length);
+  // Redondear a hora en punto o y media (múltiplos de 30 min)
+  const redondear30 = (mins) => Math.round(mins / 30) * 30;
   let currentMins = hE*60+mE;
   const lines = ivs.map((iv,i) => {
-    const desde = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    const desdeR = redondear30(currentMins);
+    const desde = `${String(Math.floor(desdeR/60)).padStart(2,'0')}:${String(desdeR%60).padStart(2,'0')}`;
     currentMins += minsPorTDC;
-    // Last one gets remaining time
     if(i===ivs.length-1) currentMins = hS*60+mS;
-    const hasta = `${String(Math.floor(currentMins/60)).padStart(2,'0')}:${String(currentMins%60).padStart(2,'0')}`;
+    const hastaR = redondear30(currentMins);
+    const hasta = `${String(Math.floor(hastaR/60)).padStart(2,'0')}:${String(hastaR%60).padStart(2,'0')}`;
     const tdc = iv.tdc||iv.TDC||'SIN TDC';
     return `${desde} → ${hasta}   ${tdc}`;
   });
@@ -3177,7 +4114,7 @@ function renderMaterilesConfig() {
   el.innerHTML = S.materiales.map((m,i) => {
     const cod = m.cod||m; const desc = m.desc||'';
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gris5);">
-      <span style="font-family:Consolas,monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
+      <span style="font-family:'Roboto Mono',monospace;font-size:11px;color:var(--rojo);min-width:70px;">${cod}</span>
       <span style="flex:1;font-size:12px;">${desc}</span>
       <button style="background:none;border:none;color:var(--rojo);cursor:pointer;font-size:18px;flex-shrink:0;" onclick="removeMaterialConfig(${i})">×</button>
     </div>`;
@@ -3226,6 +4163,13 @@ async function sincronizarMateriales() {
     setLS('t2-mat', S.materiales);
     renderMaterilesConfig();
     renderMaterialesOptions();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.materiales.map(m=>({cod:m.cod, descripcion:m.desc}));
+      const {error} = await sb.from('materiales').upsert(rows, {onConflict:'cod'});
+      if(error) console.warn('SB materiales sync warn:', error.message);
+    } catch(e) { console.warn('SB materiales sync error:', e.message); }
     toast(`${S.materiales.length} MATERIALES SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3238,6 +4182,13 @@ async function sincronizarSolicitantes() {
     const sols = res.values.map(r=>(r[0]||'').trim().toUpperCase()).filter(Boolean);
     setLS('t2-solicitantes', sols);
     actualizarSelectSolicitantes();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = sols.map(nombre=>({nombre}));
+      const {error} = await sb.from('solicitantes').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB solicitantes sync warn:', error.message);
+    } catch(e) { console.warn('SB solicitantes sync error:', e.message); }
     toast(`${sols.length} SOLICITANTES SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3251,6 +4202,13 @@ async function sincronizarTecnicos() {
     setLS('t2-tec', tecnicos);
     renderTecnicosConfig();
     actualizarSelectTecnicos(tecnicos);
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = tecnicos.map(nombre=>({nombre}));
+      const {error} = await sb.from('tecnicos').upsert(rows, {onConflict:'nombre'});
+      if(error) console.warn('SB tecnicos sync warn:', error.message);
+    } catch(e) { console.warn('SB tecnicos sync error:', e.message); }
     toast(`${tecnicos.length} TÉCNICOS SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3263,6 +4221,13 @@ async function sincronizarFrases() {
     S.frases = res.values.map(r=>(r[0]||'').trim()).filter(Boolean);
     setLS('t2-fr', S.frases);
     renderFrasesConfig();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.frases.map(texto=>({texto}));
+      const {error} = await sb.from('frases').upsert(rows, {onConflict:'texto'});
+      if(error) console.warn('SB frases sync warn:', error.message);
+    } catch(e) { console.warn('SB frases sync error:', e.message); }
     toast(`${S.frases.length} FRASES SINCRONIZADAS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3278,6 +4243,13 @@ async function sincronizarBaremos() {
     setLS('t2-bar', S.baremos);
     renderBaremosOptions();
     renderBaremosEditList();
+    // Supabase
+    try {
+      const sb = getSB();
+      const rows = S.baremos.map(b=>({cod:b.cod, descripcion:b.desc, pts:b.pts, fav:b.fav}));
+      const {error} = await sb.from('baremos').upsert(rows, {onConflict:'cod'});
+      if(error) console.warn('SB baremos sync warn:', error.message);
+    } catch(e) { console.warn('SB baremos sync error:', e.message); }
     toast(`${S.baremos.length} BAREMOS SINCRONIZADOS ✓`,'ok');
   } else toast('ERROR AL SINCRONIZAR','err');
 }
@@ -3319,6 +4291,7 @@ function addBaremoConfig() {
   S.baremos.push({cod,desc,pts,fav:false});
   setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions();
   sv('newBarCod','');sv('newBarDesc','');sv('newBarPts','');
+  if(S.auth) writeConfigRow('Baremos', [cod, desc, pts, 'NO']);
   toast('BAREMO AÑADIDO','ok');
 }
 
@@ -3435,6 +4408,147 @@ async function guardarEnSheets(d) {
   const lastRowRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A:A`,'GET');
   const nextRow = (lastRowRes?.values?.length || 1) + 1;
   await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A${nextRow}:BB${nextRow}?valueInputOption=RAW`,'PUT',{values:[row]});
+}
+
+// ── SUPABASE: escritura doble silenciosa ──
+async function escribirEnSupabase(d) {
+  try {
+    const sb = getSB();
+    const payload = {
+      int_id:      d.intId || '',
+      centro:      d.centro || '',
+      fecha:       d.fecha || null,
+      tec1:        d.tec1 || '',
+      tec2:        d.tec2 || '',
+      alias:       d.alias || '',
+      zona:        d.zona || '',
+      poblacion:   d.poblacion || '',
+      resultado:   d.resultado || '',
+      vyp:         d.vyp || '',
+      tdc:         d.tdc || '',
+      motivo:      d.motivo || '',
+      maniobras:   d.maniobras || 'NO',
+      tipo:        d.tipo || '',
+      modelo:      d.modelo || '',
+      resolucion:  d.resolucion || '',
+      vale:        !!d.vale,
+      trace:       !!d.trace,
+      baremos:     Array.isArray(d.baremos) ? d.baremos : [],
+      materiales:  Array.isArray(d.materiales) ? d.materiales : [],
+      solicitante: d.solicitante || '',
+      updated_at:  new Date().toISOString(),
+    };
+    const { error } = await sb.from('intervenciones').upsert(payload, { onConflict: 'int_id' });
+    if(error) console.warn('Supabase write warn:', error.message);
+    
+  } catch(e) {
+    console.warn('Supabase error (no crítico):', e.message);
+  }
+}
+
+async function actualizarEnSupabase(d) {
+  try {
+    const sb = getSB();
+    const payload = {
+      centro:      d.centro || '',
+      fecha:       d.fecha || null,
+      tec1:        d.tec1 || '',
+      tec2:        d.tec2 || '',
+      alias:       d.alias || '',
+      zona:        d.zona || '',
+      poblacion:   d.poblacion || '',
+      resultado:   d.resultado || '',
+      vyp:         d.vyp || '',
+      tdc:         d.tdc || '',
+      motivo:      d.motivo || '',
+      maniobras:   d.maniobras || 'NO',
+      tipo:        d.tipo || '',
+      modelo:      d.modelo || '',
+      resolucion:  d.resolucion || '',
+      vale:        !!d.vale,
+      trace:       !!d.trace,
+      baremos:     Array.isArray(d.baremos) ? d.baremos : [],
+      materiales:  Array.isArray(d.materiales) ? d.materiales : [],
+      solicitante: d.solicitante || '',
+      updated_at:  new Date().toISOString(),
+    };
+    const { error } = await sb.from('intervenciones').update(payload).eq('int_id', d.intId);
+    if(error) console.warn('Supabase update warn:', error.message);
+    else console.log('Supabase update ✓', d.intId);
+  } catch(e) {
+    console.warn('Supabase update error (no crítico):', e.message);
+  }
+}
+
+async function escribirPlanifSupabase(p) {
+  try {
+    const sb = getSB();
+    const payload = {
+      id:          p.id,
+      centro:      p.centro || '',
+      alias:       p.alias || '',
+      fecha:       p.fecha || null,
+      hora:        p.hora || '',
+      vyp:         p.vyp || '',
+      tdc:         p.tdc || '',
+      trabajo:     p.trabajo || '',
+      coord:       p.coord || '',
+      estado:      p.estado || 'PENDIENTE',
+      solicitante: p.solicitante || '',
+      telefono:    p.telefono || '',
+      cal_event_id: p.calEventId || null,
+    };
+    const { error } = await sb.from('planificacion').upsert(payload, { onConflict: 'id' });
+    if(error) console.warn('Supabase planif warn:', error.message);
+    else console.log('Supabase planif ✓', payload.id);
+  } catch(e) { console.warn('Supabase planif error (no crítico):', e.message); }
+}
+
+async function actualizarEstadoPlanifSupabase(id, estado) {
+  try {
+    const sb = getSB();
+    const { error } = await sb.from('planificacion').update({ estado }).eq('id', id);
+    if(error) console.warn('Supabase planif estado warn:', error.message);
+    else console.log('Supabase planif estado ✓', id, estado);
+  } catch(e) { console.warn('Supabase planif estado error (no crítico):', e.message); }
+}
+
+async function escribirCentroSupabase(c) {
+  try {
+    const sb = getSB();
+    const parseFechaSB = (f) => {
+      if(!f) return null;
+      const d = parseFecha(f);
+      return d ? new Date(d).toISOString().slice(0,10) : null;
+    };
+    const payload = {
+      nombre:             c.Nombre || '',
+      alias:              c.Alias || '',
+      area:               c.Area || '',
+      tipo:               c.Tipo || '',
+      ubicacion:          c['Ubicación'] || '',
+      direccion:          c.Direccion || '',
+      municipio:          c.Municipio || '',
+      coord:              c.Coord || '',
+      fecha_tmt:          parseFechaSB(c.FechaTMT),
+      via_com:            c.Via_Com || '',
+      comadress:          c.COMADRESS || '',
+      rtu_marca:          c.RTU_marca || '',
+      rtu_mod:            c.RTU_Mod || '',
+      controlador_marca:  c.Controlador_Marca || '',
+      controlador_modelo: c.Controlador_Modelo || '',
+      fechasus:           parseFechaSB(c.Fechasus),
+      bat_marca:          c.Bat_Marca || '',
+      bat_modelo:         c.Bat_Modelo || '',
+      bat_tipo:           c.Bat_Tipo || '',
+      rec_marca:          c.Rec_Marca || '',
+      comentario:         c.Comentario || '',
+      updated_at:         new Date().toISOString(),
+    };
+    const { error } = await sb.from('centros').upsert(payload, { onConflict: 'nombre' });
+    if(error) console.warn('Supabase centro warn:', error.message);
+    else console.log('Supabase centro ✓', payload.nombre);
+  } catch(e) { console.warn('Supabase centro error (no crítico):', e.message); }
 }
 
 async function actualizarEnSheets(d) {
@@ -3593,16 +4707,17 @@ async function generarPDFDrive(d, esModificado=false) {
   const zonaCode = getZonaCode(d.zona);
   const baseNombre = `${d.centro}-${zonaCode}`;
 
-  // Check for duplicates in Informes Pendientes and add suffix if needed
+  const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
+  
+  // Check for duplicates in the correct folder
   toast('GENERANDO INFORME EN DRIVE...','warn');
   let nombreArchivo = baseNombre;
   try {
     const existing = await gFetch(
-      `https://www.googleapis.com/drive/v3/files?q='${CARPETA_PENDIENTES}'+in+parents+and+name+contains+'${baseNombre}'+and+trashed=false&fields=files(name)`,
+      `https://www.googleapis.com/drive/v3/files?q='${carpetaDestino}'+in+parents+and+name+contains+'${baseNombre}'+and+trashed=false&fields=files(name)`,
       'GET'
     );
     if(existing?.files?.length) {
-      // Find highest suffix
       const nums = existing.files.map(f=>{
         const escaped = baseNombre.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
         const m = f.name.match(new RegExp(escaped + '(?:\\s(\\d+))?\\.pdf$'));
@@ -3618,7 +4733,7 @@ async function generarPDFDrive(d, esModificado=false) {
       `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
-        body: JSON.stringify({name: nombreArchivo, parents:[esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES]})
+        body: JSON.stringify({name: nombreArchivo, parents:[carpetaDestino]})
       }
     );
     const copyData = await copyRes.json();
@@ -3734,6 +4849,11 @@ async function generarPDFDrive(d, esModificado=false) {
       { range:`${sheetName}!AV15`,values:[[d.trace?'OK':'']] },
       { range:`${sheetName}!A21`, values:[[up(d.resolucion)]] },
     ];
+    // Si es modificación, añadir indicador antes de la resolución
+    if(esModificado) {
+      data.find(x=>x.range===`${sheetName}!A21`).values = [[`**INFORME MODIFICADO** || ${up(d.resolucion)}`]];
+      data.find(x=>x.range===`${sheetName}!AN4`).values = [[up(d.tdc)]]; // restaurar TDC sin sufijo
+    }
     // Baremos
     const baremoRows = [30,31,32,33,34,35];
     baremoRows.forEach((row,i) => {
@@ -3800,9 +4920,9 @@ async function generarPDFDrive(d, esModificado=false) {
     const pdfBlob = await pdfRes.blob();
 
     toast('4/4 · GUARDANDO EN DRIVE...','warn');
-    // Upload PDF to Informes Pendientes
+    // Upload PDF to correct folder
     const pdfName = nombreArchivo + '.pdf';
-    const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [CARPETA_PENDIENTES] };
+    const metadata = { name: pdfName, mimeType: 'application/pdf', parents: [carpetaDestino] };
     const formData = new FormData();
     formData.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
     formData.append('file', pdfBlob);
@@ -3839,71 +4959,87 @@ async function generarPDFDrive(d, esModificado=false) {
 //  LEER HISTORIAL DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerHistorialDrive() {
-  if(!S.auth) return false;
+  // Primero Supabase
   try {
-    // Headers are fixed - no ID column, starts with INSTALACIÓN
-    // Columns: A=INSTALACIÓN B=FECHA C=TECNICOS D=ALIAS E=ZONA F=POBLACION
-    // G=RESULTADO H=COMENTARIO I=TELCO J=VYP K=TDC L=INCIDENCIA M=MOTIVO
-    // N=MANIOBRAS O=TIPO P=MARCA/MODELO Q=RESOLUCIÓN R=UNIDADES S=MATERIALES
-
-    // Read in two batches to avoid API limits
-    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:S1500`,'GET');
-    console.log('Historial batch1:', res1?.values?.length, 'rows');
-    if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
-    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:S3100`,'GET');
-    console.log('Historial batch2:', res2?.values?.length, 'rows');
-
-    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
-    if(!allRows.length) {
-      toast('HISTORIAL VACÍO O SIN ACCESO','err');
-      console.error('No values from historial. res1:', JSON.stringify(res1));
-      return false;
+    const sb = getSB();
+    let allData = [];
+    let from = 0;
+    const pageSize = 1000;
+    while(true) {
+      const { data, error } = await sb.from('intervenciones').select('*').order('fecha', {ascending:false}).range(from, from+pageSize-1);
+      if(error) throw new Error(error.message);
+      if(!data?.length) break;
+      allData = [...allData, ...data];
+      if(data.length < pageSize) break;
+      from += pageSize;
     }
+    if(allData.length) {
+      S.intervenciones = allData.map(r=>({
+        intId:      r.int_id||'',
+        centro:     r.centro||'',
+        fecha:      r.fecha||'',
+        tec1:       r.tec1||'',
+        tec2:       r.tec2||'',
+        alias:      r.alias||'',
+        zona:       r.zona||'',
+        poblacion:  r.poblacion||'',
+        resultado:  r.resultado||'',
+        vyp:        r.vyp||'',
+        tdc:        r.tdc||'',
+        motivo:     r.motivo||'',
+        maniobras:  r.maniobras||'',
+        tipo:       r.tipo||'',
+        modelo:     r.modelo||'',
+        resolucion: r.resolucion||'',
+        vale:       r.vale||false,
+        trace:      r.trace||false,
+        baremos:    Array.isArray(r.baremos)?r.baremos:[],
+        materiales: Array.isArray(r.materiales)?r.materiales:[],
+        solicitante:r.solicitante||'',
+      }));
+      setLS('t2-iv', S.intervenciones);
+      renderStats(); renderRecent();
+      
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo historial de Supabase, intentando Drive:', e.message);
+  }
 
+  // Fallback a Drive
+  try {
+    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
+    
+    if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
+    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
+    
+    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
+    if(!allRows.length) { toast('HISTORIAL VACÍO O SIN ACCESO','err'); return false; }
     S.intervenciones = allRows.map((row,i)=>{
-      // Read baremos: cols 18-35 (BAREMO1_COD=18, UD=19, DESC=20, BAREMO2_COD=21...)
       const baremos = [];
-      for(let b=0;b<6;b++) {
-        const cod = (row[18+b*3]||'').toString().trim();
-        const ud  = parseFloat(row[19+b*3])||0;
-        if(cod) baremos.push({cod, ud, desc:(row[20+b*3]||'').toString().trim()});
-      }
-      // Read materiales: cols 36-53 (MAT1_COD=36, UD=37, DESC=38...)
+      for(let b=0;b<6;b++) { const cod=(row[18+b*3]||'').toString().trim(); if(cod) baremos.push({cod,ud:parseFloat(row[19+b*3])||0,desc:(row[20+b*3]||'').toString().trim()}); }
       const materiales = [];
-      for(let m=0;m<6;m++) {
-        const cod = (row[36+m*3]||'').toString().trim();
-        const qty = parseFloat(row[37+m*3])||0;
-        if(cod) materiales.push({cod, qty, desc:(row[38+m*3]||'').toString().trim()});
-      }
+      for(let m=0;m<6;m++) { const cod=(row[36+m*3]||'').toString().trim(); if(cod) materiales.push({cod,qty:parseFloat(row[37+m*3])||0,desc:(row[38+m*3]||'').toString().trim()}); }
       return {
-        intId: (row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
-        centro: (row[1]||'').toUpperCase().trim(),
-        fecha: parseDateStr(row[2]||''),
-        tec1: (row[3]||'').toUpperCase().trim(),
-        tec2: (row[4]||'').toUpperCase().trim(),
-        alias: (row[5]||'').toUpperCase().trim(),
-        zona: (row[6]||'').toUpperCase().trim(),
-        poblacion: (row[7]||'').toUpperCase().trim(),
-        resultado: (row[8]||'').toUpperCase().trim(),
-        vyp: (row[9]||'').toString().trim(),
-        tdc: (row[10]||'').toString().trim(),
-        motivo: (row[11]||'').toUpperCase().trim(),
-        maniobras: (row[12]||'').toUpperCase().trim(),
-        tipo: (row[13]||'').toUpperCase().trim(),
-        modelo: (row[14]||'').toUpperCase().trim(),
-        resolucion: (row[15]||'').toUpperCase().trim(),
-        vale: (row[16]||'').toUpperCase()==='SI',
-        trace: (row[17]||'').toUpperCase()==='OK',
-        baremos,
-        materiales,
+        intId:(row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
+        centro:(row[1]||'').toUpperCase().trim(), fecha:parseDateStr(row[2]||''),
+        tec1:(row[3]||'').toUpperCase().trim(), tec2:(row[4]||'').toUpperCase().trim(),
+        alias:(row[5]||'').toUpperCase().trim(), zona:(row[6]||'').toUpperCase().trim(),
+        poblacion:(row[7]||'').toUpperCase().trim(), resultado:(row[8]||'').toUpperCase().trim(),
+        vyp:(row[9]||'').toString().trim(), tdc:(row[10]||'').toString().trim(),
+        motivo:(row[11]||'').toUpperCase().trim(), maniobras:(row[12]||'').toUpperCase().trim(),
+        tipo:(row[13]||'').toUpperCase().trim(), modelo:(row[14]||'').toUpperCase().trim(),
+        resolucion:(row[15]||'').toUpperCase().trim(),
+        vale:(row[16]||'').toUpperCase()==='SI', trace:(row[17]||'').toUpperCase()==='OK',
+        baremos, materiales,
       };
     }).filter(iv=>iv.centro);
-
     setLS('t2-iv', S.intervenciones);
     renderStats(); renderRecent();
+    
     return true;
   } catch(e) {
-    console.error('Error leyendo historial:',e);
+    console.error('Error leyendo historial:', e);
     toast('ERROR HISTORIAL: '+e.message,'err');
     return false;
   }
@@ -3913,7 +5049,57 @@ async function leerHistorialDrive() {
 //  LEER PARQUE DE REMOTAS DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerRemotasDrive() {
-  if(!S.auth) return false;
+  // Primero intentamos Supabase — más rápido y completo
+  try {
+    const sb = getSB();
+    // Supabase devuelve máx 1000 por defecto, usamos range para paginar
+    let allCentros = [];
+    let from = 0;
+    const pageSize = 1000;
+    while(true) {
+      const { data, error } = await sb.from('centros').select('*').range(from, from+pageSize-1);
+      if(error) throw new Error(error.message);
+      if(!data?.length) break;
+      allCentros = [...allCentros, ...data];
+      if(data.length < pageSize) break;
+      from += pageSize;
+    }
+    if(allCentros.length) {
+      // Mapear de snake_case (Supabase) a PascalCase (app)
+      S.centros = allCentros.map(c=>({
+        Nombre:             c.nombre||'',
+        Alias:              c.alias||'',
+        Area:               c.area||'',
+        Tipo:               c.tipo||'',
+        'Ubicación':        c.ubicacion||'',
+        Direccion:          c.direccion||'',
+        Municipio:          c.municipio||'',
+        Coord:              c.coord||'',
+        FechaTMT:           c.fecha_tmt||'',
+        Via_Com:            c.via_com||'',
+        COMADRESS:          c.comadress||'',
+        RTU_marca:          c.rtu_marca||'',
+        RTU_Mod:            c.rtu_mod||'',
+        Controlador_Marca:  c.controlador_marca||'',
+        Controlador_Modelo: c.controlador_modelo||'',
+        Fechasus:           c.fechasus||'',
+        Bat_Marca:          c.bat_marca||'',
+        Bat_Modelo:         c.bat_modelo||'',
+        Bat_Tipo:           c.bat_tipo||'',
+        Rec_Marca:          c.rec_marca||'',
+        Comentario:         c.comentario||'',
+      }));
+      setLS('t2-ct', S.centros);
+      checkAlertasInicio();
+      renderCentroSelects();
+      
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo centros de Supabase, intentando Drive:', e.message);
+  }
+
+  // Fallback a Drive si Supabase falla
   try {
     const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
     const headers = hRes?.values?.[0] || [];
@@ -3927,16 +5113,181 @@ async function leerRemotasDrive() {
     setLS('t2-ct', S.centros);
     checkAlertasInicio();
     renderCentroSelects();
+    
     return true;
   } catch(e) {
-    console.error('Error leyendo remotas:',e);
+    console.error('Error leyendo remotas:', e);
     toast('ERROR REMOTAS: '+e.message,'err');
     return false;
   }
 }
 
 // escribirIntervDrive = alias of guardarEnSheets
-async function escribirIntervDrive(d) { return guardarEnSheets(d); }
+
+async function migrarASupabase() {
+  if(!S.auth) { toast('CONECTA GOOGLE DRIVE PRIMERO','warn'); return; }
+  const sb = getSB();
+  let ok = 0, err = 0;
+
+  const log = (msg, isErr) => { if(isErr) err++; else ok++; console.log(msg); };
+
+  toast('MIGRANDO... ESTO PUEDE TARDAR UN MINUTO','warn');
+
+  try {
+    // 1. CONFIGURACIÓN
+    toast('MIGRANDO CONFIGURACIÓN...','warn');
+    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
+    const data = {};
+    for(const sheet of sheets) {
+      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,'GET');
+      data[sheet] = res?.values || [];
+    }
+
+    // Materiales
+    if(data.Materiales.length) {
+      const rows = data.Materiales.map(r=>({cod:(r[0]||'').toUpperCase().trim(), descripcion:(r[1]||'').toUpperCase().trim()})).filter(r=>r.cod);
+      const {error} = await sb.from('materiales').upsert(rows, {onConflict:'cod'});
+      log(`Materiales: ${rows.length}`, !!error);
+    }
+    // Frases
+    if(data.Frases.length) {
+      const rows = data.Frases.map(r=>({texto:(r[0]||'').trim()})).filter(r=>r.texto);
+      const {error} = await sb.from('frases').upsert(rows, {onConflict:'texto'});
+      log(`Frases: ${rows.length}`, !!error);
+    }
+    // Tecnicos
+    if(data.Tecnicos.length) {
+      const rows = data.Tecnicos.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('tecnicos').upsert(rows, {onConflict:'nombre'});
+      log(`Técnicos: ${rows.length}`, !!error);
+    }
+    // Modelos remota
+    if(data.Modelos_Remota.length) {
+      const rows = data.Modelos_Remota.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('modelos_remota').upsert(rows, {onConflict:'nombre'});
+      log(`Modelos remota: ${rows.length}`, !!error);
+    }
+    // Baremos
+    if(data.Baremos.length) {
+      const rows = data.Baremos.map(r=>({cod:r[0]||'', descripcion:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'})).filter(r=>r.cod);
+      const {error} = await sb.from('baremos').upsert(rows, {onConflict:'cod'});
+      log(`Baremos: ${rows.length}`, !!error);
+    }
+    // Zonas
+    if(data.Zonas.length) {
+      const rows = data.Zonas.map(r=>({zona:(r[0]||'').toUpperCase().trim(), codigo:(r[1]||'').toUpperCase().trim()})).filter(r=>r.zona&&r.codigo);
+      const {error} = await sb.from('zonas').upsert(rows, {onConflict:'zona'});
+      log(`Zonas: ${rows.length}`, !!error);
+    }
+    // Solicitantes
+    if(data.Solicitantes.length) {
+      const rows = data.Solicitantes.map(r=>({nombre:(r[0]||'').toUpperCase().trim()})).filter(r=>r.nombre);
+      const {error} = await sb.from('solicitantes').upsert(rows, {onConflict:'nombre'});
+      log(`Solicitantes: ${rows.length}`, !!error);
+    }
+
+    // 2. CENTROS — leer en lotes de 1000 filas
+    toast('MIGRANDO CENTROS...','warn');
+    const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
+    const headers = hRes?.values?.[0] || [];
+    const parseFechaSB = (f) => {
+      if(!f || f==='' || f==='0' || f==='00/00/0000') return null;
+      try {
+        const d = parseFecha(f);
+        if(!d) return null;
+        const dt = new Date(d);
+        if(isNaN(dt.getTime())) return null;
+        const y = dt.getFullYear();
+        if(y < 1900 || y > 2100) return null;
+        return dt.toISOString().slice(0,10);
+      } catch(e) { return null; }
+    };
+    let allCentros = [];
+    const loteSize = 500;
+    for(let lote=0; lote<10; lote++) {
+      const desde = 2 + lote*loteSize;
+      const hasta = desde + loteSize - 1;
+      const rRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A${desde}:Z${hasta}`,'GET');
+      if(!rRes?.values?.length) break;
+      const centrosLote = rRes.values.map(row=>{ const obj={}; headers.forEach((h,i)=>{if(h) obj[h]=row[i]||'';}); return obj; }).filter(c=>c.Nombre);
+      allCentros = [...allCentros, ...centrosLote];
+      if(rRes.values.length < loteSize) break; // última página
+    }
+    if(allCentros.length) {
+      const rows = allCentros.map(c=>({
+        nombre:c.Nombre||'', alias:c.Alias||'', area:c.Area||'', tipo:c.Tipo||'',
+        ubicacion:c['Ubicación']||'', direccion:c.Direccion||'', municipio:c.Municipio||'',
+        coord:c.Coord||'', fecha_tmt:parseFechaSB(c.FechaTMT), via_com:c.Via_Com||'',
+        comadress:c.COMADRESS||'', rtu_marca:c.RTU_marca||'', rtu_mod:c.RTU_Mod||'',
+        controlador_marca:c.Controlador_Marca||'', controlador_modelo:c.Controlador_Modelo||'',
+        fechasus:parseFechaSB(c.Fechasus), bat_marca:c.Bat_Marca||'', bat_modelo:c.Bat_Modelo||'',
+        bat_tipo:c.Bat_Tipo||'', rec_marca:c.Rec_Marca||'', comentario:c.Comentario||'',
+      }));
+      let okCount = 0, errCount = 0;
+      for(let i=0;i<rows.length;i++) {
+        const {error} = await sb.from('centros').upsert(rows[i], {onConflict:'nombre'});
+        if(error) {
+          console.error(`Centro ERROR [${rows[i].nombre}]:`, error.message);
+          errCount++;
+        } else {
+          okCount++;
+        }
+      }
+      log(`Centros: ${okCount} OK, ${errCount} errores`, errCount>0);
+      toast(`CENTROS: ${rows.length} migrados`,'ok');
+    }
+
+    // 3. PLANIFICACIÓN
+    toast('MIGRANDO PLANIFICACIÓN...','warn');
+    const pRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
+    if(pRes?.values) {
+      const rows = pRes.values.map(row=>({
+        id:row[0]||'PL-'+Date.now(), centro:(row[1]||'').toUpperCase(), alias:(row[2]||'').toUpperCase(),
+        fecha:row[3]||null, hora:row[4]||'', vyp:row[5]||'', tdc:row[6]||'',
+        trabajo:(row[7]||'').toUpperCase(), coord:row[8]||'', estado:row[9]||'PENDIENTE',
+        solicitante:(row[10]||'').toUpperCase(), telefono:row[11]||'',
+      })).filter(r=>r.centro);
+      const {error} = await sb.from('planificacion').upsert(rows, {onConflict:'id'});
+      log(`Planificación: ${rows.length}`, !!error);
+    }
+
+    // 4. HISTORIAL (en lotes de 500)
+    toast('MIGRANDO HISTORIAL... (puede tardar)','warn');
+    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
+    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
+    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
+    if(allRows.length) {
+      const intervs = allRows.map((row,i)=>{
+        const baremos=[], materiales=[];
+        for(let b=0;b<6;b++) { const cod=(row[18+b*3]||'').trim(); if(cod) baremos.push({cod,ud:parseFloat(row[19+b*3])||0,desc:(row[20+b*3]||'').trim()}); }
+        for(let m=0;m<6;m++) { const cod=(row[36+m*3]||'').trim(); if(cod) materiales.push({cod,qty:parseFloat(row[37+m*3])||0,desc:(row[38+m*3]||'').trim()}); }
+        return {
+          int_id:(row[0]||'INT-'+String(i+1).padStart(5,'0')).trim(),
+          centro:(row[1]||'').toUpperCase().trim(), fecha:parseDateStr(row[2]||'')||null,
+          tec1:(row[3]||'').toUpperCase().trim(), tec2:(row[4]||'').toUpperCase().trim(),
+          alias:(row[5]||'').toUpperCase().trim(), zona:(row[6]||'').toUpperCase().trim(),
+          poblacion:(row[7]||'').toUpperCase().trim(), resultado:(row[8]||'').toUpperCase().trim(),
+          vyp:(row[9]||'').trim(), tdc:(row[10]||'').trim(), motivo:(row[11]||'').toUpperCase().trim(),
+          maniobras:(row[12]||'NO').toUpperCase().trim(), tipo:(row[13]||'').toUpperCase().trim(),
+          modelo:(row[14]||'').toUpperCase().trim(), resolucion:(row[15]||'').toUpperCase().trim(),
+          vale:(row[16]||'').toUpperCase()==='SI', trace:(row[17]||'').toUpperCase()==='OK',
+          baremos, materiales, solicitante:(row[54]||'').toUpperCase().trim(),
+        };
+      }).filter(r=>r.centro);
+      for(let i=0;i<intervs.length;i+=500) {
+        const {error} = await sb.from('intervenciones').upsert(intervs.slice(i,i+500), {onConflict:'int_id'});
+        log(`Historial lote ${i/500+1}: ${Math.min(500,intervs.length-i)}`, !!error);
+      }
+    }
+
+    if(err===0) toast(`MIGRACIÓN COMPLETA ✓ — ${ok} operaciones OK`,'ok');
+    else toast(`MIGRACIÓN CON ${err} ERRORES — revisa la consola`,'warn');
+
+  } catch(e) {
+    console.error('Error en migración:', e);
+    toast('ERROR EN MIGRACIÓN: '+e.message,'err');
+  }
+}
 
 function resetearDatosLocales() {
   confirmar('reset', 'BORRAR DATOS', () => {
@@ -3963,9 +5314,46 @@ function resetearDatosLocales() {
 //  PLANIFICACIÓN EN DRIVE
 // ═══════════════════════════════════════════════════
 async function leerPlanificacionDrive() {
-  if(!S.auth) return false;
+  // Primero Supabase
   try {
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:J500`,'GET');
+    const sb = getSB();
+    const { start, end } = getSemanaActual();
+    const semStart = start.toISOString().slice(0,10);
+    const semEnd = end.toISOString().slice(0,10);
+
+    // Traer pendientes + completadas/canceladas de esta semana
+    const { data, error } = await sb.from('planificacion')
+      .select('*')
+      .or(`estado.not.in.("COMPLETADO","CANCELADO"),and(fecha.gte.${semStart},fecha.lt.${semEnd})`)
+      .order('fecha', {ascending:true});
+    if(error) throw new Error(error.message);
+    if(data) {
+      S.planificacion = data.map(r=>({
+        id:          r.id||'',
+        centro:      r.centro||'',
+        alias:       r.alias||'',
+        fecha:       r.fecha||'',
+        hora:        r.hora||'',
+        vyp:         r.vyp||'',
+        tdc:         r.tdc||'',
+        trabajo:     r.trabajo||'',
+        coord:       r.coord||'',
+        estado:      r.estado||'PENDIENTE',
+        solicitante: r.solicitante||'',
+        telefono:    r.telefono||'',
+        calEventId:  r.cal_event_id||null,
+      }));
+      setLS('t2-pl', S.planificacion);
+      
+      return true;
+    }
+  } catch(e) {
+    console.warn('Error leyendo planificación de Supabase, intentando Drive:', e.message);
+  }
+
+  // Fallback a Drive
+  try {
+    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
     if(!res?.values) return false;
     S.planificacion = res.values.map(row=>({
       id:          row[0]||'PL-'+Date.now(),
@@ -3979,8 +5367,10 @@ async function leerPlanificacionDrive() {
       coord:       row[8]||'',
       estado:      row[9]||'PENDIENTE',
       solicitante: (row[10]||'').toUpperCase(),
+      telefono:    row[11]||'',
     })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
     setLS('t2-pl', S.planificacion);
+    
     return true;
   } catch(e) { console.error('Error leyendo planificación:', e); return false; }
 }
@@ -3997,9 +5387,11 @@ async function crearEventoCalendario(p) {
     const event = {
       summary: `${p.centro} — ${p.alias||''}`.trim(),
       description: [
-        p.trabajo ? `Trabajo: ${p.trabajo}` : '',
-        p.tdc     ? `TDC: ${p.tdc}`         : '',
-        p.vyp     ? `VyP: ${p.vyp}`         : '',
+        p.trabajo     ? `Trabajo: ${p.trabajo}`       : '',
+        p.tdc         ? `TDC: ${p.tdc}`               : '',
+        p.vyp         ? `VyP: ${p.vyp}`               : '',
+        p.solicitante ? `Solicitante: ${p.solicitante}`: '',
+        p.telefono    ? `Teléfono: ${p.telefono}`      : '',
       ].filter(Boolean).join('\n'),
       start: { dateTime: start, timeZone: 'Europe/Madrid' },
       end:   { dateTime: end,   timeZone: 'Europe/Madrid' },
@@ -4025,14 +5417,18 @@ async function crearEventoCalendario(p) {
 }
 
 async function escribirPlanifDrive(p) {
-  if(!S.auth) { console.log('escribirPlanifDrive: no auth'); return; }
-  console.log('escribirPlanifDrive:', p.centro, p.fecha);
-  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'']];
-  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
-  console.log('escribirPlanifDrive result:', res);
+  if(!S.auth) return;
+  
+  const row = [[p.id, p.centro, p.alias, p.fecha, p.hora, p.vyp, p.tdc, p.trabajo, p.coord||'', p.estado||'PENDIENTE', p.solicitante||'', p.telefono||'']];
+  const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:row});
+  
+  escribirPlanifSupabase(p).catch(()=>{});
 }
 
 async function completarPlanifDrive(id) {
+  // Siempre actualizar Supabase
+  actualizarEstadoPlanifSupabase(id, 'COMPLETADO').catch(()=>{});
+  // Drive solo si hay auth
   if(!S.auth) return;
   try {
     const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET');
@@ -4040,7 +5436,15 @@ async function completarPlanifDrive(id) {
     const rowIdx = res.values.findIndex(r=>r[0]===id);
     if(rowIdx<0) return;
     await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['COMPLETADO']]});
-  } catch(e) { console.error('Error completando planif:', e); }
+  } catch(e) { console.error('Error completando planif en Drive:', e); }
+}
+
+function confirmarSincronizarTodo() {
+  confirmar('sync1', 'RECUPERAR DATOS DESDE DRIVE', () => {
+    confirmar('sync2', '¿SEGURO? ESTO SOBREESCRIBIRÁ LOS DATOS ACTUALES', () => {
+      sincronizarTodo();
+    });
+  });
 }
 
 async function sincronizarTodo() {
@@ -4121,31 +5525,20 @@ function setSyncStatus(status) {
   else { dot.className='sync-dot'; label.textContent='Sin conectar'; }
 }
 
-function reconectarDrive() {
-  if(S.auth) return; // Already connected
-  if(!window.google?.accounts?.oauth2) { toast('GOOGLE NO DISPONIBLE','err'); return; }
-  const cfg = getLS('t2-cfg')||{};
-  const clientId = cfg.clientId || CLIENT_ID;
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
-    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events',
-    callback: async (resp) => {
-      if(!resp.error) {
-        S.auth = resp.access_token;
-        setSyncStatus('ok');
-        toast('RECONECTADO ✓','ok');
-        // Re-sync
-        await sincronizarConfig();
-        await leerHistorialDrive();
-        await leerPlanificacionDrive();
-        await leerRemotasDrive();
-        renderPlanif(); renderRecent(); renderStats();
-      } else {
-        toast('ERROR AL RECONECTAR','err');
-      }
-    }
-  });
-  client.requestAccessToken({prompt:''});
+async function reconectarDrive() {
+  toast('RECONECTANDO...','');
+  var t = await getSAToken();
+  if(t) {
+    S.auth = t; setSyncStatus('ok');
+    toast('RECONECTADO ✓','ok');
+    await sincronizarConfig();
+    await leerHistorialDrive();
+    await leerPlanificacionDrive();
+    await leerRemotasDrive();
+    renderPlanif(); renderRecent(); renderStats();
+  } else {
+    toast('ERROR AL RECONECTAR','err');
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -4279,16 +5672,69 @@ function getSemanaActual() {
   return { start, end };
 }
 
-function renderStats() {
-  document.getElementById('statTotal').textContent = S.intervenciones.length;
+function drawSparkline(canvasId, data, color, dotColors) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || 140;
+  const h = canvas.offsetHeight || 100;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0,0,w,h);
+  if(!data.length || data.every(v=>v===0)) return;
+  const max = Math.max(...data, 1);
+  const pad = 6;
+  const n = data.length;
+  const step = (w - pad*2) / (n - 1 || 1);
 
-  // Monthly stats with trend indicator
+  const px = (i) => pad + i * step;
+  const py = (v) => h - pad - (v / max) * (h - pad*2);
+
+  // Area fill
+  ctx.beginPath();
+  ctx.moveTo(px(0), h - pad);
+  data.forEach((v,i) => ctx.lineTo(px(i), py(v)));
+  ctx.lineTo(px(n-1), h - pad);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, color + '30');
+  grad.addColorStop(1, color + '00');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line — skip gaps (null dotColor = no data)
+  ctx.beginPath();
+  let lineStarted = false;
+  data.forEach((v,i) => {
+    const skip = dotColors && dotColors[i] === null && v === 0;
+    if(skip) { lineStarted = false; return; }
+    if(!lineStarted) { ctx.moveTo(px(i), py(v)); lineStarted = true; }
+    else ctx.lineTo(px(i), py(v));
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Dots — colored if dotColors provided, skip if null
+  data.forEach((v,i) => {
+    const dc = dotColors ? dotColors[i] : color;
+    if(dc === null) return; // sin punto
+    ctx.beginPath();
+    ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
+    ctx.fillStyle = dc || color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px(i), py(v), i===n-1 ? 4 : 3, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function renderStats() {
   const now = new Date();
-  const mesActual = now.toISOString().slice(0,7);
-  const dayOfMonth = now.getDate();
-  // Previous month same period
-  const prevMonth = new Date(now.getFullYear(), now.getMonth()-1, 1).toISOString().slice(0,7);
-  
   const parseFechaSort = (f) => {
     if(!f) return null;
     const dm = f.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})/);
@@ -4296,66 +5742,97 @@ function renderStats() {
     return new Date(f);
   };
 
+  const dayOfMonth = now.getDate();
+
+  // Este mes (días transcurridos)
   const ivMesActual = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
-    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()<=dayOfMonth;
+    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
   });
-  const ivMesAnterior = S.intervenciones.filter(iv => {
+
+  // Días trabajados este mes (días con al menos una intervención o planif completada)
+  const diasTrabajadosActual = new Set(
+    ivMesActual.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)
+  );
+  // Añadir días con planificación completada este mes
+  S.planificacion.filter(p=>{
+    const d = parseFechaSort(p.fecha);
+    return d && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && p.estado==='COMPLETADO';
+  }).forEach(p=>diasTrabajadosActual.add((p.fecha||'').slice(0,10)));
+  const nDiasTrabajados = diasTrabajadosActual.size;
+
+  // Mes pasado — mismos N días trabajados (los primeros N días con actividad)
+  const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const ivMesPasadoTodos = S.intervenciones.filter(iv => {
     const d = parseFechaSort(iv.fecha);
     if(!d) return false;
-    const pm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth() && d.getDate()<=dayOfMonth;
+    return d.getFullYear()===pm.getFullYear() && d.getMonth()===pm.getMonth();
   });
+  // Días trabajados del mes pasado ordenados
+  const diasTrabajadosPasado = [...new Set(
+    ivMesPasadoTodos.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)
+  )].sort();
+  // Coger solo los primeros N días
+  const diasComparables = new Set(diasTrabajadosPasado.slice(0, nDiasTrabajados));
+  const ivMesPasado = ivMesPasadoTodos.filter(iv=>diasComparables.has((iv.fecha||'').slice(0,10)));
 
-  // Count working days (days with any intervention or planif)
-  const diasActual = new Set(ivMesActual.map(iv=>(iv.fecha||'').slice(0,10))).size;
-  const diasAnterior = new Set(ivMesAnterior.map(iv=>(iv.fecha||'').slice(0,10))).size;
-  
-  const ratioActual = diasActual > 0 ? ivMesActual.length / diasActual : 0;
-  const ratioAnterior = diasAnterior > 0 ? ivMesAnterior.length / diasAnterior : 0;
-  const diff = ivMesActual.length - ivMesAnterior.length;
+  // Media mensual últimos 12 meses — normalizada a mismos días trabajados
+  let totalRatio = 0;
+  let mesesConDatos = 0;
+  for(let i=1;i<=12;i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const ivsMes = S.intervenciones.filter(iv=>{
+      const fd = parseFechaSort(iv.fecha);
+      return fd && fd.getFullYear()===d.getFullYear() && fd.getMonth()===d.getMonth();
+    });
+    const diasMes = new Set(ivsMes.map(iv=>(iv.fecha||'').slice(0,10)).filter(Boolean)).size;
+    if(diasMes > 0) {
+      totalRatio += ivsMes.length / diasMes;
+      mesesConDatos++;
+    }
+  }
+  // Media de intervenciones/día × días trabajados este mes
+  const mediaPorDia = mesesConDatos > 0 ? totalRatio / mesesConDatos : 0;
+  const media = Math.round(mediaPorDia * nDiasTrabajados);
 
   document.getElementById('statMes').textContent = ivMesActual.length;
+  document.getElementById('statMesPasado').textContent = ivMesPasado.length;
+  document.getElementById('statMedia').textContent = media;
 
-  // Color indicator
+  // Color borde mes — comparar este mes vs media 12m
+  const diff = ivMesActual.length - media;
   const card = document.getElementById('statMesCard');
-  const label = document.getElementById('statMesLabel');
-  if(card && diasAnterior > 0) {
+  const trend = document.getElementById('statMesTrend');
+  if(card && media > 0) {
     if(diff >= 5) {
-      card.style.borderLeftColor = '#4caf50';
-      label.textContent = `Este mes (+${diff})`;
+      card.style.borderLeftColor = 'var(--azul)';
+      if(trend) { trend.textContent = `▲ +${diff}`; trend.style.color='var(--azul)'; }
     } else if(diff <= -5) {
       card.style.borderLeftColor = 'var(--rojo)';
-      label.textContent = `Este mes (${diff})`;
+      if(trend) { trend.textContent = `▼ ${diff}`; trend.style.color='var(--rojo)'; }
     } else {
       card.style.borderLeftColor = 'var(--naranja)';
-      label.textContent = `Este mes (${diff>=0?'+':''}${diff})`;
+      if(trend) { trend.textContent = `${diff>=0?'▲ +':'▼ '}${diff}`; trend.style.color='var(--naranja)'; }
     }
-  } else if(label) {
-    label.textContent = 'Este mes';
+  } else {
+    if(card) card.style.borderLeftColor = 'var(--rojo)';
+    if(trend) { trend.textContent = ''; }
   }
 
-  // Weekly stats
+  // Semana en curso
   const { start, end } = getSemanaActual();
-  
-  // Todos los trabajos planificados para esta semana
-  // S.planificacion only has PENDING (COMPLETADO/CANCELADO filtered on load)
-  // So total = completados del historial + pendientes + cancelados locales
   const planifSemana = S.planificacion.filter(p => {
     const f = parseFechaSort(p.fecha);
     return f && f >= start && f < end;
   });
-
-  // Completados esta semana (intervenciones en historial con fecha en semana)
   const completadosSemana = S.intervenciones.filter(iv => {
     const f = parseFechaSort(iv.fecha);
     return f && f >= start && f < end;
   });
-
-  // Cancelados esta semana
-  const canceladosSemana = planifSemana.filter(p => p.estado === 'CANCELADO').length;
-
-  // Total planificados = completados (historial) + pendientes + cancelados
+  const canceladosSemana = S.planificacion.filter(p => {
+    const f = parseFechaSort(p.fecha);
+    return f && f >= start && f < end && p.estado === 'CANCELADO';
+  }).length;
   const completados = completadosSemana.length;
   const cancelados = canceladosSemana;
   const pendientesPlanif = planifSemana.filter(p=>p.estado==='PENDIENTE').length;
@@ -4365,22 +5842,47 @@ function renderStats() {
   document.getElementById('semCompletados').textContent = completados;
   document.getElementById('semCancelados').textContent = cancelados;
 
-  // Status indicator
-  const statusEl = document.getElementById('semanaStatus');
   const card2 = document.getElementById('semanaCard');
   if(card2) {
-    if(completados + cancelados === planif) {
-      card2.style.borderLeft = '3px solid #4caf50';
+    if(planif === 0 || completados + cancelados === planif) {
+      card2.style.borderLeft = '3px solid var(--verde)';
+    } else if(completados + cancelados >= planif * 0.5) {
+      card2.style.borderLeft = '3px solid var(--naranja)';
     } else {
-      card2.style.borderLeft = '';
+      card2.style.borderLeft = '3px solid var(--rojo)';
     }
   }
 }
 
 function renderRecent() {
   const el=document.getElementById('recentList');
-  const r=S.intervenciones.slice(0,3);
+  const card=document.getElementById('recentCard');
+  const sorted = [...S.intervenciones].sort((a,b)=>{
+    const fa = parseFecha(a.fecha)||0;
+    const fb = parseFecha(b.fecha)||0;
+    return fb-fa;
+  });
+  const r=sorted.slice(0,5);
   if(!r.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;">Sin intervenciones todavía</p>';return;}
+
+  // Calcular color del borde según las últimas 5 intervenciones
+  // verde=3, naranja=1, rojo=0, gris=1
+  if(card && r.length) {
+    const puntos = r.map(iv => {
+      const c = colorResultado(iv.resultado||iv.RESULTADO);
+      if(c==='verde') return 3;
+      if(c==='rojo') return 0;
+      return 1;
+    });
+    const media = puntos.reduce((a,b)=>a+b,0) / puntos.length;
+    // Con variación: pesos recientes cuentan más
+    const ponderado = puntos.reduce((acc,p,i)=>acc+p*(i===0?2:1),0) / (puntos.length+1);
+    // Umbrales: >2 verde, >1.2 naranja, resto rojo
+    if(ponderado > 2) card.style.borderLeft='3px solid var(--verde)';
+    else if(ponderado > 1.2) card.style.borderLeft='3px solid var(--naranja)';
+    else card.style.borderLeft='3px solid var(--rojo)';
+  }
+
   el.innerHTML=r.map(iv=>`<div class="li ${colorResultado(iv.resultado||iv.RESULTADO)}" onclick="showInterv('${iv.intId||iv.centro}','${(iv.centro||'').replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
     <div class="li-alias">${iv.alias||iv.ALIAS||'—'}</div>
@@ -4389,9 +5891,17 @@ function renderRecent() {
 
 function renderBorradoresInicio() {
   const el=document.getElementById('borradorListInicio');
-  const keys=Object.keys(S.borradores);
-  if(!keys.length){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;padding:4px 0;">Sin borradores pendientes</p>';return;}
-  el.innerHTML=keys.filter(k=>S.borradores[k]).map(k=>{const d=S.borradores[k];return`<div class="li naranja" onclick="cargarBorrador('${k}');goPage('p-informe')">
+  const card=document.getElementById('borradoresCard');
+  const keys=Object.keys(S.borradores).filter(k=>S.borradores[k]);
+  const n = keys.length;
+  // Borde según número de borradores
+  if(card) {
+    if(n===0||n===1) card.style.borderLeft='3px solid var(--verde)';
+    else if(n===2) card.style.borderLeft='3px solid var(--naranja)';
+    else card.style.borderLeft='3px solid var(--rojo)';
+  }
+  if(!n){el.innerHTML='<p style="font-size:12px;color:var(--gris4);text-align:center;padding:4px 0;">Sin borradores pendientes</p>';return;}
+  el.innerHTML=keys.map(k=>{const d=S.borradores[k];return`<div class="li naranja" onclick="cargarBorrador('${k}');goPage('p-informe')">
     <div class="li-top"><span class="li-id">${d.centro||'SIN CENTRO'}</span><span class="li-fecha">${fmtFecha(d.fecha)}</span></div>
     <div class="li-alias">${d.alias||'BORRADOR SIN ALIAS'}</div>
     <div class="li-meta"><span class="badge badge-orange">BORRADOR</span></div>
@@ -4420,21 +5930,8 @@ function updateBorradorBadge() {
 }
 
 function checkAlertasInicio() {
-  if(!S.centros.length) return;
-  const viejas=S.centros.filter(c=>{
-    if(!esMiZona(c.Area)) return false;
-    const d=parseFecha(c.Fechasus);
-    return d&&(Date.now()-d)/(1000*60*60*24*365)>5;
-  });
   const el=document.getElementById('alertasInicio');
-  if(viejas.length) el.innerHTML=`<div class="alert alert-warn" onclick="goPage('p-centros')" style="cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-    <span style="font-size:22px;">🔋</span>
-    <div style="flex:1;">
-      <div style="font-weight:700;font-size:14px;">${viejas.length} instalaciones con baterías &gt;5 años</div>
-      <div style="font-size:12px;opacity:0.8;">En tus zonas · pulsa para ver</div>
-    </div>
-    <span style="color:var(--rojo);font-size:18px;">→</span>
-  </div>`;
+  if(el) el.innerHTML='';
 }
 
 // ═══════════════════════════════════════════════════
@@ -4525,5 +6022,6 @@ document.getElementById('f-modelo').addEventListener('change',function(){
   document.getElementById('modeloManualWrap').style.display=this.value==='__manual__'?'block':'none';
 });
 </script>
+<script id="sa-key" type="text/plain">LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRRGNPSDdJYTJZdkVsankKekMwdW9aUWk2amtyRDR4c1ovNW1QUThZU21GQytHZ2pVU3BCbUZNcGsvMUxiSWdVQi8vRVhTOEczRk1BaUhlRApHUDJ2ZmxLVTBNcWE3bmVmeHErZUtrY2M3NC9yZlhoSjB5dER2TFQ1VEExMlJXYkxZd2ZzeEN1cmlMVzkvalV5CmJEK1RiUlFGTHU3Rk5QRWJabmNJVDlkekFObzg3UlpNUUgzQXgySTlRVDVXc3RZK3hBWVkvRWZVUGJBZW4zTXQKR1RGSmQ4cFJ5QllVbGVIdGpmZzJPd2dSQTBKQWk1SjF6QlhvN0s5bHRYcVRzNGpTUjFXY2FrdlJsRE1tYVVzeQpHaVROTUNOSjFuQ250cmJHZWUyL0l4SDBpYi9zWU8ySGxmb0wwR0xjOE00b0Y2ajllTVJUanRXdml2SU1zamQ1CmgzOG5jenlOQWdNQkFBRUNnZ0VBQ1lTVmtqTDJIU1cxVzNVUXBObk43YjVpenlZaVl4TVJqemluWE56bUhEOWgKUE5tR3NvUVRZQklwMmVjc2NIVXlERG9jekxhY0RjTllLdjNiQlFrNEozOW9xazZSTkFJaDEvdXF6Q2pjZHdpYQp1TkljSmhiVFdZejhiZmFzN1RCd0NMOG54Z2VvRnppVDh3UnpzUHIvYVFQd3hPdzNXWUJSdDdXL3NaUkJXbTJ1ClNVczJOR0NUenZBMjJ0ajlyQVNxWHM1bmN0OUp3OW5zeVJOaTNPaTBzMnNvazhkay91QTRlV3cxWTYrWC9tNkkKV2JTTk9SMFE1dk9IRnZpY0xFOWNCNUVTcEczTkovdGZ6YkhzMHY3RkhJb1VkeGRuVXVEQW1DUGpUNWE0SEhZTApPS09zUDM3T2RhU1lDbEwyOVUxcmZ1Y1VUQytYeTJHRGs1RjZTT0dLYndLQmdRRHQ1NUtuV2lxMG42b1Z0Wm13CnRoVFNUczBMa1dzaWJoZVdjZ3dFdU5WR1VwUDRRUkRpZGRHUzk2N3hieDNKdm1NSU1aTDNnaUJuMnBsWnF1K3IKZWowUWFlb3pweTUwWXRhTUZ4Lzl6VjVhRkFUNzdMWllOR1VWdzJzT2pOeW56c0w1MlJIeUVNU3dKWVRLOFhWUAp6TmJBNW44UDBSSDRhMnZRM3p4V1FoTGNRd0tCZ1FEcytKWFhoY1I1UFQ1c3VZTy9XK3FBV0FLbnZoUW9GeU8xCm1LV0RxZ1ozSnRrRHFzTEs3c3FaUHFxUU05RE5naERLTzlPaEI3emVTMzB4Uko0cHorejA1dGZzcGREV1U5RHkKYjBmVThSL1JyWTNDNUsyaWR5UTE4VWdWS3FyUkQ2T3NyQW8xc281dnFOSWY5aVhleXIyd0VTT01SZmVOckl0bwp6MEJJUlQxZTd3S0JnRGJtdmYxSTNab1pUcEw3K1ovQ0pVUHpVM1piOUxGWlhyQWxXWWl0YnVwdm5CNHFSYzg5CkNVUTFUSFlEQW9qUUd1S0ZMamxZR2twZE5BNXhXQ1htYTdraCtCNDdjb2tCVmltMkhIZmhzT2h3dmtXMDlzK2MKSjhmQjlTN0NheGwrcVpnbTgvRTgxV2NoQVdna0dNSjFyd21OSjcxcXJnNzZHME4wZ09RWEUyc3BBb0dCQU41UAorK3M4c0d6NVd0WVBXSjB1c3hvQzkwSzlIUlhiVjRIbkdlZ2ltM3d1OHNydzZWd09sLzBhZ0ZOV2VSNURWbE1UCnUxL0g3WlV5aHRtd3dSMEMxdytPZmFXaWpnQjBrNExOaVRzcGx5dFR3Ym5FWlcwVWp1RVlZZ0tSaTcwa0NlNVYKWENLeVI5UlRNZ1lRRzhrZXRNUTMzL3lhS3pzN1UzSlpkTG9ZVXhIN0FvR0FQV3o5Kzh1SStQYUtqTXBBaER1SApPVUlHeFBmcGQ3Z0syaGJpblhBMmU3WEdMeTBoL2xlbGJZZXVrYjVpYXY3bWtrR1pxOHdpUEllME1qaFVtY0w3CkJyRnRhRXU5VUI2SHRXR29pSzNJN0RLenlwY3NlVVBuSTBPblk5RmpvYnI3QnY5UFYwL3BnSVdSU09wWGMxTFUKZm9rN3dvdGZBREZ0ZGFPWnRXWnZJWEU9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K</script>
 </body>
 </html>
