@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.50';
+const APP_VERSION = 'v3.51';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1638,6 +1638,16 @@ function confirmar(key, msg, fn) {
 // ═══════════════════════════════════════════════════
 //  SUPABASE AUTH
 // ═══════════════════════════════════════════════════
+function setCookie(name, value, days) {
+  var d = new Date();
+  d.setTime(d.getTime() + days*24*60*60*1000);
+  document.cookie = name+'='+encodeURIComponent(value)+';expires='+d.toUTCString()+';path=/;SameSite=Lax';
+}
+function getCookie(name) {
+  var match = document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
 async function sbLogin() {
   const email = document.getElementById('sbEmail')?.value?.trim();
   const password = document.getElementById('sbPassword')?.value;
@@ -1655,10 +1665,11 @@ async function sbLogin() {
     const sb = getSB();
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error) throw new Error(error.message);
-    // Login correcto — continuar
     S.sbUser = data.user;
     S.sbSession = data.session;
+    // Guardar en localStorage Y cookie (365 días)
     localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
+    setCookie('t2-sb-refresh', data.session.refresh_token, 365);
     document.getElementById('splashLoginForm').style.display = 'none';
     window._sbLoginOk?.();
   } catch(e) {
@@ -1673,20 +1684,20 @@ async function sbRestoreSession() {
   try {
     const sb = getSB();
     const { data: { session } } = await sb.auth.getSession();
-    console.log('sbRestoreSession: session=', !!session, 'refresh en LS=', !!localStorage.getItem('t2-sb-refresh'));
     if(session) {
       S.sbUser = session.user;
       S.sbSession = session;
       return true;
     }
-    const saved = localStorage.getItem('t2-sb-refresh');
+    // Intentar con refresh token — primero localStorage, luego cookie
+    const saved = localStorage.getItem('t2-sb-refresh') || getCookie('t2-sb-refresh');
     if(saved) {
       const { data, error } = await sb.auth.refreshSession({ refresh_token: saved });
-      console.log('refreshSession: error=', error?.message, 'ok=', !!data.session);
       if(!error && data.session) {
         S.sbUser = data.user;
         S.sbSession = data.session;
         localStorage.setItem('t2-sb-refresh', data.session.refresh_token);
+        setCookie('t2-sb-refresh', data.session.refresh_token, 365);
         return true;
       }
     }
