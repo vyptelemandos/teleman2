@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.39';
+const APP_VERSION = 'v3.40';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2502,7 +2502,9 @@ async function generarInforme() {
         }
       }
       if(S._planifId) {
-        S.planificacion = S.planificacion.filter(x=>x.id!==S._planifId);
+        // Marcar como COMPLETADO en local (no filtrar, para que Realtime no lo vuelva a añadir)
+        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
         setLS('t2-pl', S.planificacion);
         renderPlanif();
         completarPlanifDrive(S._planifId);
@@ -2511,6 +2513,15 @@ async function generarInforme() {
     } else {
       const zc = getZonaCode(d.zona);
       const fd = (d.fecha||'').replace(/-/g,'');
+      // Completar planif aunque no haya auth
+      if(S._planifId) {
+        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
+        setLS('t2-pl', S.planificacion);
+        renderPlanif();
+        actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
+        S._planifId = null;
+      }
       toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
     }
     document.getElementById('estadoBorrador').textContent='Generado ✓';
@@ -2623,7 +2634,7 @@ function renderPlanif() {
           <div class="planif-alias">${p.alias||c?.Alias||''}</div>
           <div class="planif-trabajo">${(p.trabajo||'').slice(0,80)}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
-            ${tieneBat?'<span class="badge badge-orange">🔋 CAMBIO BATERÍAS</span>':''}
+            ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
             ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
           </div>
         </div>
@@ -2821,12 +2832,94 @@ function showPlanifDetalle(id) {
     }
   }
   html+=`<div class="div"></div>`;
-  html+=`<button class="btn btn-red" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`<div class="btn-row">`;
+  html+=`<button class="btn btn-gray" style="flex:1;" onclick="closeAllModals();editarPlanif('${id}')">✏️ Editar</button>`;
+  html+=`<button class="btn btn-red" style="flex:2;" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`</div>`;
 
   // Reuse modalInterv for this
   document.getElementById('mIntervTitle').textContent=`${p.centro} — ${p.alias||c?.Alias||''}`;
   document.getElementById('mIntervBody').innerHTML=html;
   openModal('modalInterv');
+}
+
+function editarPlanif(id) {
+  const p = S.planificacion.find(x=>x.id===id);
+  if(!p) return;
+  // Precargar el modal de nuevo VyP con los datos actuales
+  actualizarSelectSolicitantes();
+  const sv = (id, val) => { const el=document.getElementById(id); if(el) el.value=val||''; };
+  sv('mv-centro', p.centro);
+  sv('mv-fecha', p.fecha);
+  sv('mv-hora', p.hora);
+  sv('mv-vyp', p.vyp);
+  sv('mv-tdc', p.tdc);
+  sv('mv-telefono', p.telefono);
+  sv('mv-coord', p.coord);
+  sv('mv-trabajo', p.trabajo);
+  // Solicitante
+  const sel = document.getElementById('mv-solicitante');
+  if(sel) {
+    const opt = [...sel.options].find(o=>o.value===p.solicitante);
+    if(opt) sel.value = p.solicitante;
+    else {
+      sel.value = '__nuevo__';
+      const manual = document.getElementById('mv-solicitante-manual');
+      if(manual) { manual.style.display='block'; manual.value=p.solicitante; }
+    }
+  }
+  // Cambiar título y botón para modo edición
+  const title = document.querySelector('#modalNuevoVyP .modal-title');
+  if(title) title.textContent = 'Editar planificación';
+  const btn = document.querySelector('#modalNuevoVyP .btn-red');
+  if(btn) { btn.textContent = 'Guardar cambios'; btn.onclick = ()=>guardarEdicionPlanif(id); }
+  openModal('modalNuevoVyP');
+}
+
+async function guardarEdicionPlanif(id) {
+  const v = (id) => document.getElementById(id)?.value||'';
+  const vu = (id) => v(id).toUpperCase().trim();
+  const centro = vu('mv-centro'), fecha = v('mv-fecha');
+  if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
+  const solicitanteVal = v('mv-solicitante')==='__nuevo__' ? vu('mv-solicitante-manual') : v('mv-solicitante');
+
+  const idx = S.planificacion.findIndex(x=>x.id===id);
+  if(idx<0) return;
+
+  S.planificacion[idx] = {
+    ...S.planificacion[idx],
+    centro, fecha,
+    hora: v('mv-hora'),
+    vyp: v('mv-vyp'),
+    tdc: v('mv-tdc'),
+    telefono: v('mv-telefono'),
+    coord: v('mv-coord'),
+    trabajo: vu('mv-trabajo'),
+    solicitante: solicitanteVal,
+  };
+  setLS('t2-pl', S.planificacion);
+
+  // Actualizar en Supabase
+  const sb = getSB();
+  await sb.from('planificacion').update({
+    centro, fecha,
+    hora: v('mv-hora'),
+    vyp: v('mv-vyp'),
+    tdc: v('mv-tdc'),
+    telefono: v('mv-telefono'),
+    coord: v('mv-coord'),
+    trabajo: vu('mv-trabajo'),
+    solicitante: solicitanteVal,
+  }).eq('id', id);
+
+  closeModal('modalNuevoVyP');
+  // Restaurar modal a modo añadir
+  const title = document.querySelector('#modalNuevoVyP .modal-title');
+  if(title) title.textContent = 'Añadir trabajo manual';
+  const btn = document.querySelector('#modalNuevoVyP .btn-red');
+  if(btn) { btn.textContent = 'Añadir a planificación'; btn.onclick = addVyPManual; }
+  renderPlanif();
+  toast('PLANIFICACIÓN ACTUALIZADA ✓', 'ok');
 }
 
 function openNuevoVyP() {
