@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.40';
+const APP_VERSION = 'v3.41';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5310,6 +5310,9 @@ async function escribirPlanifDrive(p) {
 }
 
 async function completarPlanifDrive(id) {
+  // Siempre actualizar Supabase
+  actualizarEstadoPlanifSupabase(id, 'COMPLETADO').catch(()=>{});
+  // Drive solo si hay auth
   if(!S.auth) return;
   try {
     const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET');
@@ -5317,8 +5320,7 @@ async function completarPlanifDrive(id) {
     const rowIdx = res.values.findIndex(r=>r[0]===id);
     if(rowIdx<0) return;
     await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['COMPLETADO']]});
-    actualizarEstadoPlanifSupabase(id, 'COMPLETADO').catch(()=>{});
-  } catch(e) { console.error('Error completando planif:', e); }
+  } catch(e) { console.error('Error completando planif en Drive:', e); }
 }
 
 function confirmarSincronizarTodo() {
