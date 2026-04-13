@@ -1189,7 +1189,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.41';
+const APP_VERSION = 'v3.42';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3108,10 +3108,10 @@ async function parsearVyP(texto) {
   }
   if(trabajo.length > 200) trabajo = trabajo.slice(0, 200).trim();
 
-  // Centro desde "En CD NOMBRE/CODIGO"
-  const enCDMatch = texto.match(/En\s+CD\s+([^\/\n]+?)\/([A-Z0-9]+)/i);
+  // Centro desde "En CD NOMBRE/CODIGO" — soporta Z12345, CA12345, FR12345, HU12345, M12345, S12345, TA12345, 12345
+  const enCDMatch = texto.match(/En\s+CD\s+([^\/\n]+?)\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
   const alias_cd = enCDMatch ? enCDMatch[1].replace(/\s+/g,' ').trim() : '';
-  const centro = enCDMatch ? enCDMatch[2].trim() : '';
+  const centro = enCDMatch ? enCDMatch[2].trim().toUpperCase() : '';
 
   // Alias desde tabla centros de Supabase (o local)
   let alias = '';
