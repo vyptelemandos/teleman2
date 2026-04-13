@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.53';
+const APP_VERSION = 'v3.54';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2720,7 +2720,7 @@ function iniciarDesde(id) {
   goPage('p-informe');
 }
 
-function cancelarVyP(id) {
+async function cancelarVyP(id) {
   // Use custom confirm via toast + second tap instead of confirm()
   if(!window._cancelPending) {
     window._cancelPending=id;
@@ -2738,10 +2738,13 @@ function cancelarVyP(id) {
       setLS('t2-cancelados', S.canceladosSemana);
     }
     // Delete calendar event if exists
-    if(S.auth && cancelP?.calEventId) {
-      fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent('vyptelemandos@gmail.com')}/events/${cancelP.calEventId}`, {
-        method:'DELETE', headers:{'Authorization':'Bearer '+S.auth}
-      }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
+    if(cancelP?.calEventId) {
+      const authToken = S.auth || await getSAToken();
+      if(authToken) {
+        fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent('vyptelemandos@gmail.com')}/events/${cancelP.calEventId}`, {
+          method:'DELETE', headers:{'Authorization':'Bearer '+authToken}
+        }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
+      }
     }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
     setLS('t2-pl',S.planificacion); renderPlanif(); renderStats();
@@ -5302,7 +5305,11 @@ async function leerPlanificacionDrive() {
 }
 
 async function crearEventoCalendario(p) {
-  if(!S.auth) return;
+  // Asegurar token SA fresco
+  if(!S.auth) {
+    const t = await getSAToken();
+    if(t) S.auth = t; else return;
+  }
   try {
     const fecha = p.fecha || hoy();
     const hora = p.hora || '08:00';
