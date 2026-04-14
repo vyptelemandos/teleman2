@@ -548,9 +548,30 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
             <div class="check-item"><input type="checkbox" id="f-baterias" onchange="onBateriasCheck(this)"><label for="f-baterias" style="color:var(--naranja);">BATERÍAS</label></div>
             <div class="check-item"><input type="checkbox" id="f-vale" disabled><label for="f-vale" style="color:var(--gris4);">VALE A1</label></div>
           </div>
+          <!-- Campo baterías Vale A1 -->
+          <div id="valeA1BatWrap" style="display:none;margin-top:8px;background:var(--gris5);border-radius:10px;padding:12px;">
+            <div style="font-size:11px;color:var(--gris3);margin-bottom:6px;font-weight:600;">Nº BATERÍAS (VALE A1)</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button onclick="cambiarNBaterias(-1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+              <input type="number" id="f-nbaterias" value="1" min="1" max="99" style="width:60px;text-align:center;font-size:18px;font-weight:700;background:var(--negro3);color:white;border:none;border-radius:8px;padding:8px;" onchange="autosave()">
+              <button onclick="cambiarNBaterias(1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+              <span style="font-size:12px;color:var(--gris3);">unidades</span>
+            </div>
+          </div>
         </div>
 
       </div>
+    </div>
+
+    <!-- FOTOS (opcional) -->
+    <div style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--gris3);font-weight:600;margin-bottom:6px;">FOTOS (OPCIONAL)</div>
+      <div id="fotosPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
+      <label style="display:flex;align-items:center;gap:8px;background:var(--negro3);border-radius:10px;padding:12px;cursor:pointer;color:var(--gris3);font-size:13px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Añadir foto
+        <input type="file" id="f-fotos" accept="image/*" multiple capture="environment" style="display:none" onchange="onFotosChange(this)">
+      </label>
     </div>
 
     <!-- ACCIONES -->
@@ -566,7 +587,6 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
         </button>
       </div>
       <div class="btn-row">
-        <button class="btn btn-gray btn-sm" style="flex:1;color:var(--gris2);" onclick="goToValeA1()">📋 Vale A1</button>
         <button class="btn btn-gray btn-sm" style="flex:1;color:var(--rojo);opacity:0.7;" onclick="borrarBorradorActual()">🗑 Borrar informe</button>
       </div>
     </div>
@@ -1206,7 +1226,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.71';
+const APP_VERSION = 'v3.73';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2144,7 +2164,12 @@ function getCentroSelectVal(selId, manualId) {
 
 function onBateriasCheck(cb) {
   autosave();
+  // Mostrar/ocultar campo de nº baterías para Vale A1
+  const valeChk = document.getElementById('f-vale');
+  const batWrap = document.getElementById('valeA1BatWrap');
   if(cb.checked) {
+    if(valeChk) { valeChk.checked = true; valeChk.disabled = false; }
+    if(batWrap) batWrap.style.display = 'block';
     const centro = v('f-centro');
     if(!centro) return;
     const c = S.centros.find(x => String(x.Nombre||x.nombre||'').toUpperCase() === centro.toUpperCase());
@@ -2160,7 +2185,83 @@ function onBateriasCheck(cb) {
     } else {
       toast('CENTRO NO ENCONTRADO EN BBDD — ACTUALIZA MANUALMENTE', 'warn');
     }
+  } else {
+    if(valeChk) { valeChk.checked = false; valeChk.disabled = true; }
+    if(batWrap) batWrap.style.display = 'none';
   }
+}
+
+function cambiarNBaterias(delta) {
+  const el = document.getElementById('f-nbaterias');
+  if(!el) return;
+  const val = parseInt(el.value) || 1;
+  el.value = Math.max(1, Math.min(99, val + delta));
+  autosave();
+}
+
+// ─── FOTOS ───────────────────────────────────────────
+let _fotosActuales = []; // [{file, dataUrl, name}]
+
+function onFotosChange(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      _fotosActuales.push({ file, dataUrl: e.target.result, name: file.name });
+      renderFotosPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = ''; // reset para permitir añadir más
+}
+
+function renderFotosPreview() {
+  const el = document.getElementById('fotosPreview');
+  if(!el) return;
+  el.innerHTML = _fotosActuales.map((f, i) => `
+    <div style="position:relative;width:72px;height:72px;">
+      <img src="${f.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;">
+      <button onclick="eliminarFoto(${i})" style="position:absolute;top:-6px;right:-6px;background:var(--rojo);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+  `).join('');
+}
+
+function eliminarFoto(i) {
+  _fotosActuales.splice(i, 1);
+  renderFotosPreview();
+}
+
+function resetFotos() {
+  _fotosActuales = [];
+  renderFotosPreview();
+}
+
+async function subirFotosDrive(d) {
+  if(!_fotosActuales.length) return;
+  const refreshToken = await getGoogleRefreshToken();
+  if(!refreshToken) { toast('CONECTA GOOGLE PARA SUBIR FOTOS','warn'); return; }
+  const zonaCode = getZonaCode(d.zona);
+  const baseName = `${d.centro}-${zonaCode}`;
+  toast(`SUBIENDO ${_fotosActuales.length} FOTO(S)...`, 'warn');
+  let ok = 0;
+  for(let i = 0; i < _fotosActuales.length; i++) {
+    try {
+      const foto = _fotosActuales[i];
+      const ext = foto.file.type.includes('png') ? 'png' : 'jpg';
+      const nombre = `${baseName}-FOTO${i+1}.${ext}`;
+      const sb = getSB();
+      const { data, error } = await sb.functions.invoke('subir-foto', {
+        body: {
+          nombre,
+          tipo: foto.file.type,
+          base64: foto.dataUrl.split(',')[1],
+          _refreshToken: refreshToken,
+        }
+      });
+      if(!error && data?.ok) ok++;
+    } catch(e) { console.warn('Error subiendo foto', i+1, e.message); }
+  }
+  toast(`✓ ${ok}/${_fotosActuales.length} FOTOS SUBIDAS`, ok > 0 ? 'ok' : 'err');
 }
 
 function guardarBorrador() {
@@ -2218,6 +2319,7 @@ function recogerFormulario() {
     trace: document.getElementById('f-trace')?.checked||false,
     baterias: document.getElementById('f-baterias')?.checked||false,
     vale: document.getElementById('f-vale')?.checked||false,
+    nBaterias: parseInt(document.getElementById('f-nbaterias')?.value)||1,
     ts: Date.now(),
   };
 }
@@ -2239,6 +2341,9 @@ function cargarBorrador(id) {
   const fbat2=document.getElementById('f-baterias'); if(fbat2) fbat2.checked=d.baterias||false;
   document.getElementById('f-trace').checked = d.trace||false;
   document.getElementById('f-vale').checked = d.vale||false;
+  if(d.nBaterias) { const nb=document.getElementById('f-nbaterias'); if(nb) nb.value=d.nBaterias; }
+  const batWrap2 = document.getElementById('valeA1BatWrap');
+  if(batWrap2) batWrap2.style.display = (d.vale||d.baterias) ? 'block' : 'none';
   S.baremosActuales = d.baremos||[];
   S.materialesActuales = d.materiales||[];
   renderBaremosAdded(); renderMaterialesAdded();
@@ -2253,7 +2358,10 @@ function nuevoInforme() {
   const fman=document.getElementById('f-maniobras'); if(fman) fman.checked=false;
   const fbat=document.getElementById('f-baterias'); if(fbat) fbat.checked=false;
   const ftrace = document.getElementById('f-trace'); if(ftrace) ftrace.checked=false;
-  const fvale = document.getElementById('f-vale'); if(fvale) fvale.checked=false;
+  const fvale = document.getElementById('f-vale'); if(fvale) { fvale.checked=false; fvale.disabled=true; }
+  const nbat = document.getElementById('f-nbaterias'); if(nbat) nbat.value=1;
+  const batWrap = document.getElementById('valeA1BatWrap'); if(batWrap) batWrap.style.display='none';
+  resetFotos();
   const mmw = document.getElementById('modeloManualWrap'); if(mmw) mmw.style.display='none';
   const fzmw = document.getElementById('f-zona-manual'); if(fzmw) fzmw.style.display='none';
   const ac = document.getElementById('alertaCentro'); if(ac) ac.innerHTML='';
@@ -2646,6 +2754,12 @@ async function generarInforme() {
       if(pdfOk) {
         toast('INFORME GENERADO ✓','ok');
         añadirFilaCertificacion(d);
+        // Subir fotos si las hay
+        if(_fotosActuales.length > 0) subirFotosDrive(d);
+        // Generar Vale A1 si está marcado
+        if(d.vale) {
+          setTimeout(() => generarValeA1viaEdge(d), 1000);
+        }
       } else {
         toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
@@ -4708,6 +4822,35 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 // ═══════════════════════════════════════════════════
 //  GENERAR PDF VIA EDGE FUNCTION (Service Account)
 // ═══════════════════════════════════════════════════
+async function generarValeA1viaEdge(d) {
+  try {
+    const refreshToken = await getGoogleRefreshToken();
+    if(!refreshToken) { toast('CONECTA GOOGLE PARA GENERAR VALE A1','warn'); return false; }
+    toast('GENERANDO VALE A1...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('generar-vale-a1', {
+      body: {
+        centro:      d.centro,
+        fecha:       d.fecha,
+        zona:        d.zona,
+        tdc:         d.tdc,
+        tec1:        d.tec1,
+        solicitante: d.solicitante,
+        nBaterias:   d.nBaterias || 1,
+        _refreshToken: refreshToken,
+      }
+    });
+    if(error) throw new Error(error.message);
+    if(!data?.ok) throw new Error(data?.error || 'Error desconocido');
+    toast('✓ VALE A1 GENERADO EN DRIVE','ok');
+    return true;
+  } catch(e) {
+    console.error('generarValeA1viaEdge error:', e);
+    toast('ERROR VALE A1: ' + e.message.slice(0,50), 'err');
+    return false;
+  }
+}
+
 async function generarPDFviaEdge(d, esModificado=false) {
   try {
     const refreshToken = await getGoogleRefreshToken();
