@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.65';
+const APP_VERSION = 'v3.66';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1248,6 +1248,86 @@ async function getSAToken() {
     console.warn('SA error:',JSON.stringify(d));
   } catch(e){ console.warn('getSAToken:',e.message); }
   return null;
+}
+
+// ═══════════════════════════════════════════════════
+//  GOOGLE REFRESH TOKEN — Una vez para siempre
+// ═══════════════════════════════════════════════════
+async function getGoogleRefreshToken() {
+  try {
+    const sb = getSB();
+    const { data } = await sb.from('user_tokens').select('google_refresh_token').single();
+    return data?.google_refresh_token || null;
+  } catch(e) { return null; }
+}
+
+async function saveGoogleRefreshToken(refreshToken) {
+  try {
+    const sb = getSB();
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return;
+    await sb.from('user_tokens').upsert({
+      user_id: user.id,
+      google_refresh_token: refreshToken,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch(e) { console.warn('Error guardando refresh token:', e.message); }
+}
+
+function pedirConexionGoogle(onSuccess) {
+  const existing = document.getElementById('modalGoogleConnect');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modalGoogleConnect';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--negro2);border-radius:16px;padding:32px;max-width:300px;width:100%;text-align:center;">
+      <div style="font-size:36px;margin-bottom:12px;">📄</div>
+      <div style="font-size:16px;font-weight:700;color:white;margin-bottom:8px;">Conectar Google Drive</div>
+      <div style="font-size:13px;color:var(--gris3);margin-bottom:24px;">Solo la primera vez. A partir de aquí los PDFs se generan automáticamente.</div>
+      <button onclick="iniciarOAuthGoogle()" style="width:100%;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;">Conectar ahora</button>
+      <button onclick="document.getElementById('modalGoogleConnect').remove()" style="width:100%;background:transparent;color:var(--gris3);border:none;padding:10px;cursor:pointer;margin-top:8px;font-size:13px;">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+  window._onGoogleConnected = onSuccess;
+}
+
+function iniciarOAuthGoogle() {
+  const cfg = getLS('t2-cfg') || {};
+  const clientId = cfg.clientId || CLIENT_ID;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    access_type: 'offline',
+    prompt: 'consent',
+    state: 'google_oauth_pdf'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+async function manejarOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if(!code || state !== 'google_oauth_pdf') return false;
+  window.history.replaceState({}, document.title, window.location.pathname);
+  try {
+    toast('GUARDANDO CONEXIÓN GOOGLE...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('google-oauth-exchange', {
+      body: { code, redirect_uri: window.location.origin + window.location.pathname, client_id: CLIENT_ID }
+    });
+    if(error || !data?.refresh_token) throw new Error(error?.message || 'Sin refresh_token');
+    await saveGoogleRefreshToken(data.refresh_token);
+    toast('✓ GOOGLE DRIVE CONECTADO PARA SIEMPRE','ok');
+    return true;
+  } catch(e) {
+    console.error('OAuth callback error:', e);
+    toast('ERROR AL GUARDAR CONEXIÓN GOOGLE','err');
+    return false;
+  }
 }
 
 function iniciarRealtime() {
@@ -1773,6 +1853,11 @@ try {
 } catch(e) { localStorage.removeItem('t2-bo'); }
 
 window.onload = () => {
+  // Manejar callback OAuth de Google si venimos de autenticación
+  if(window.location.search.includes('code=') && window.location.search.includes('google_oauth_pdf')) {
+    manejarOAuthCallback().then(ok => { if(ok) runSplash(); });
+    return;
+  }
   // Registrar Service Worker para PWA
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/teleman2/sw.js').catch(()=>{});
@@ -4561,10 +4646,17 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 // ═══════════════════════════════════════════════════
 async function generarPDFviaEdge(d, esModificado=false) {
   try {
+    const refreshToken = await getGoogleRefreshToken();
+    console.log('refreshToken:', refreshToken ? 'FOUND' : 'NULL');
+    if(!refreshToken) {
+      console.log('Mostrando modal Google...');
+      pedirConexionGoogle(() => generarPDFviaEdge(d, esModificado));
+      return false;
+    }
     toast('GENERANDO PDF...','warn');
     const sb = getSB();
     const { data, error } = await sb.functions.invoke('generar-pdf-sa', {
-      body: { ...d, _esEdicion: esModificado }
+      body: { ...d, _esEdicion: esModificado, _refreshToken: refreshToken }
     });
     if(error) throw new Error(error.message);
     if(!data?.ok) throw new Error(data?.error || 'Error desconocido');
