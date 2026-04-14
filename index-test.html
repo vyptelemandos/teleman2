@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.64';
+const APP_VERSION = 'v3.65';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2488,12 +2488,12 @@ async function generarInforme() {
     if(isEdit) {
       actualizarEnSupabase(d).catch(()=>{});
       if(S.auth) await actualizarEnSheets(d);
-      const pdfOk = await generarPDFLocal(d, true);
+      const pdfOk = await generarPDFviaEdge(d, true);
       if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
       else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
       await escribirEnSupabase(d);
-      const pdfOk = await generarPDFLocal(d);
+      const pdfOk = await generarPDFviaEdge(d);
       if(pdfOk) {
         toast('INFORME GENERADO ✓','ok');
         añadirFilaCertificacion(d);
@@ -4556,6 +4556,27 @@ async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 // ═══════════════════════════════════════════════════
 //  GENERAR PDF LOCAL — replica exacta plantilla
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  GENERAR PDF VIA EDGE FUNCTION (Service Account)
+// ═══════════════════════════════════════════════════
+async function generarPDFviaEdge(d, esModificado=false) {
+  try {
+    toast('GENERANDO PDF...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('generar-pdf-sa', {
+      body: { ...d, _esEdicion: esModificado }
+    });
+    if(error) throw new Error(error.message);
+    if(!data?.ok) throw new Error(data?.error || 'Error desconocido');
+    toast('✓ PDF GENERADO EN DRIVE','ok');
+    return true;
+  } catch(e) {
+    console.error('generarPDFviaEdge error:', e);
+    toast('ERROR PDF: ' + e.message.slice(0,60), 'err');
+    return false;
+  }
+}
+
 async function generarPDFLocal(d, esModificado=false) {
   try {
     const { jsPDF } = window.jspdf;
