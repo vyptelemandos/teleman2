@@ -855,10 +855,20 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">☁️ Google Drive</div></div>
       <div class="card-body">
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
-        <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
           <button class="btn btn-gray" onclick="saveConfig()" style="font-size:12px;padding:8px;">Guardar configuración</button>
-          <button class="btn btn-dark" onclick="enviarPendientes()">📤 Enviar informes pendientes ahora</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">📨 Envío automático</div></div>
+      <div class="card-body">
+        <div class="fg"><label class="fl">Email destino 1</label><input class="fi" id="cfg-email1" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
+        <div class="fg"><label class="fl">Email destino 2</label><input class="fi" id="cfg-email2" type="email" placeholder="jefe@empresa.com" style="text-transform:none;"></div>
+        <p style="font-size:11px;color:var(--gris3);margin:4px 0 10px;">El envío automático ocurre cada domingo a las 20:00h.</p>
+        <div class="btn-gap">
+          <button class="btn btn-gray" onclick="guardarEmailsEnvio()" style="font-size:12px;padding:8px;">Guardar emails</button>
+          <button class="btn btn-red" onclick="enviarPendientesAhora()">📤 Enviar pendientes ahora</button>
         </div>
       </div>
     </div>
@@ -1230,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.77';
+const APP_VERSION = 'v3.78';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1377,19 +1387,16 @@ async function procesarOAuthCode(code, redirectUri) {
 async function saveGoogleRefreshToken(refreshToken) {
   // Guardar en localStorage siempre
   localStorage.setItem('t2-google-refresh', refreshToken);
-  // También en Supabase si hay sesión
+  // Guardar en config_app de Supabase (no requiere sesión)
   try {
     const sb = getSB();
-    const { data: { user }, error: userError } = await sb.auth.getUser();
-    console.log('saveGoogleRefreshToken user:', user?.id, userError?.message);
-    if(!user) { console.warn('No Supabase session — guardado solo en localStorage'); return; }
-    const { error } = await sb.from('user_tokens').upsert({
-      user_id: user.id,
-      google_refresh_token: refreshToken,
+    await sb.from('config_app').upsert({
+      clave: 'google_refresh_token',
+      valor: refreshToken,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' });
-    console.log('upsert result:', error?.message || 'OK');
-  } catch(e) { console.warn('Error guardando en Supabase:', e.message); }
+    }, { onConflict: 'clave' });
+    console.log('refresh_token guardado en Supabase config_app');
+  } catch(e) { console.warn('Error guardando refresh_token en Supabase:', e.message); }
 }
 
 async function manejarOAuthCallback() {
@@ -2042,7 +2049,7 @@ function checkPwd() {
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
       document.getElementById('scrollArea').scrollTop=0;
-      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); renderModelosConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); },50);
+      setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderStatsPage(); renderSolicitantesConfig(); renderModelosConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); cargarEmailsEnvio(); },50);
     } else if(S.pwdTarget==='stats') {
       renderStatsPage();
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -2203,7 +2210,54 @@ function cambiarNBaterias(delta) {
   autosave();
 }
 
-// ─── FOTOS ───────────────────────────────────────────
+// ─── TELEGRAM NOTIFICACIONES ─────────────────────
+async function notificarTelegram(msg) {
+  try {
+    const sb = getSB();
+    await sb.functions.invoke('envio-dominical', {
+      body: { _accion: 'telegram', _msg: msg }
+    });
+  } catch(e) { console.warn('Telegram error:', e.message); }
+}
+
+async function guardarEmailsEnvio() {
+  const e1 = document.getElementById('cfg-email1')?.value?.trim() || '';
+  const e2 = document.getElementById('cfg-email2')?.value?.trim() || '';
+  try {
+    const sb = getSB();
+    await sb.from('config_app').upsert([
+      { clave: 'email_destino_1', valor: e1, updated_at: new Date().toISOString() },
+      { clave: 'email_destino_2', valor: e2, updated_at: new Date().toISOString() },
+    ], { onConflict: 'clave' });
+    toast('EMAILS GUARDADOS ✓', 'ok');
+  } catch(e) { toast('ERROR GUARDANDO EMAILS', 'err'); }
+}
+
+async function cargarEmailsEnvio() {
+  try {
+    const sb = getSB();
+    const { data } = await sb.from('config_app').select('clave,valor').in('clave', ['email_destino_1','email_destino_2']);
+    (data || []).forEach(r => {
+      if(r.clave === 'email_destino_1') { const el = document.getElementById('cfg-email1'); if(el) el.value = r.valor || ''; }
+      if(r.clave === 'email_destino_2') { const el = document.getElementById('cfg-email2'); if(el) el.value = r.valor || ''; }
+    });
+  } catch(e) { console.warn('Error cargando emails:', e.message); }
+}
+
+async function enviarPendientesAhora() {
+  if(!confirm('¿Enviar todos los informes pendientes ahora?')) return;
+  setStatusBar('⏳ ENVIANDO INFORMES...', 'working');
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('envio-dominical', { body: {} });
+    if(error || !data?.ok) throw new Error(error?.message || data?.error || 'Error desconocido');
+    setStatusBar(`✓ ${data.enviados} INFORMES ENVIADOS`, 'ok');
+    toast(`✓ ${data.enviados} INFORMES ENVIADOS`, 'ok');
+  } catch(e) {
+    setStatusBar('⚠️ ERROR AL ENVIAR', 'err');
+    toast('ERROR AL ENVIAR: ' + e.message.slice(0,50), 'err');
+  }
+}
 let _fotosActuales = []; // [{file, dataUrl, name}]
 
 function onFotosChange(input) {
@@ -2791,6 +2845,17 @@ async function generarInforme() {
         } else {
           setStatusBar('✓ TODO COMPLETADO ✓', 'ok');
         }
+        // Notificar Telegram
+        const zonaCode2 = getZonaCode(d.zona);
+        const msgTg = `📋 <b>Informe generado</b>\n` +
+          `🏭 Centro: <b>${d.centro}</b>\n` +
+          `📍 Zona: ${d.zona}\n` +
+          `🔧 TDC: ${d.tdc}\n` +
+          `👷 Técnico: ${d.tec1}\n` +
+          `📄 PDF: ${pdfOk?'✅':'❌'} | Cert: ${certOk!==false?'✅':'❌'}` +
+          (fotosGuardadas.length ? ` | Fotos: ${fotosOk!==false?'✅':'❌'}` : '') +
+          (d.vale ? ` | Vale A1: ✅` : '');
+        notificarTelegram(msgTg);
         toast('INFORME GENERADO ✓','ok');
       } else {
         setStatusBar('⚠️ ERROR AL GENERAR PDF', 'err');
