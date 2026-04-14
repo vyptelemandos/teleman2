@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.59';
+const APP_VERSION = 'v3.60';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4608,7 +4608,7 @@ async function generarPDFDrive(d, esModificado=false) {
   try {
     // 1. Copy plantilla to new file
     const copyRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
+      `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy?supportsAllDrives=true`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
         body: JSON.stringify({name: nombreArchivo, parents:[carpetaDestino]})
