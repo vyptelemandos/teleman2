@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.69';
+const APP_VERSION = 'v3.70';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1262,18 +1262,6 @@ async function getGoogleRefreshToken() {
   } catch(e) { console.warn('getGoogleRefreshToken error:', e.message); return null; }
 }
 
-async function saveGoogleRefreshToken(refreshToken) {
-  try {
-    const sb = getSB();
-    const { data: { user } } = await sb.auth.getUser();
-    if(!user) return;
-    await sb.from('user_tokens').upsert({
-      user_id: user.id,
-      google_refresh_token: refreshToken,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' });
-  } catch(e) { console.warn('Error guardando refresh token:', e.message); }
-}
 
 function pedirConexionGoogle(onSuccess) {
   const existing = document.getElementById('modalGoogleConnect');
@@ -1341,6 +1329,7 @@ async function procesarOAuthCode(code, redirectUri) {
     const { data, error } = await sb.functions.invoke('google-oauth-exchange', {
       body: { code, redirect_uri: redirectUri, client_id: CLIENT_ID }
     });
+    console.log('oauth-exchange response:', JSON.stringify(data), error?.message);
     if(error || !data?.refresh_token) throw new Error(error?.message || 'Sin refresh_token');
     await saveGoogleRefreshToken(data.refresh_token);
     document.getElementById('modalGoogleConnect')?.remove();
@@ -1351,6 +1340,21 @@ async function procesarOAuthCode(code, redirectUri) {
     toast('ERROR AL CONECTAR GOOGLE: ' + e.message.slice(0,50), 'err');
     return false;
   }
+}
+
+async function saveGoogleRefreshToken(refreshToken) {
+  try {
+    const sb = getSB();
+    const { data: { user }, error: userError } = await sb.auth.getUser();
+    console.log('saveGoogleRefreshToken user:', user?.id, userError?.message);
+    if(!user) { console.warn('No user logged in'); return; }
+    const { error } = await sb.from('user_tokens').upsert({
+      user_id: user.id,
+      google_refresh_token: refreshToken,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    console.log('upsert result:', error?.message || 'OK');
+  } catch(e) { console.warn('Error guardando refresh token:', e.message); }
 }
 
 async function manejarOAuthCallback() {
