@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.58';
+const APP_VERSION = 'v3.59';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4585,7 +4585,6 @@ async function generarPDFDrive(d, esModificado=false) {
 
   const zonaCode = getZonaCode(d.zona);
   const baseNombre = `${d.centro}-${zonaCode}`;
-
   const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
   
   // Check for duplicates in the correct folder
@@ -4616,8 +4615,9 @@ async function generarPDFDrive(d, esModificado=false) {
       }
     );
     const copyData = await copyRes.json();
+    console.log('Copy plantilla response:', copyRes.status, JSON.stringify(copyData).slice(0,200));
     const newFileId = copyData.id;
-    if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA','err'); return; }
+    if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA: ' + (copyData.error?.message||copyRes.status), 'err'); return; }
 
     // Wait for Drive to finish copying
     toast('1/4 · COPIANDO PLANTILLA...','warn');
