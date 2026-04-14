@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.57';
+const APP_VERSION = 'v3.58';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4313,7 +4313,12 @@ async function escribirEnSupabase(d) {
       updated_at:  new Date().toISOString(),
     };
     const { error } = await sb.from('intervenciones').upsert(payload, { onConflict: 'int_id' });
-    if(error) console.warn('Supabase write warn:', error.message);
+    if(error) {
+      console.warn('Supabase write error:', error.message);
+      toast('ERROR GUARDANDO EN SUPABASE: ' + error.message.slice(0,60), 'err');
+    } else {
+      console.log('Supabase write ✓', payload.int_id);
+    }
     
   } catch(e) {
     console.warn('Supabase error (no crítico):', e.message);
