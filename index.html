@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.70';
+const APP_VERSION = 'v3.71';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1254,12 +1254,19 @@ async function getSAToken() {
 //  GOOGLE REFRESH TOKEN — Una vez para siempre
 // ═══════════════════════════════════════════════════
 async function getGoogleRefreshToken() {
+  // Primero localStorage (más rápido y no requiere auth)
+  const local = localStorage.getItem('t2-google-refresh');
+  if(local) return local;
+  // Luego Supabase si hay sesión
   try {
     const sb = getSB();
     const { data, error } = await sb.from('user_tokens').select('google_refresh_token').single();
-    console.log('getGoogleRefreshToken:', data?.google_refresh_token ? 'FOUND' : 'NULL', error?.message || '');
-    return data?.google_refresh_token || null;
-  } catch(e) { console.warn('getGoogleRefreshToken error:', e.message); return null; }
+    if(data?.google_refresh_token) {
+      localStorage.setItem('t2-google-refresh', data.google_refresh_token);
+      return data.google_refresh_token;
+    }
+  } catch(e) {}
+  return null;
 }
 
 
@@ -1312,6 +1319,7 @@ function iniciarOAuthGoogle() {
         const code = new URLSearchParams(popup.location.search).get('code');
         popup.close();
         if(code) {
+          // Ejecutar en ventana principal donde está la sesión de Supabase
           await procesarOAuthCode(code, redirectUri);
           if(window._onGoogleConnected) window._onGoogleConnected();
         }
@@ -1343,18 +1351,21 @@ async function procesarOAuthCode(code, redirectUri) {
 }
 
 async function saveGoogleRefreshToken(refreshToken) {
+  // Guardar en localStorage siempre
+  localStorage.setItem('t2-google-refresh', refreshToken);
+  // También en Supabase si hay sesión
   try {
     const sb = getSB();
     const { data: { user }, error: userError } = await sb.auth.getUser();
     console.log('saveGoogleRefreshToken user:', user?.id, userError?.message);
-    if(!user) { console.warn('No user logged in'); return; }
+    if(!user) { console.warn('No Supabase session — guardado solo en localStorage'); return; }
     const { error } = await sb.from('user_tokens').upsert({
       user_id: user.id,
       google_refresh_token: refreshToken,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
     console.log('upsert result:', error?.message || 'OK');
-  } catch(e) { console.warn('Error guardando refresh token:', e.message); }
+  } catch(e) { console.warn('Error guardando en Supabase:', e.message); }
 }
 
 async function manejarOAuthCallback() {
