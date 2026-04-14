@@ -10,6 +10,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1205,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.54';
+const APP_VERSION = 'v3.67';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1249,13 +1250,92 @@ async function getSAToken() {
   return null;
 }
 
+// ═══════════════════════════════════════════════════
+//  GOOGLE REFRESH TOKEN — Una vez para siempre
+// ═══════════════════════════════════════════════════
+async function getGoogleRefreshToken() {
+  try {
+    const sb = getSB();
+    const { data } = await sb.from('user_tokens').select('google_refresh_token').single();
+    return data?.google_refresh_token || null;
+  } catch(e) { return null; }
+}
+
+async function saveGoogleRefreshToken(refreshToken) {
+  try {
+    const sb = getSB();
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user) return;
+    await sb.from('user_tokens').upsert({
+      user_id: user.id,
+      google_refresh_token: refreshToken,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch(e) { console.warn('Error guardando refresh token:', e.message); }
+}
+
+function pedirConexionGoogle(onSuccess) {
+  const existing = document.getElementById('modalGoogleConnect');
+  if(existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'modalGoogleConnect';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--negro2);border-radius:16px;padding:32px;max-width:300px;width:100%;text-align:center;">
+      <div style="font-size:36px;margin-bottom:12px;">📄</div>
+      <div style="font-size:16px;font-weight:700;color:white;margin-bottom:8px;">Conectar Google Drive</div>
+      <div style="font-size:13px;color:var(--gris3);margin-bottom:24px;">Solo la primera vez. A partir de aquí los PDFs se generan automáticamente.</div>
+      <button onclick="iniciarOAuthGoogle()" style="width:100%;background:var(--rojo);color:white;border:none;border-radius:10px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;">Conectar ahora</button>
+      <button onclick="document.getElementById('modalGoogleConnect').remove()" style="width:100%;background:transparent;color:var(--gris3);border:none;padding:10px;cursor:pointer;margin-top:8px;font-size:13px;">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+  window._onGoogleConnected = onSuccess;
+}
+
+function iniciarOAuthGoogle() {
+  const cfg = getLS('t2-cfg') || {};
+  const clientId = cfg.clientId || CLIENT_ID;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+    access_type: 'offline',
+    prompt: 'consent',
+    state: 'google_oauth_pdf'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+async function manejarOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if(!code || state !== 'google_oauth_pdf') return false;
+  window.history.replaceState({}, document.title, window.location.pathname);
+  try {
+    toast('GUARDANDO CONEXIÓN GOOGLE...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('google-oauth-exchange', {
+      body: { code, redirect_uri: window.location.origin + window.location.pathname, client_id: CLIENT_ID }
+    });
+    if(error || !data?.refresh_token) throw new Error(error?.message || 'Sin refresh_token');
+    await saveGoogleRefreshToken(data.refresh_token);
+    toast('✓ GOOGLE DRIVE CONECTADO PARA SIEMPRE','ok');
+    return true;
+  } catch(e) {
+    console.error('OAuth callback error:', e);
+    toast('ERROR AL GUARDAR CONEXIÓN GOOGLE','err');
+    return false;
+  }
+}
+
 function iniciarRealtime() {
   try {
     const sb = getSB();
     // Canal para planificación e historial
     sb.channel('teleman2-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'planificacion' }, payload => {
-        console.log('Realtime planif:', payload.eventType);
         leerPlanificacionDrive().then(()=>{ renderPlanif(); renderStats(); });
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'intervenciones' }, payload => {
@@ -1428,46 +1508,7 @@ async function sincronizarConfig() {
     // Config cargada desde Supabase
     return true;
   } catch(e) {
-    console.warn('Error cargando config de Supabase, intentando Drive:', e.message);
-  }
-
-  // Fallback a Drive
-  try {
-    const sheets = ['Materiales','Frases','Tecnicos','Modelos_Remota','Baremos','Zonas','Solicitantes'];
-    const data = {};
-    for(const sheet of sheets) {
-      const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG_FILE_ID}/values/${sheet}!A2:D500`,'GET');
-      data[sheet] = res?.values || [];
-    }
-    if(data.Materiales.length) {
-      S.materiales = data.Materiales.map(r=>({cod:(r[0]||'').toUpperCase().trim(), desc:(r[1]||'').toUpperCase().trim()})).filter(m=>m.cod);
-      setLS('t2-mat', S.materiales); renderMaterialesOptions();
-    }
-    if(data.Frases.length) {
-      S.frases = data.Frases.map(r=>r[0]).filter(Boolean);
-      setLS('t2-fr', S.frases); renderFrasesConfig();
-    }
-    if(data.Tecnicos.length) {
-      const tecnicos = data.Tecnicos.map(r=>r[0]).filter(Boolean);
-      setLS('t2-tec', tecnicos); actualizarSelectTecnicos(tecnicos);
-    }
-    if(data.Modelos_Remota.length) {
-      const modelos = data.Modelos_Remota.map(r=>r[0]).filter(Boolean);
-      setLS('t2-modelos', modelos); actualizarSelectModelos(modelos);
-    }
-    if(data.Baremos.length) {
-      S.baremos = data.Baremos.map(r=>({cod:r[0]||'', desc:r[1]||'', pts:parseFloat(String(r[2]||'0').replace(',','.'))||0, fav:(r[3]||'').toUpperCase()==='SI'})).filter(b=>b.cod);
-      setLS('t2-bar', S.baremos); renderBaremosOptions();
-    }
-    if(data.Zonas.length) {
-      data.Zonas.forEach(r=>{ if(r[0]&&r[1]) ZONA_CODES[r[0].toUpperCase()]=r[1].toUpperCase(); });
-      actualizarSelectZonas(data.Zonas);
-    }
-    setLS('t2-config-ts', Date.now());
-    // Config cargada desde Drive (fallback)
-    return true;
-  } catch(e) {
-    console.error('Error sincronizando config:', e);
+    console.warn('Error cargando config:', e.message);
     return false;
   }
 }
@@ -1749,9 +1790,7 @@ function runSplash() {
   const hasLocalData = S.intervenciones.length > 0 || S.centros.length > 0;
 
   const syncInBackground = async () => {
-    if(!S.auth) return;
     try {
-      document.getElementById('syncLabel').textContent = 'Actualizando...';
       await sincronizarConfig();
       await leerHistorialDrive();
       await leerPlanificacionDrive();
@@ -1759,22 +1798,22 @@ function runSplash() {
       await leerRemotasDrive();
       setSyncStatus('ok');
       renderStats(); renderRecent(); checkAlertasInicio();
-      iniciarRealtime(); // Activar Realtime tras carga inicial
+      iniciarRealtime();
     } catch(e) { console.error('Background sync error:', e); }
   };
 
   const syncAll = async () => {
-    setProgress(55, 'SINCRONIZANDO CONFIGURACIÓN...');
+    setProgress(40, 'CARGANDO CONFIGURACIÓN...');
     await sincronizarConfig();
-    setProgress(68, 'CARGANDO HISTORIAL...');
+    setProgress(60, 'CARGANDO HISTORIAL...');
     await leerHistorialDrive();
-    setProgress(80, 'CARGANDO PLANIFICACIÓN...');
+    setProgress(75, 'CARGANDO PLANIFICACIÓN...');
     await leerPlanificacionDrive();
     renderPlanif();
-    setProgress(92, 'CARGANDO INSTALACIONES...');
+    setProgress(90, 'CARGANDO INSTALACIONES...');
     await leerRemotasDrive();
     finishSplash();
-    iniciarRealtime(); // Activar Realtime
+    iniciarRealtime();
   };
 
   const doSplashContinue = async (cfg) => {
@@ -1782,6 +1821,10 @@ function runSplash() {
       setProgress(100, 'CARGANDO...');
       await new Promise(r=>setTimeout(r,300));
       finishSplash();
+      // Procesar callback OAuth si venimos de Google
+      if(window.location.search.includes('code=') && window.location.search.includes('google_oauth_pdf')) {
+        setTimeout(() => manejarOAuthCallback(), 500);
+      }
       // SA token en background
       setTimeout(async function() {
         var t = await getSAToken();
@@ -1794,6 +1837,10 @@ function runSplash() {
     var t = await getSAToken();
     if(t){ S.auth=t; await syncAll(); }
     else { setProgress(50,'SIN CONEXIÓN'); await new Promise(r=>setTimeout(r,1000)); finishSplash(); }
+    // Procesar callback OAuth si venimos de Google
+    if(window.location.search.includes('code=') && window.location.search.includes('google_oauth_pdf')) {
+      setTimeout(() => manejarOAuthCallback(), 1000);
+    }
   }; // end doSplashContinue
 
   const doSplash = async () => {
@@ -1846,7 +1893,6 @@ window.onload = () => {
   loadConfig();
   // Renovar token SA cada 50 minutos
   setInterval(async function(){
-    _saToken=null;
     var t=await getSAToken();
     if(t){ S.auth=t; setSyncStatus('ok'); }
   }, 50*60*1000);
@@ -2525,46 +2571,32 @@ async function generarInforme() {
       return;
     }
     const isEdit = !!d._esEdicion;
-    if(S.auth) {
-      if(isEdit) {
-        await actualizarEnSheets(d);
-        actualizarEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
-        const pdfOk = await generarPDFDrive(d, true); // true = modified folder
-        if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
-        else toast('EXCEL ACTUALIZADO. ERROR AL GENERAR PDF','warn');
-      } else {
-        await guardarEnSheets(d);
-        escribirEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
-        const pdfOk = await generarPDFDrive(d);
-        if(pdfOk) {
-          toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-          añadirFilaCertificacion(d);
-        } else {
-          toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
-        }
-      }
-      if(S._planifId) {
-        // Marcar como COMPLETADO en local (no filtrar, para que Realtime no lo vuelva a añadir)
-        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
-        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
-        setLS('t2-pl', S.planificacion);
-        renderPlanif();
-        completarPlanifDrive(S._planifId);
-        S._planifId = null;
-      }
+    // Asegurar token SA
+    if(!S.auth) { const t = await getSAToken(); if(t) S.auth = t; }
+    if(isEdit) {
+      actualizarEnSupabase(d).catch(()=>{});
+      if(S.auth) await actualizarEnSheets(d);
+      const pdfOk = await generarPDFviaEdge(d, true);
+      if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
+      else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
-      const zc = getZonaCode(d.zona);
-      const fd = (d.fecha||'').replace(/-/g,'');
-      // Completar planif aunque no haya auth
-      if(S._planifId) {
-        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
-        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
-        setLS('t2-pl', S.planificacion);
-        renderPlanif();
-        actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
-        S._planifId = null;
+      await escribirEnSupabase(d);
+      const pdfOk = await generarPDFviaEdge(d);
+      if(pdfOk) {
+        toast('INFORME GENERADO ✓','ok');
+        añadirFilaCertificacion(d);
+      } else {
+        toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
-      toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
+    }
+    if(S._planifId) {
+      const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+      if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
+      setLS('t2-pl', S.planificacion);
+      renderPlanif();
+      completarPlanifDrive(S._planifId); // legacy - mantener por compatibilidad
+      actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
+      S._planifId = null;
     }
     document.getElementById('estadoBorrador').textContent='Generado ✓';
     document.getElementById('estadoBorrador').className='badge badge-green';
@@ -2739,25 +2771,20 @@ async function cancelarVyP(id) {
     }
     // Delete calendar event if exists
     if(cancelP?.calEventId) {
-      const authToken = S.auth || await getSAToken();
-      if(authToken) {
-        fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent('vyptelemandos@gmail.com')}/events/${cancelP.calEventId}`, {
-          method:'DELETE', headers:{'Authorization':'Bearer '+authToken}
-        }).then(()=>toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok'));
-      }
+      const doDelete = async () => {
+        const tok = S.auth || await getSAToken();
+        if(!tok) return;
+        const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent('vyptelemandos@gmail.com')}/events/${cancelP.calEventId}`, {
+          method:'DELETE', headers:{'Authorization':'Bearer '+tok}
+        });
+        if(r.ok || r.status===410) toast('📅 EVENTO ELIMINADO DEL CALENDARIO','ok');
+        else toast('ERROR AL ELIMINAR EVENTO','err');
+      };
+      doDelete();
     }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
     setLS('t2-pl',S.planificacion); renderPlanif(); renderStats();
-    // Mark as CANCELADO in Drive
-    if(S.auth) {
-      gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A:A`,'GET').then(res=>{
-        if(!res?.values) return;
-        const rowIdx = res.values.findIndex(r=>r[0]===id);
-        if(rowIdx<0) return;
-        gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!J${rowIdx+1}?valueInputOption=RAW`,'PUT',{values:[['CANCELADO']]});
-      });
-      actualizarEstadoPlanifSupabase(id, 'CANCELADO').catch(()=>{});
-    }
+    actualizarEstadoPlanifSupabase(id, 'CANCELADO').catch(()=>{});
     toast('TRABAJO CANCELADO');
   }
 }
@@ -2789,23 +2816,6 @@ function switchTab(tab) {
   if(tab==='stats') renderStatsPage();
   if(tab==='horas') { const m=document.getElementById('horas-mes'); if(m&&!m.value) m.value=new Date().toISOString().slice(0,7); }
   if(tab==='cfg') renderZonasCC();
-  return; // old code below no longer needed
-  const statsContent = document.getElementById('tab-stats-content');
-  const cfgContent = document.getElementById('tab-cfg-content');
-  const tabStats = document.getElementById('tab-stats');
-  const tabCfg = document.getElementById('tab-cfg');
-  if(!statsContent||!cfgContent) return;
-  if(tab==='stats') {
-    statsContent.style.display='block'; cfgContent.style.display='none';
-    tabStats.style.background='var(--rojo)'; tabStats.style.color='white';
-    tabCfg.style.background='transparent'; tabCfg.style.color='var(--gris4)';
-    renderStatsPage();
-  } else {
-    statsContent.style.display='none'; cfgContent.style.display='block';
-    tabCfg.style.background='var(--rojo)'; tabCfg.style.color='white';
-    tabStats.style.background='transparent'; tabStats.style.color='var(--gris4)';
-    setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderModelosConfig(); loadConfig(); },50);
-  }
 }
 
 function abrirMapsCoord(targetId) {
@@ -2994,7 +3004,6 @@ function addVyPManual() {
   setLS('t2-pl',S.planificacion);
   
   if(S.auth) {
-    escribirPlanifDrive(newPlanif);
     crearEventoCalendario(newPlanif);
   }
   else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
@@ -4368,7 +4377,12 @@ async function escribirEnSupabase(d) {
       updated_at:  new Date().toISOString(),
     };
     const { error } = await sb.from('intervenciones').upsert(payload, { onConflict: 'int_id' });
-    if(error) console.warn('Supabase write warn:', error.message);
+    if(error) {
+      console.warn('Supabase write error:', error.message);
+      toast('ERROR GUARDANDO EN SUPABASE: ' + error.message.slice(0,60), 'err');
+    } else {
+      console.log('Supabase write ✓', payload.int_id);
+    }
     
   } catch(e) {
     console.warn('Supabase error (no crítico):', e.message);
@@ -4628,14 +4642,289 @@ async function moverAProcesados(fileId) {
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 // ═══════════════════════════════════════════════════
-//  GENERAR PDF RELLENANDO PLANTILLA EN DRIVE
+//  GENERAR PDF LOCAL — replica exacta plantilla
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  GENERAR PDF VIA EDGE FUNCTION (Service Account)
+// ═══════════════════════════════════════════════════
+async function generarPDFviaEdge(d, esModificado=false) {
+  try {
+    const refreshToken = await getGoogleRefreshToken();
+    console.log('refreshToken:', refreshToken ? 'FOUND' : 'NULL');
+    if(!refreshToken) {
+      console.log('Mostrando modal Google...');
+      pedirConexionGoogle(() => generarPDFviaEdge(d, esModificado));
+      return false;
+    }
+    toast('GENERANDO PDF...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('generar-pdf-sa', {
+      body: { ...d, _esEdicion: esModificado, _refreshToken: refreshToken }
+    });
+    if(error) throw new Error(error.message);
+    if(!data?.ok) throw new Error(data?.error || 'Error desconocido');
+    toast('✓ PDF GENERADO EN DRIVE','ok');
+    return true;
+  } catch(e) {
+    console.error('generarPDFviaEdge error:', e);
+    toast('ERROR PDF: ' + e.message.slice(0,60), 'err');
+    return false;
+  }
+}
+
+async function generarPDFLocal(d, esModificado=false) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+    // Página A4: 210 x 297mm, márgenes 8mm
+    const ML = 8, MT = 8, CW = 194; // content width
+
+    // Paleta — igual que la plantilla
+    const ROJO  = [192,  0,  0];  // C00000
+    const GRIS  = [216,216,216];  // D8D8D8
+    const TGRIS = [ 63, 63, 63];  // 3F3F3F
+    const NEGRO = [ 0,   0,  0];
+    const BLANC = [255,255,255];
+
+    // Proporciones de columnas tomadas de la plantilla (anchos relativos):
+    // CENTRO=15cols, sep=1, FECHA=10cols, sep=1, ZONA=10cols, sep=1, TDC=15cols
+    // Total 54 cols → CW=194mm
+    // col A..O=15, sep P=1, Q..Z=10, sep AA=0.5, AB..AL=11, sep AM=1, AN..BB=15
+    const C = {
+      centro:  { x: ML,                   w: 70  },
+      fecha:   { x: ML+70+1,              w: 42  },
+      zona:    { x: ML+70+1+42+1,         w: 42  },
+      tdc:     { x: ML+70+1+42+1+42+1,    w: 37  },
+    };
+    C.tdc.w = CW - (C.tdc.x - ML); // fill rest
+
+    // Filas 5-6: técnicos (la plantilla los pone Q5..AL y AC5..BB, pero en la plantilla
+    // real TÉCNICO1 empieza en Q, TÉCNICO2 en AC — eso es aprox 50% cada uno)
+    const C2 = {
+      tec1: { x: ML,       w: CW/2 - 0.5 },
+      tec2: { x: ML+CW/2+0.5, w: CW/2 - 0.5 },
+    };
+
+    // Filas 7-8: alias, población, solicitante
+    const C3 = {
+      alias:  { x: ML,       w: 70 },
+      pobla:  { x: ML+70+1,  w: 62 },
+      solic:  { x: ML+70+1+62+1, w: 0 },
+    };
+    C3.solic.w = CW - (C3.solic.x - ML);
+
+    // Filas 12-13: resultado, descargo/VyP, motivo
+    const C4 = {
+      res:    { x: ML,       w: 56 },
+      vyp:    { x: ML+56+1,  w: 70 },
+      motivo: { x: ML+56+1+70+1, w: 0 },
+    };
+    C4.motivo.w = CW - (C4.motivo.x - ML);
+
+    // Filas 14-15: maniobras, tipo, marca/modelo, vale, trace
+    const C5 = {
+      man:    { x: ML,      w: 26 },
+      tipo:   { x: ML+26+1, w: 28 },
+      modelo: { x: ML+26+1+28+1, w: 88 },
+      vale:   { x: ML+26+1+28+1+88+1, w: 28 },
+      trace:  { x: ML+26+1+28+1+88+1+28+1, w: 0 },
+    };
+    C5.trace.w = CW - (C5.trace.x - ML);
+
+    // ─── helpers ───────────────────────────────────
+    const rH = 7.5;  // row height
+
+    const labelCell = (x, y, w, h, label, value, opts={}) => {
+      doc.setFillColor(...GRIS);
+      doc.rect(x, y, w, h, 'F');
+      doc.setDrawColor(180,180,180);
+      doc.setLineWidth(0.15);
+      doc.rect(x, y, w, h, 'S');
+      // label
+      doc.setFontSize(opts.labelFs || 6.5);
+      doc.setFont('helvetica','bold');
+      doc.setTextColor(...TGRIS);
+      doc.text(label, x+1.5, y+3.8);
+      // value
+      if(value !== undefined && value !== null && String(value).trim() !== '') {
+        const fs = opts.fs || 9;
+        doc.setFontSize(fs);
+        doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+        doc.setTextColor(...NEGRO);
+        const vStr = String(value).toUpperCase();
+        const lines = doc.splitTextToSize(vStr, w - 3);
+        doc.text(lines[0], x+1.5, y + h - 2.2);
+      }
+    };
+
+    let y = MT;
+
+    // ─── TÍTULO fila 1 ─────────────────────────────
+    doc.setFillColor(...ROJO);
+    doc.rect(ML, y, CW, 10, 'F');
+    doc.setFontSize(13);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...BLANC);
+    doc.text('INTERVENCIÓN  EN  CENTRO TELECONTROLADO', ML + CW/2, y+7, {align:'center'});
+    y += 10 + 1;
+
+    // ─── FILA CENTRO/FECHA/ZONA/TDC ────────────────
+    const h1 = 14; // label row (3) + value row (4+6) combined
+    labelCell(C.centro.x, y, C.centro.w, h1, 'CENTRO', d.centro, {fs:13, bold:true});
+    labelCell(C.fecha.x,  y, C.fecha.w,  h1, 'FECHA',
+      d.fecha ? new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}) : '');
+    labelCell(C.zona.x,   y, C.zona.w,   h1, 'ZONA',   d.zona);
+    labelCell(C.tdc.x,    y, C.tdc.w,    h1, 'TDC',    d.tdc, {fs:16, bold:true});
+    y += h1 + 1;
+
+    // ─── TÉCNICO 1 / 2 ─────────────────────────────
+    const h2 = 13;
+    labelCell(C2.tec1.x, y, C2.tec1.w, h2, 'TÉCNICO 1', d.tec1, {fs:10, bold:true});
+    labelCell(C2.tec2.x, y, C2.tec2.w, h2, 'TÉCNICO 2', d.tec2, {fs:10, bold:true});
+    y += h2 + 1;
+
+    // ─── ALIAS / POBLACIÓN / SOLICITANTE ───────────
+    const h3 = 13;
+    labelCell(C3.alias.x, y, C3.alias.w, h3, 'ALIAS',       d.alias);
+    labelCell(C3.pobla.x, y, C3.pobla.w, h3, 'POBLACIÓN',   d.poblacion);
+    labelCell(C3.solic.x, y, C3.solic.w, h3, 'SOLICITANTE', d.solicitante);
+    y += h3 + 3;
+
+    // ─── RESULTADO / DESCARGO VyP / MOTIVO ─────────
+    const h4 = 13;
+    labelCell(C4.res.x,    y, C4.res.w,    h4, 'RESULTADO',    d.resultado);
+    labelCell(C4.vyp.x,    y, C4.vyp.w,    h4, 'DESCARGO VyP', d.vyp);
+    labelCell(C4.motivo.x, y, C4.motivo.w, h4, 'MOTIVO',       d.motivo);
+    y += h4 + 1;
+
+    // ─── MANIOBRAS / TIPO / MARCA-MODELO / VALE / TRACE ─
+    const h5 = 13;
+    labelCell(C5.man.x,    y, C5.man.w,    h5, 'MANIOBRAS',    d.maniobras||'NO');
+    labelCell(C5.tipo.x,   y, C5.tipo.w,   h5, 'TIPO',         d.tipo);
+    labelCell(C5.modelo.x, y, C5.modelo.w, h5, 'MARCA / MODELO', d.modelo);
+    labelCell(C5.vale.x,   y, C5.vale.w,   h5, 'VALE A1',      d.vale ? 'SÍ' : 'NO');
+    labelCell(C5.trace.x,  y, C5.trace.w,  h5, 'TRACE',        d.trace ? 'OK' : '');
+    y += h5 + 2;
+
+    // ─── RESOLUCIÓN ────────────────────────────────
+    doc.setFillColor(...ROJO);
+    doc.rect(ML, y, CW, 6, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...BLANC);
+    doc.text('RESOLUCIÓN', ML+1.5, y+4.2);
+    y += 6;
+
+    const resStr = String(d.resolucion||'').toUpperCase();
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(...NEGRO);
+    const resLines = doc.splitTextToSize(resStr, CW - 3);
+    const resH = Math.max(18, resLines.length * 5 + 5);
+    doc.setFillColor(250,250,250);
+    doc.rect(ML, y, CW, resH, 'F');
+    doc.setDrawColor(180,180,180);
+    doc.rect(ML, y, CW, resH, 'S');
+    doc.text(resLines, ML+1.5, y+5);
+    y += resH + 2;
+
+    // ─── BAREMOS | MATERIALES ──────────────────────
+    const hasB = Array.isArray(d.baremos)   && d.baremos.length   > 0;
+    const hasM = Array.isArray(d.materiales) && d.materiales.length > 0;
+    const colW = (CW - 1) / 2;
+
+    if(hasB || hasM) {
+      const xB = ML, xM = ML + colW + 1;
+
+      if(hasB) {
+        doc.setFillColor(...ROJO);
+        doc.rect(xB, y, colW, 6, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...BLANC);
+        doc.text('UNIDADES', xB+1.5, y+4.2);
+      }
+      if(hasM) {
+        doc.setFillColor(...ROJO);
+        doc.rect(xM, y, colW, 6, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...BLANC);
+        doc.text('MATERIALES', xM+1.5, y+4.2);
+      }
+      y += 6;
+
+      const nRows = Math.max(hasB ? d.baremos.length : 0, hasM ? d.materiales.length : 0);
+      for(let i=0; i<nRows; i++) {
+        const rowH = 8;
+        // baremo
+        if(hasB && d.baremos[i]) {
+          const b = d.baremos[i];
+          doc.setFillColor(...GRIS);
+          doc.rect(xB, y, colW, rowH, 'F');
+          doc.setDrawColor(180,180,180); doc.rect(xB, y, colW, rowH, 'S');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...NEGRO);
+          doc.text(`${b.cod} X ${b.ud}`, xB+1.5, y+5.5);
+          doc.setFont('helvetica','normal');
+          const dl = doc.splitTextToSize(String(b.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', xB+28, y+5.5);
+        }
+        // material
+        if(hasM && d.materiales[i]) {
+          const m = d.materiales[i];
+          doc.setFillColor(...GRIS);
+          doc.rect(xM, y, colW, rowH, 'F');
+          doc.setDrawColor(180,180,180); doc.rect(xM, y, colW, rowH, 'S');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...NEGRO);
+          doc.text(`${m.cod} X ${m.qty}`, xM+1.5, y+5.5);
+          doc.setFont('helvetica','normal');
+          const dl = doc.splitTextToSize(String(m.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', xM+28, y+5.5);
+        }
+        y += rowH;
+      }
+    }
+
+    // ─── Guardar ───────────────────────────────────
+    const zonaCode = getZonaCode(d.zona);
+    const nombre = `${d.centro}-${zonaCode}.pdf`;
+    doc.save(nombre);
+
+    if(S.auth) {
+      try {
+        const blob = doc.output('blob');
+        await subirPDFaDrive(blob, nombre, esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES, d);
+      } catch(e) { console.warn('Drive upload:', e.message); }
+    }
+    return true;
+  } catch(e) {
+    console.error('Error PDF:', e);
+    toast('ERROR AL GENERAR PDF: ' + e.message, 'err');
+    return false;
+  }
+}
+
+async function subirPDFaDrive(blob, nombre, carpeta, d) {
+  const metadata = { name: nombre, parents: [carpeta], mimeType: 'application/pdf' };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+  form.append('file', blob);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + S.auth },
+    body: form
+  });
+  const data = await res.json();
+  if(data.id) {
+    const iv = S.intervenciones.find(x=>x.intId===d.intId);
+    if(iv) { iv.driveFileId = data.id; setLS('t2-iv', S.intervenciones); }
+    toast('✓ PDF GUARDADO EN DRIVE', 'ok');
+  } else {
+    console.warn('Drive upload error:', JSON.stringify(data).slice(0,100));
+  }
+}
 async function generarPDFDrive(d, esModificado=false) {
   if(!S.auth) { toast('CONECTA DRIVE PARA GENERAR EL PDF','warn'); return; }
 
   const zonaCode = getZonaCode(d.zona);
   const baseNombre = `${d.centro}-${zonaCode}`;
-
   const carpetaDestino = esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES;
   
   // Check for duplicates in the correct folder
@@ -4659,15 +4948,16 @@ async function generarPDFDrive(d, esModificado=false) {
   try {
     // 1. Copy plantilla to new file
     const copyRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy`,
+      `https://www.googleapis.com/drive/v3/files/${PLANTILLA_ID}/copy?supportsAllDrives=true`,
       { method:'POST',
         headers:{'Authorization':'Bearer '+S.auth,'Content-Type':'application/json'},
         body: JSON.stringify({name: nombreArchivo, parents:[carpetaDestino]})
       }
     );
     const copyData = await copyRes.json();
+    console.log('Copy plantilla response:', copyRes.status, JSON.stringify(copyData).slice(0,200));
     const newFileId = copyData.id;
-    if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA','err'); return; }
+    if(!newFileId) { toast('ERROR AL COPIAR PLANTILLA: ' + (copyData.error?.message||copyRes.status), 'err'); return; }
 
     // Wait for Drive to finish copying
     toast('1/4 · COPIANDO PLANTILLA...','warn');
@@ -4888,7 +5178,6 @@ async function generarPDFDrive(d, esModificado=false) {
 //  LEER HISTORIAL DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerHistorialDrive() {
-  // Primero Supabase
   try {
     const sb = getSB();
     let allData = [];
@@ -4928,60 +5217,20 @@ async function leerHistorialDrive() {
       }));
       setLS('t2-iv', S.intervenciones);
       renderStats(); renderRecent();
-      
       return true;
     }
   } catch(e) {
-    console.warn('Error leyendo historial de Supabase, intentando Drive:', e.message);
+    console.warn('Error leyendo historial:', e.message);
   }
-
-  // Fallback a Drive
-  try {
-    const res1 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A2:BB1500`,'GET');
-    
-    if(!res1) { toast('SIN RESPUESTA DE DRIVE - VERIFICA PERMISOS','err'); return false; }
-    const res2 = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${HISTORIAL_ID}/values/HISTORICO!A1502:BB3100`,'GET');
-    
-    const allRows = [...(res1?.values||[]), ...(res2?.values||[])];
-    if(!allRows.length) { toast('HISTORIAL VACÍO O SIN ACCESO','err'); return false; }
-    S.intervenciones = allRows.map((row,i)=>{
-      const baremos = [];
-      for(let b=0;b<6;b++) { const cod=(row[18+b*3]||'').toString().trim(); if(cod) baremos.push({cod,ud:parseFloat(row[19+b*3])||0,desc:(row[20+b*3]||'').toString().trim()}); }
-      const materiales = [];
-      for(let m=0;m<6;m++) { const cod=(row[36+m*3]||'').toString().trim(); if(cod) materiales.push({cod,qty:parseFloat(row[37+m*3])||0,desc:(row[38+m*3]||'').toString().trim()}); }
-      return {
-        intId:(row[0]||'INT-'+String(i+1).padStart(5,'0')).toString().trim(),
-        centro:(row[1]||'').toUpperCase().trim(), fecha:parseDateStr(row[2]||''),
-        tec1:(row[3]||'').toUpperCase().trim(), tec2:(row[4]||'').toUpperCase().trim(),
-        alias:(row[5]||'').toUpperCase().trim(), zona:(row[6]||'').toUpperCase().trim(),
-        poblacion:(row[7]||'').toUpperCase().trim(), resultado:(row[8]||'').toUpperCase().trim(),
-        vyp:(row[9]||'').toString().trim(), tdc:(row[10]||'').toString().trim(),
-        motivo:(row[11]||'').toUpperCase().trim(), maniobras:(row[12]||'').toUpperCase().trim(),
-        tipo:(row[13]||'').toUpperCase().trim(), modelo:(row[14]||'').toUpperCase().trim(),
-        resolucion:(row[15]||'').toUpperCase().trim(),
-        vale:(row[16]||'').toUpperCase()==='SI', trace:(row[17]||'').toUpperCase()==='OK',
-        baremos, materiales,
-      };
-    }).filter(iv=>iv.centro);
-    setLS('t2-iv', S.intervenciones);
-    renderStats(); renderRecent();
-    
-    return true;
-  } catch(e) {
-    console.error('Error leyendo historial:', e);
-    toast('ERROR HISTORIAL: '+e.message,'err');
-    return false;
-  }
+  return false;
 }
 
 // ═══════════════════════════════════════════════════
 //  LEER PARQUE DE REMOTAS DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerRemotasDrive() {
-  // Primero intentamos Supabase — más rápido y completo
   try {
     const sb = getSB();
-    // Supabase devuelve máx 1000 por defecto, usamos range para paginar
     let allCentros = [];
     let from = 0;
     const pageSize = 1000;
@@ -4994,7 +5243,6 @@ async function leerRemotasDrive() {
       from += pageSize;
     }
     if(allCentros.length) {
-      // Mapear de snake_case (Supabase) a PascalCase (app)
       S.centros = allCentros.map(c=>({
         Nombre:             c.nombre||'',
         Alias:              c.alias||'',
@@ -5021,34 +5269,12 @@ async function leerRemotasDrive() {
       setLS('t2-ct', S.centros);
       checkAlertasInicio();
       renderCentroSelects();
-      
       return true;
     }
   } catch(e) {
-    console.warn('Error leyendo centros de Supabase, intentando Drive:', e.message);
+    console.warn('Error leyendo centros:', e.message);
   }
-
-  // Fallback a Drive si Supabase falla
-  try {
-    const hRes = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A1:Z1`,'GET');
-    const headers = hRes?.values?.[0] || [];
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${REMOTAS_ID}/values/REMOTAS!A2:Z5000`,'GET');
-    if(!res?.values) return false;
-    S.centros = res.values.map(row=>{
-      const obj={};
-      headers.forEach((h,i)=>{ if(h) obj[h]=row[i]||''; });
-      return obj;
-    });
-    setLS('t2-ct', S.centros);
-    checkAlertasInicio();
-    renderCentroSelects();
-    
-    return true;
-  } catch(e) {
-    console.error('Error leyendo remotas:', e);
-    toast('ERROR REMOTAS: '+e.message,'err');
-    return false;
-  }
+  return false;
 }
 
 // escribirIntervDrive = alias of guardarEnSheets
@@ -5243,14 +5469,11 @@ function resetearDatosLocales() {
 //  PLANIFICACIÓN EN DRIVE
 // ═══════════════════════════════════════════════════
 async function leerPlanificacionDrive() {
-  // Primero Supabase
   try {
     const sb = getSB();
     const { start, end } = getSemanaActual();
     const semStart = start.toISOString().slice(0,10);
     const semEnd = end.toISOString().slice(0,10);
-
-    // Traer pendientes + completadas/canceladas de esta semana
     const { data, error } = await sb.from('planificacion')
       .select('*')
       .or(`estado.not.in.("COMPLETADO","CANCELADO"),and(fecha.gte.${semStart},fecha.lt.${semEnd})`)
@@ -5273,42 +5496,19 @@ async function leerPlanificacionDrive() {
         calEventId:  r.cal_event_id||null,
       }));
       setLS('t2-pl', S.planificacion);
-      
       return true;
     }
   } catch(e) {
-    console.warn('Error leyendo planificación de Supabase, intentando Drive:', e.message);
+    console.warn('Error leyendo planificación:', e.message);
   }
-
-  // Fallback a Drive
-  try {
-    const res = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${PLANIFICACION_ID}/values/PLANIFICACION!A2:L500`,'GET');
-    if(!res?.values) return false;
-    S.planificacion = res.values.map(row=>({
-      id:          row[0]||'PL-'+Date.now(),
-      centro:      (row[1]||'').toUpperCase(),
-      alias:       (row[2]||'').toUpperCase(),
-      fecha:       row[3]||'',
-      hora:        row[4]||'',
-      vyp:         row[5]||'',
-      tdc:         row[6]||'',
-      trabajo:     (row[7]||'').toUpperCase(),
-      coord:       row[8]||'',
-      estado:      row[9]||'PENDIENTE',
-      solicitante: (row[10]||'').toUpperCase(),
-      telefono:    row[11]||'',
-    })).filter(p=>p.centro && p.estado!=='COMPLETADO' && p.estado!=='CANCELADO');
-    setLS('t2-pl', S.planificacion);
-    
-    return true;
-  } catch(e) { console.error('Error leyendo planificación:', e); return false; }
+  return false;
 }
 
 async function crearEventoCalendario(p) {
-  // Asegurar token SA fresco
   if(!S.auth) {
     const t = await getSAToken();
-    if(t) S.auth = t; else return;
+    if(!t) return;
+    S.auth = t;
   }
   try {
     const fecha = p.fecha || hoy();
