@@ -1226,7 +1226,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.74';
+const APP_VERSION = 'v3.75';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4779,14 +4779,9 @@ async function añadirFilaCertificacion(d) {
     const lcl = digitos === 10 ? tdc : '';
 
     const row = [
-      '',
-      lcl,
-      tdc,
+      '', lcl, tdc,
       fmtDateExcel(d.fecha)||'',
-      d.zona||'',
-      d.poblacion||'',
-      d.alias||'',
-      d.centro||'',
+      d.zona||'', d.poblacion||'', d.alias||'', d.centro||'',
       '', '', '', '',
     ];
 
@@ -4794,8 +4789,14 @@ async function añadirFilaCertificacion(d) {
     const { data, error } = await sb.functions.invoke('generar-pdf-sa', {
       body: { _accion: 'certificacion', _refreshToken: refreshToken, _row: row }
     });
-    if(error) console.warn('Error certificación:', error.message);
-  } catch(e) { console.error('Error certificación:', e); }
+    if(error || !data?.ok) {
+      console.warn('Error certificación:', error?.message || data?.error);
+      toast('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+    }
+  } catch(e) {
+    console.error('Error certificación:', e);
+    toast('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+  }
 }
 
 async function moverAProcesados(fileId) {
