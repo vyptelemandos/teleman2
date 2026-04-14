@@ -1226,7 +1226,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.73';
+const APP_VERSION = 'v3.74';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4770,31 +4770,31 @@ async function buscarOcrearCertExcel() {
 }
 
 async function añadirFilaCertificacion(d) {
-  if(!S.auth) return;
   try {
-    const certId = await buscarOcrearCertExcel();
-    if(!certId) return;
+    const refreshToken = await getGoogleRefreshToken();
+    if(!refreshToken) { console.warn('Sin refresh token para certificación'); return; }
 
     const tdc = String(d.tdc||'').trim();
     const digitos = tdc.replace(/\D/g,'').length;
     const lcl = digitos === 10 ? tdc : '';
 
     const row = [
-      '',           // COMENTARIOS - oficina
-      lcl,          // LCL - solo si 10 dígitos
-      tdc,          // TICKET/TDC - siempre
-      fmtDateExcel(d.fecha)||'',  // FECHA REALIZACION
-      d.zona||'',   // ZONA
-      d.poblacion||'', // POBLACION
-      d.alias||'',  // DIRECCION (alias)
-      d.centro||'', // CT
-      '',           // COD NAVISION - oficina
-      '',           // FECHA CERTIFICACION - oficina
-      '',           // IMPORTE - oficina
-      '',           // FECHA FACTURACION - oficina
+      '',
+      lcl,
+      tdc,
+      fmtDateExcel(d.fecha)||'',
+      d.zona||'',
+      d.poblacion||'',
+      d.alias||'',
+      d.centro||'',
+      '', '', '', '',
     ];
 
-    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${certId}/values/Hoja1!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,'POST',{values:[row]});
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('generar-pdf-sa', {
+      body: { _accion: 'certificacion', _refreshToken: refreshToken, _row: row }
+    });
+    if(error) console.warn('Error certificación:', error.message);
   } catch(e) { console.error('Error certificación:', e); }
 }
 
