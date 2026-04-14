@@ -1205,7 +1205,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.56';
+const APP_VERSION = 'v3.57';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2482,46 +2482,40 @@ async function generarInforme() {
       return;
     }
     const isEdit = !!d._esEdicion;
-    if(S.auth) {
-      if(isEdit) {
+    // Asegurar token SA
+    if(!S.auth) { const t = await getSAToken(); if(t) S.auth = t; }
+    if(isEdit) {
+      actualizarEnSupabase(d).catch(()=>{});
+      if(S.auth) {
         await actualizarEnSheets(d);
-        actualizarEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
-        const pdfOk = await generarPDFDrive(d, true); // true = modified folder
+        const pdfOk = await generarPDFDrive(d, true);
         if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
-        else toast('EXCEL ACTUALIZADO. ERROR AL GENERAR PDF','warn');
+        else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
       } else {
-        await guardarEnSheets(d);
-        escribirEnSupabase(d).catch(()=>{}); // Supabase en paralelo, no bloquea
-        const pdfOk = await generarPDFDrive(d);
-        if(pdfOk) {
-          toast('INFORME GENERADO Y GUARDADO EN DRIVE ✓','ok');
-          añadirFilaCertificacion(d);
-        } else {
-          toast('EXCEL GUARDADO. ERROR AL GENERAR PDF','warn');
-        }
-      }
-      if(S._planifId) {
-        // Marcar como COMPLETADO en local (no filtrar, para que Realtime no lo vuelva a añadir)
-        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
-        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
-        setLS('t2-pl', S.planificacion);
-        renderPlanif();
-        completarPlanifDrive(S._planifId);
-        S._planifId = null;
+        toast('INFORME MODIFICADO EN SUPABASE ✓','ok');
       }
     } else {
-      const zc = getZonaCode(d.zona);
-      const fd = (d.fecha||'').replace(/-/g,'');
-      // Completar planif aunque no haya auth
-      if(S._planifId) {
-        const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
-        if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
-        setLS('t2-pl', S.planificacion);
-        renderPlanif();
-        actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
-        S._planifId = null;
+      await escribirEnSupabase(d);
+      if(S.auth) {
+        const pdfOk = await generarPDFDrive(d);
+        if(pdfOk) {
+          toast('INFORME GENERADO Y GUARDADO ✓','ok');
+          añadirFilaCertificacion(d);
+        } else {
+          toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
+        }
+      } else {
+        toast('INFORME GUARDADO EN SUPABASE ✓','ok');
       }
-      toast(`GUARDADO LOCALMENTE: ${d.centro}-${zc}-${fd}`,'ok');
+    }
+    if(S._planifId) {
+      const idx = S.planificacion.findIndex(x=>x.id===S._planifId);
+      if(idx>=0) S.planificacion[idx].estado = 'COMPLETADO';
+      setLS('t2-pl', S.planificacion);
+      renderPlanif();
+      completarPlanifDrive(S._planifId); // legacy - mantener por compatibilidad
+      actualizarEstadoPlanifSupabase(S._planifId, 'COMPLETADO').catch(()=>{});
+      S._planifId = null;
     }
     document.getElementById('estadoBorrador').textContent='Generado ✓';
     document.getElementById('estadoBorrador').className='badge badge-green';
