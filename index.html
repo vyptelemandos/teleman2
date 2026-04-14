@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.68';
+const APP_VERSION = 'v3.69';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1256,9 +1256,10 @@ async function getSAToken() {
 async function getGoogleRefreshToken() {
   try {
     const sb = getSB();
-    const { data } = await sb.from('user_tokens').select('google_refresh_token').single();
+    const { data, error } = await sb.from('user_tokens').select('google_refresh_token').single();
+    console.log('getGoogleRefreshToken:', data?.google_refresh_token ? 'FOUND' : 'NULL', error?.message || '');
     return data?.google_refresh_token || null;
-  } catch(e) { return null; }
+  } catch(e) { console.warn('getGoogleRefreshToken error:', e.message); return null; }
 }
 
 async function saveGoogleRefreshToken(refreshToken) {
