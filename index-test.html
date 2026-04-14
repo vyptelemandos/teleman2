@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.61';
+const APP_VERSION = 'v3.63';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4571,184 +4571,413 @@ async function moverAProcesados(fileId) {
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 // ═══════════════════════════════════════════════════
-//  GENERAR PDF LOCAL (sin Drive)
+//  GENERAR PDF LOCAL — replica exacta plantilla
 // ═══════════════════════════════════════════════════
 async function generarPDFLocal(d, esModificado=false) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-    const W = 210, H = 297;
-    const M = 10; // margin
 
-    // ── Colores ──
-    const ROJO = [204, 0, 0];
-    const NEGRO = [17, 17, 17];
-    const GRIS = [240, 240, 240];
-    const BLANCO = [255, 255, 255];
+    // Página A4: 210 x 297mm, márgenes 8mm
+    const ML = 8, MT = 8, CW = 194; // content width
 
-    // ── Helper: caja con etiqueta roja y valor ──
-    const box = (x, y, w, h, label, value, opts={}) => {
-      // Fondo gris si no hay color especial
-      doc.setFillColor(...(opts.bg || GRIS));
+    // Paleta — igual que la plantilla
+    const ROJO  = [192,  0,  0];  // C00000
+    const GRIS  = [216,216,216];  // D8D8D8
+    const TGRIS = [ 63, 63, 63];  // 3F3F3F
+    const NEGRO = [ 0,   0,  0];
+    const BLANC = [255,255,255];
+
+    // Proporciones de columnas tomadas de la plantilla (anchos relativos):
+    // CENTRO=15cols, sep=1, FECHA=10cols, sep=1, ZONA=10cols, sep=1, TDC=15cols
+    // Total 54 cols → CW=194mm
+    // col A..O=15, sep P=1, Q..Z=10, sep AA=0.5, AB..AL=11, sep AM=1, AN..BB=15
+    const C = {
+      centro:  { x: ML,                   w: 70  },
+      fecha:   { x: ML+70+1,              w: 42  },
+      zona:    { x: ML+70+1+42+1,         w: 42  },
+      tdc:     { x: ML+70+1+42+1+42+1,    w: 37  },
+    };
+    C.tdc.w = CW - (C.tdc.x - ML); // fill rest
+
+    // Filas 5-6: técnicos (la plantilla los pone Q5..AL y AC5..BB, pero en la plantilla
+    // real TÉCNICO1 empieza en Q, TÉCNICO2 en AC — eso es aprox 50% cada uno)
+    const C2 = {
+      tec1: { x: ML,       w: CW/2 - 0.5 },
+      tec2: { x: ML+CW/2+0.5, w: CW/2 - 0.5 },
+    };
+
+    // Filas 7-8: alias, población, solicitante
+    const C3 = {
+      alias:  { x: ML,       w: 70 },
+      pobla:  { x: ML+70+1,  w: 62 },
+      solic:  { x: ML+70+1+62+1, w: 0 },
+    };
+    C3.solic.w = CW - (C3.solic.x - ML);
+
+    // Filas 12-13: resultado, descargo/VyP, motivo
+    const C4 = {
+      res:    { x: ML,       w: 56 },
+      vyp:    { x: ML+56+1,  w: 70 },
+      motivo: { x: ML+56+1+70+1, w: 0 },
+    };
+    C4.motivo.w = CW - (C4.motivo.x - ML);
+
+    // Filas 14-15: maniobras, tipo, marca/modelo, vale, trace
+    const C5 = {
+      man:    { x: ML,      w: 26 },
+      tipo:   { x: ML+26+1, w: 28 },
+      modelo: { x: ML+26+1+28+1, w: 88 },
+      vale:   { x: ML+26+1+28+1+88+1, w: 28 },
+      trace:  { x: ML+26+1+28+1+88+1+28+1, w: 0 },
+    };
+    C5.trace.w = CW - (C5.trace.x - ML);
+
+    // ─── helpers ───────────────────────────────────
+    const rH = 7.5;  // row height
+
+    const labelCell = (x, y, w, h, label, value, opts={}) => {
+      doc.setFillColor(...GRIS);
       doc.rect(x, y, w, h, 'F');
-      doc.setDrawColor(200, 200, 200);
+      doc.setDrawColor(180,180,180);
+      doc.setLineWidth(0.15);
       doc.rect(x, y, w, h, 'S');
-      if(label) {
-        doc.setFontSize(6);
-        doc.setTextColor(...ROJO);
-        doc.setFont('helvetica','bold');
-        doc.text(label, x+1.5, y+3.5);
-      }
-      if(value) {
-        doc.setFontSize(opts.fontSize || 8);
-        doc.setTextColor(...NEGRO);
+      // label
+      doc.setFontSize(opts.labelFs || 6.5);
+      doc.setFont('helvetica','bold');
+      doc.setTextColor(...TGRIS);
+      doc.text(label, x+1.5, y+3.8);
+      // value
+      if(value !== undefined && value !== null && String(value).trim() !== '') {
+        const fs = opts.fs || 9;
+        doc.setFontSize(fs);
         doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
-        const textY = label ? y+h-2 : y+h/2+1.5;
-        const maxW = w - 3;
-        const lines = doc.splitTextToSize(String(value).toUpperCase(), maxW);
-        doc.text(lines[0], x+1.5, textY);
+        doc.setTextColor(...NEGRO);
+        const vStr = String(value).toUpperCase();
+        const lines = doc.splitTextToSize(vStr, w - 3);
+        doc.text(lines[0], x+1.5, y + h - 2.2);
       }
     };
 
-    // ── TÍTULO ──
+    let y = MT;
+
+    // ─── TÍTULO fila 1 ─────────────────────────────
     doc.setFillColor(...ROJO);
-    doc.rect(M, 8, W-M*2, 8, 'F');
-    doc.setFontSize(9);
-    doc.setTextColor(...BLANCO);
+    doc.rect(ML, y, CW, 10, 'F');
+    doc.setFontSize(13);
     doc.setFont('helvetica','bold');
-    doc.text('INTERVENCIÓN EN CENTRO TELECONTROLADO', W/2, 13.5, {align:'center'});
+    doc.setTextColor(...BLANC);
+    doc.text('INTERVENCIÓN  EN  CENTRO TELECONTROLADO', ML + CW/2, y+7, {align:'center'});
+    y += 10 + 1;
 
-    // ── FILA 1: CENTRO, FECHA, ZONA, TDC ──
-    let y = 18;
-    const h1 = 11;
-    box(M,    y, 40, h1, 'CENTRO',  d.centro);
-    box(M+40, y, 30, h1, 'FECHA',   d.fecha ? new Date(d.fecha+'T00:00:00').toLocaleDateString('es-ES') : '');
-    box(M+70, y, 35, h1, 'ZONA',    d.zona);
-    box(M+105,y, 45, h1, 'TDC',     d.tdc, {fontSize:9, bold:true});
-    // TDC grande a la derecha
-    doc.setFontSize(16);
-    doc.setFont('helvetica','bold');
-    doc.setTextColor(...NEGRO);
-    doc.text(String(d.tdc||'').toUpperCase(), M+105+2, y+h1-2);
+    // ─── FILA CENTRO/FECHA/ZONA/TDC ────────────────
+    const h1 = 14; // label row (3) + value row (4+6) combined
+    labelCell(C.centro.x, y, C.centro.w, h1, 'CENTRO', d.centro, {fs:13, bold:true});
+    labelCell(C.fecha.x,  y, C.fecha.w,  h1, 'FECHA',
+      d.fecha ? new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}) : '');
+    labelCell(C.zona.x,   y, C.zona.w,   h1, 'ZONA',   d.zona);
+    labelCell(C.tdc.x,    y, C.tdc.w,    h1, 'TDC',    d.tdc, {fs:16, bold:true});
+    y += h1 + 1;
 
-    // ── FILA 2: TEC1, TEC2 ──
-    y += h1;
-    box(M,    y, 75, h1, 'TÉCNICO 1', d.tec1);
-    box(M+75, y, 75, h1, 'TÉCNICO 2', d.tec2);
+    // ─── TÉCNICO 1 / 2 ─────────────────────────────
+    const h2 = 13;
+    labelCell(C2.tec1.x, y, C2.tec1.w, h2, 'TÉCNICO 1', d.tec1, {fs:10, bold:true});
+    labelCell(C2.tec2.x, y, C2.tec2.w, h2, 'TÉCNICO 2', d.tec2, {fs:10, bold:true});
+    y += h2 + 1;
 
-    // ── FILA 3: ALIAS, POBLACIÓN, SOLICITANTE ──
-    y += h1;
-    box(M,    y, 55, h1, 'ALIAS',      d.alias);
-    box(M+55, y, 50, h1, 'POBLACIÓN',  d.poblacion);
-    box(M+105,y, 45, h1, 'SOLICITANTE',d.solicitante);
+    // ─── ALIAS / POBLACIÓN / SOLICITANTE ───────────
+    const h3 = 13;
+    labelCell(C3.alias.x, y, C3.alias.w, h3, 'ALIAS',       d.alias);
+    labelCell(C3.pobla.x, y, C3.pobla.w, h3, 'POBLACIÓN',   d.poblacion);
+    labelCell(C3.solic.x, y, C3.solic.w, h3, 'SOLICITANTE', d.solicitante);
+    y += h3 + 3;
 
-    // ── FILA 4: RESULTADO, DESCARGO, VyP, MOTIVO ──
-    y += h1;
-    box(M,    y, 35, h1, 'RESULTADO', d.resultado);
-    box(M+35, y, 35, h1, 'DESCARGO',  d.vyp);
-    box(M+70, y, 35, h1, 'VyP',       d.vyp);
-    box(M+105,y, 45, h1, 'MOTIVO',    d.motivo);
+    // ─── RESULTADO / DESCARGO VyP / MOTIVO ─────────
+    const h4 = 13;
+    labelCell(C4.res.x,    y, C4.res.w,    h4, 'RESULTADO',    d.resultado);
+    labelCell(C4.vyp.x,    y, C4.vyp.w,    h4, 'DESCARGO VyP', d.vyp);
+    labelCell(C4.motivo.x, y, C4.motivo.w, h4, 'MOTIVO',       d.motivo);
+    y += h4 + 1;
 
-    // ── FILA 5: MANIOBRAS, TIPO, MARCA/MODELO, VALE, TRACE ──
-    y += h1;
-    box(M,    y, 25, h1, 'MANIOBRAS',    d.maniobras||'NO');
-    box(M+25, y, 25, h1, 'TIPO',         d.tipo);
-    box(M+50, y, 65, h1, 'MARCA / MODELO', `${d.modelo||''}`);
-    box(M+115,y, 20, h1, 'VALE A1',      d.vale ? 'SÍ' : 'NO');
-    box(M+135,y, 15, h1, 'TRACE',        d.trace ? 'OK' : '');
+    // ─── MANIOBRAS / TIPO / MARCA-MODELO / VALE / TRACE ─
+    const h5 = 13;
+    labelCell(C5.man.x,    y, C5.man.w,    h5, 'MANIOBRAS',    d.maniobras||'NO');
+    labelCell(C5.tipo.x,   y, C5.tipo.w,   h5, 'TIPO',         d.tipo);
+    labelCell(C5.modelo.x, y, C5.modelo.w, h5, 'MARCA / MODELO', d.modelo);
+    labelCell(C5.vale.x,   y, C5.vale.w,   h5, 'VALE A1',      d.vale ? 'SÍ' : 'NO');
+    labelCell(C5.trace.x,  y, C5.trace.w,  h5, 'TRACE',        d.trace ? 'OK' : '');
+    y += h5 + 2;
 
-    // ── RESOLUCIÓN ──
-    y += h1 + 2;
+    // ─── RESOLUCIÓN ────────────────────────────────
     doc.setFillColor(...ROJO);
-    doc.rect(M, y, W-M*2, 5, 'F');
-    doc.setFontSize(7);
-    doc.setTextColor(...BLANCO);
-    doc.setFont('helvetica','bold');
-    doc.text('RESOLUCIÓN', M+1.5, y+3.5);
-    y += 5;
-    const resH = 18;
-    doc.setFillColor(...GRIS);
-    doc.rect(M, y, W-M*2, resH, 'F');
-    doc.setDrawColor(200,200,200);
-    doc.rect(M, y, W-M*2, resH, 'S');
+    doc.rect(ML, y, CW, 6, 'F');
     doc.setFontSize(8);
-    doc.setTextColor(...NEGRO);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...BLANC);
+    doc.text('RESOLUCIÓN', ML+1.5, y+4.2);
+    y += 6;
+
+    const resStr = String(d.resolucion||'').toUpperCase();
+    doc.setFontSize(9);
     doc.setFont('helvetica','normal');
-    const resLines = doc.splitTextToSize(String(d.resolucion||'').toUpperCase(), W-M*2-3);
-    doc.text(resLines, M+1.5, y+4);
-
-    // ── BAREMOS ──
+    doc.setTextColor(...NEGRO);
+    const resLines = doc.splitTextToSize(resStr, CW - 3);
+    const resH = Math.max(18, resLines.length * 5 + 5);
+    doc.setFillColor(250,250,250);
+    doc.rect(ML, y, CW, resH, 'F');
+    doc.setDrawColor(180,180,180);
+    doc.rect(ML, y, CW, resH, 'S');
+    doc.text(resLines, ML+1.5, y+5);
     y += resH + 2;
-    if(Array.isArray(d.baremos) && d.baremos.length) {
-      doc.setFillColor(...ROJO);
-      doc.rect(M, y, (W-M*2)/2-1, 5, 'F');
-      doc.setFontSize(7);
-      doc.setTextColor(...BLANCO);
-      doc.setFont('helvetica','bold');
-      doc.text('UNIDADES', M+1.5, y+3.5);
-      y += 5;
-      d.baremos.forEach(b => {
-        doc.setFillColor(...GRIS);
-        doc.rect(M, y, (W-M*2)/2-1, 7, 'F');
-        doc.setDrawColor(200,200,200);
-        doc.rect(M, y, (W-M*2)/2-1, 7, 'S');
-        doc.setFontSize(7.5);
-        doc.setTextColor(...NEGRO);
-        doc.setFont('helvetica','bold');
-        doc.text(`${b.cod} X ${b.ud}`, M+1.5, y+3);
-        doc.setFont('helvetica','normal');
-        const descLines = doc.splitTextToSize(String(b.desc||'').toUpperCase(), (W-M*2)/2-20);
-        doc.text(descLines[0]||'', M+22, y+3);
-        y += 7;
-      });
-      y -= d.baremos.length * 7 + 5; // reset y for materiales column
+
+    // ─── BAREMOS | MATERIALES ──────────────────────
+    const hasB = Array.isArray(d.baremos)   && d.baremos.length   > 0;
+    const hasM = Array.isArray(d.materiales) && d.materiales.length > 0;
+    const colW = (CW - 1) / 2;
+
+    if(hasB || hasM) {
+      const xB = ML, xM = ML + colW + 1;
+
+      if(hasB) {
+        doc.setFillColor(...ROJO);
+        doc.rect(xB, y, colW, 6, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...BLANC);
+        doc.text('UNIDADES', xB+1.5, y+4.2);
+      }
+      if(hasM) {
+        doc.setFillColor(...ROJO);
+        doc.rect(xM, y, colW, 6, 'F');
+        doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...BLANC);
+        doc.text('MATERIALES', xM+1.5, y+4.2);
+      }
+      y += 6;
+
+      const nRows = Math.max(hasB ? d.baremos.length : 0, hasM ? d.materiales.length : 0);
+      for(let i=0; i<nRows; i++) {
+        const rowH = 8;
+        // baremo
+        if(hasB && d.baremos[i]) {
+          const b = d.baremos[i];
+          doc.setFillColor(...GRIS);
+          doc.rect(xB, y, colW, rowH, 'F');
+          doc.setDrawColor(180,180,180); doc.rect(xB, y, colW, rowH, 'S');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...NEGRO);
+          doc.text(`${b.cod} X ${b.ud}`, xB+1.5, y+5.5);
+          doc.setFont('helvetica','normal');
+          const dl = doc.splitTextToSize(String(b.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', xB+28, y+5.5);
+        }
+        // material
+        if(hasM && d.materiales[i]) {
+          const m = d.materiales[i];
+          doc.setFillColor(...GRIS);
+          doc.rect(xM, y, colW, rowH, 'F');
+          doc.setDrawColor(180,180,180); doc.rect(xM, y, colW, rowH, 'S');
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...NEGRO);
+          doc.text(`${m.cod} X ${m.qty}`, xM+1.5, y+5.5);
+          doc.setFont('helvetica','normal');
+          const dl = doc.splitTextToSize(String(m.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', xM+28, y+5.5);
+        }
+        y += rowH;
+      }
     }
 
-    // ── MATERIALES ──
-    const matY0 = y - (Array.isArray(d.baremos)&&d.baremos.length ? (d.baremos.length*7+5) : 0);
-    let matY = matY0;
-    if(Array.isArray(d.materiales) && d.materiales.length) {
-      const xM = M + (W-M*2)/2 + 1;
-      const wM = (W-M*2)/2 - 1;
-      doc.setFillColor(...ROJO);
-      doc.rect(xM, matY, wM, 5, 'F');
-      doc.setFontSize(7);
-      doc.setTextColor(...BLANCO);
-      doc.setFont('helvetica','bold');
-      doc.text('MATERIALES', xM+1.5, matY+3.5);
-      matY += 5;
-      d.materiales.forEach(m => {
-        doc.setFillColor(...GRIS);
-        doc.rect(xM, matY, wM, 7, 'F');
-        doc.setDrawColor(200,200,200);
-        doc.rect(xM, matY, wM, 7, 'S');
-        doc.setFontSize(7.5);
-        doc.setTextColor(...NEGRO);
-        doc.setFont('helvetica','bold');
-        doc.text(`${m.cod} X ${m.qty}`, xM+1.5, matY+3);
-        doc.setFont('helvetica','normal');
-        const descLines = doc.splitTextToSize(String(m.desc||'').toUpperCase(), wM-20);
-        doc.text(descLines[0]||'', xM+20, matY+3);
-        matY += 7;
-      });
-    }
-
-    // ── Guardar PDF ──
+    // ─── Guardar ───────────────────────────────────
     const zonaCode = getZonaCode(d.zona);
     const nombre = `${d.centro}-${zonaCode}.pdf`;
     doc.save(nombre);
 
-    // Guardar también en Drive si hay auth
     if(S.auth) {
       try {
-        const pdfBlob = doc.output('blob');
-        await subirPDFaDrive(pdfBlob, nombre, esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES, d);
-      } catch(e) { console.warn('Error subiendo PDF a Drive:', e.message); }
+        const blob = doc.output('blob');
+        await subirPDFaDrive(blob, nombre, esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES, d);
+      } catch(e) { console.warn('Drive upload:', e.message); }
+    }
+    return true;
+  } catch(e) {
+    console.error('Error PDF:', e);
+    toast('ERROR AL GENERAR PDF: ' + e.message, 'err');
+    return false;
+  }
+}
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = 210, M = 12, CW = W - M*2; // content width = 186mm
+
+    const ROJO  = [204, 0, 0];
+    const NEGRO = [30, 30, 30];
+    const GRIS  = [245, 245, 245];
+    const BORDE = [200, 200, 200];
+    const BLANC = [255, 255, 255];
+
+    // ─── helpers ───
+    const setRojo  = () => { doc.setTextColor(...ROJO);  doc.setFont('helvetica','bold'); };
+    const setNegro = (bold=false) => { doc.setTextColor(...NEGRO); doc.setFont('helvetica', bold?'bold':'normal'); };
+
+    const cell = (x, y, w, h, label, value, opts={}) => {
+      doc.setFillColor(...GRIS);
+      doc.rect(x, y, w, h, 'F');
+      doc.setDrawColor(...BORDE);
+      doc.setLineWidth(0.2);
+      doc.rect(x, y, w, h, 'S');
+      if(label) {
+        doc.setFontSize(5.5);
+        setRojo();
+        doc.text(label, x+1.5, y+3.2);
+      }
+      if(value !== undefined && value !== null && value !== '') {
+        const fs = opts.fs || 8;
+        doc.setFontSize(fs);
+        setNegro(opts.bold || false);
+        const maxW = w - 3;
+        const lines = doc.splitTextToSize(String(value).toUpperCase(), maxW);
+        const textY = label ? y + h - 2.5 : y + h/2 + fs*0.18;
+        doc.text(lines[0], x+1.5, textY);
+      }
+    };
+
+    const header = (x, y, w, h, text) => {
+      doc.setFillColor(...ROJO);
+      doc.rect(x, y, w, h, 'F');
+      doc.setFontSize(6);
+      setRojo();
+      doc.setTextColor(...BLANC);
+      doc.text(text, x+1.5, y+h-1.2);
+    };
+
+    let y = 8;
+
+    // ─── TÍTULO ───
+    doc.setFillColor(...ROJO);
+    doc.rect(M, y, CW, 7, 'F');
+    doc.setFontSize(10);
+    doc.setTextColor(...BLANC);
+    doc.setFont('helvetica','bold');
+    doc.text('INTERVENCIÓN EN CENTRO TELECONTROLADO', M+CW/2, y+4.8, {align:'center'});
+    y += 7;
+
+    // ─── FILA 1: CENTRO(55) FECHA(30) ZONA(35) TDC(66) ───
+    const h1 = 10;
+    const wC=55, wF=30, wZ=35, wT=CW-wC-wF-wZ;
+    cell(M,        y, wC, h1, 'CENTRO', d.centro, {fs:9, bold:true});
+    cell(M+wC,     y, wF, h1, 'FECHA',  d.fecha ? new Date(d.fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}) : '');
+    cell(M+wC+wF,  y, wZ, h1, 'ZONA',   d.zona);
+    cell(M+wC+wF+wZ, y, wT, h1, 'TDC',  d.tdc, {fs:11, bold:true});
+    y += h1;
+
+    // ─── FILA 2: TEC1(93) TEC2(93) ───
+    const h2 = 9;
+    const wH = CW/2;
+    cell(M,    y, wH, h2, 'TÉCNICO 1', d.tec1, {fs:8.5, bold:true});
+    cell(M+wH, y, wH, h2, 'TÉCNICO 2', d.tec2, {fs:8.5, bold:true});
+    y += h2;
+
+    // ─── FILA 3: ALIAS(55) POBLACIÓN(55) SOLICITANTE(76) ───
+    const h3 = 9;
+    const wA=55, wP=55, wS=CW-wA-wP;
+    cell(M,      y, wA, h3, 'ALIAS',      d.alias);
+    cell(M+wA,   y, wP, h3, 'POBLACIÓN',  d.poblacion);
+    cell(M+wA+wP,y, wS, h3, 'SOLICITANTE',d.solicitante);
+    y += h3;
+
+    // ─── FILA 4: RESULTADO(40) DESCARGO(40) VyP(40) MOTIVO(66) ───
+    const h4 = 9;
+    const wR=40, wD=40, wV=40, wM=CW-wR-wD-wV;
+    cell(M,         y, wR, h4, 'RESULTADO', d.resultado);
+    cell(M+wR,      y, wD, h4, 'DESCARGO',  d.vyp);
+    cell(M+wR+wD,   y, wV, h4, 'VyP',       d.vyp);
+    cell(M+wR+wD+wV,y, wM, h4, 'MOTIVO',    d.motivo);
+    y += h4;
+
+    // ─── FILA 5: MANIOBRAS(28) TIPO(28) MARCA/MODELO(85) VALE(25) TRACE(20) ───
+    const h5 = 9;
+    const wMa=28, wTi=28, wMo=85, wVa=25, wTr=CW-wMa-wTi-wMo-wVa;
+    cell(M,              y, wMa, h5, 'MANIOBRAS',    d.maniobras||'NO');
+    cell(M+wMa,          y, wTi, h5, 'TIPO',          d.tipo);
+    cell(M+wMa+wTi,      y, wMo, h5, 'MARCA / MODELO',`${d.modelo||''}`);
+    cell(M+wMa+wTi+wMo,  y, wVa, h5, 'VALE A1',       d.vale ? 'SÍ' : 'NO');
+    cell(M+wMa+wTi+wMo+wVa,y,wTr,h5,'TRACE',          d.trace ? 'OK' : '');
+    y += h5 + 1;
+
+    // ─── RESOLUCIÓN ───
+    header(M, y, CW, 5, 'RESOLUCIÓN');
+    y += 5;
+    const resolucion = String(d.resolucion||'').toUpperCase();
+    doc.setFontSize(8);
+    setNegro();
+    const resLines = doc.splitTextToSize(resolucion, CW-3);
+    const resH = Math.max(14, resLines.length * 4 + 4);
+    doc.setFillColor(...GRIS);
+    doc.rect(M, y, CW, resH, 'F');
+    doc.setDrawColor(...BORDE);
+    doc.rect(M, y, CW, resH, 'S');
+    doc.text(resLines, M+1.5, y+4);
+    y += resH + 2;
+
+    // ─── BAREMOS Y MATERIALES en dos columnas ───
+    const hasB = Array.isArray(d.baremos) && d.baremos.length > 0;
+    const hasM = Array.isArray(d.materiales) && d.materiales.length > 0;
+    const colW = CW/2 - 1;
+
+    if(hasB || hasM) {
+      let yB = y, yMat = y;
+
+      if(hasB) {
+        header(M, yB, colW, 5, 'UNIDADES');
+        yB += 5;
+        d.baremos.forEach(b => {
+          doc.setFillColor(...GRIS);
+          doc.rect(M, yB, colW, 7, 'F');
+          doc.setDrawColor(...BORDE);
+          doc.rect(M, yB, colW, 7, 'S');
+          doc.setFontSize(7.5);
+          setNegro(true);
+          doc.text(`${b.cod} X ${b.ud}`, M+1.5, yB+4.5);
+          setNegro(false);
+          const dl = doc.splitTextToSize(String(b.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', M+26, yB+4.5);
+          yB += 7;
+        });
+      }
+
+      if(hasM) {
+        const xM = M + colW + 2;
+        header(xM, yMat, colW, 5, 'MATERIALES');
+        yMat += 5;
+        d.materiales.forEach(m => {
+          doc.setFillColor(...GRIS);
+          doc.rect(xM, yMat, colW, 7, 'F');
+          doc.setDrawColor(...BORDE);
+          doc.rect(xM, yMat, colW, 7, 'S');
+          doc.setFontSize(7.5);
+          setNegro(true);
+          doc.text(`${m.cod} X ${m.qty}`, xM+1.5, yMat+4.5);
+          setNegro(false);
+          const dl = doc.splitTextToSize(String(m.desc||'').toUpperCase(), colW-28);
+          doc.text(dl[0]||'', xM+26, yMat+4.5);
+          yMat += 7;
+        });
+      }
+    }
+
+    // ─── Descargar ───
+    const zonaCode = getZonaCode(d.zona);
+    const nombre = `${d.centro}-${zonaCode}.pdf`;
+    doc.save(nombre);
+
+    // Subir a Drive si hay token
+    if(S.auth) {
+      try {
+        const blob = doc.output('blob');
+        await subirPDFaDrive(blob, nombre, esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES, d);
+      } catch(e) { console.warn('Drive upload:', e.message); }
     }
 
     return true;
   } catch(e) {
-    console.error('Error generando PDF local:', e);
+    console.error('Error PDF:', e);
     toast('ERROR AL GENERAR PDF: ' + e.message, 'err');
     return false;
   }
