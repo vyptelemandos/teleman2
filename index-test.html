@@ -10,6 +10,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <title>Teleman2</title>
 <meta name="version" content="1775249341">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1205,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.60';
+const APP_VERSION = 'v3.61';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2486,26 +2487,18 @@ async function generarInforme() {
     if(!S.auth) { const t = await getSAToken(); if(t) S.auth = t; }
     if(isEdit) {
       actualizarEnSupabase(d).catch(()=>{});
-      if(S.auth) {
-        await actualizarEnSheets(d);
-        const pdfOk = await generarPDFDrive(d, true);
-        if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
-        else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
-      } else {
-        toast('INFORME MODIFICADO EN SUPABASE ✓','ok');
-      }
+      if(S.auth) await actualizarEnSheets(d);
+      const pdfOk = await generarPDFLocal(d, true);
+      if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
+      else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
       await escribirEnSupabase(d);
-      if(S.auth) {
-        const pdfOk = await generarPDFDrive(d);
-        if(pdfOk) {
-          toast('INFORME GENERADO Y GUARDADO ✓','ok');
-          añadirFilaCertificacion(d);
-        } else {
-          toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
-        }
+      const pdfOk = await generarPDFLocal(d);
+      if(pdfOk) {
+        toast('INFORME GENERADO ✓','ok');
+        añadirFilaCertificacion(d);
       } else {
-        toast('INFORME GUARDADO EN SUPABASE ✓','ok');
+        toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
     }
     if(S._planifId) {
@@ -4578,8 +4571,208 @@ async function moverAProcesados(fileId) {
 async function escribirIntervDrive(d) { return guardarEnSheets(d); }
 
 // ═══════════════════════════════════════════════════
-//  GENERAR PDF RELLENANDO PLANTILLA EN DRIVE
+//  GENERAR PDF LOCAL (sin Drive)
 // ═══════════════════════════════════════════════════
+async function generarPDFLocal(d, esModificado=false) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = 210, H = 297;
+    const M = 10; // margin
+
+    // ── Colores ──
+    const ROJO = [204, 0, 0];
+    const NEGRO = [17, 17, 17];
+    const GRIS = [240, 240, 240];
+    const BLANCO = [255, 255, 255];
+
+    // ── Helper: caja con etiqueta roja y valor ──
+    const box = (x, y, w, h, label, value, opts={}) => {
+      // Fondo gris si no hay color especial
+      doc.setFillColor(...(opts.bg || GRIS));
+      doc.rect(x, y, w, h, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(x, y, w, h, 'S');
+      if(label) {
+        doc.setFontSize(6);
+        doc.setTextColor(...ROJO);
+        doc.setFont('helvetica','bold');
+        doc.text(label, x+1.5, y+3.5);
+      }
+      if(value) {
+        doc.setFontSize(opts.fontSize || 8);
+        doc.setTextColor(...NEGRO);
+        doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+        const textY = label ? y+h-2 : y+h/2+1.5;
+        const maxW = w - 3;
+        const lines = doc.splitTextToSize(String(value).toUpperCase(), maxW);
+        doc.text(lines[0], x+1.5, textY);
+      }
+    };
+
+    // ── TÍTULO ──
+    doc.setFillColor(...ROJO);
+    doc.rect(M, 8, W-M*2, 8, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(...BLANCO);
+    doc.setFont('helvetica','bold');
+    doc.text('INTERVENCIÓN EN CENTRO TELECONTROLADO', W/2, 13.5, {align:'center'});
+
+    // ── FILA 1: CENTRO, FECHA, ZONA, TDC ──
+    let y = 18;
+    const h1 = 11;
+    box(M,    y, 40, h1, 'CENTRO',  d.centro);
+    box(M+40, y, 30, h1, 'FECHA',   d.fecha ? new Date(d.fecha+'T00:00:00').toLocaleDateString('es-ES') : '');
+    box(M+70, y, 35, h1, 'ZONA',    d.zona);
+    box(M+105,y, 45, h1, 'TDC',     d.tdc, {fontSize:9, bold:true});
+    // TDC grande a la derecha
+    doc.setFontSize(16);
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...NEGRO);
+    doc.text(String(d.tdc||'').toUpperCase(), M+105+2, y+h1-2);
+
+    // ── FILA 2: TEC1, TEC2 ──
+    y += h1;
+    box(M,    y, 75, h1, 'TÉCNICO 1', d.tec1);
+    box(M+75, y, 75, h1, 'TÉCNICO 2', d.tec2);
+
+    // ── FILA 3: ALIAS, POBLACIÓN, SOLICITANTE ──
+    y += h1;
+    box(M,    y, 55, h1, 'ALIAS',      d.alias);
+    box(M+55, y, 50, h1, 'POBLACIÓN',  d.poblacion);
+    box(M+105,y, 45, h1, 'SOLICITANTE',d.solicitante);
+
+    // ── FILA 4: RESULTADO, DESCARGO, VyP, MOTIVO ──
+    y += h1;
+    box(M,    y, 35, h1, 'RESULTADO', d.resultado);
+    box(M+35, y, 35, h1, 'DESCARGO',  d.vyp);
+    box(M+70, y, 35, h1, 'VyP',       d.vyp);
+    box(M+105,y, 45, h1, 'MOTIVO',    d.motivo);
+
+    // ── FILA 5: MANIOBRAS, TIPO, MARCA/MODELO, VALE, TRACE ──
+    y += h1;
+    box(M,    y, 25, h1, 'MANIOBRAS',    d.maniobras||'NO');
+    box(M+25, y, 25, h1, 'TIPO',         d.tipo);
+    box(M+50, y, 65, h1, 'MARCA / MODELO', `${d.modelo||''}`);
+    box(M+115,y, 20, h1, 'VALE A1',      d.vale ? 'SÍ' : 'NO');
+    box(M+135,y, 15, h1, 'TRACE',        d.trace ? 'OK' : '');
+
+    // ── RESOLUCIÓN ──
+    y += h1 + 2;
+    doc.setFillColor(...ROJO);
+    doc.rect(M, y, W-M*2, 5, 'F');
+    doc.setFontSize(7);
+    doc.setTextColor(...BLANCO);
+    doc.setFont('helvetica','bold');
+    doc.text('RESOLUCIÓN', M+1.5, y+3.5);
+    y += 5;
+    const resH = 18;
+    doc.setFillColor(...GRIS);
+    doc.rect(M, y, W-M*2, resH, 'F');
+    doc.setDrawColor(200,200,200);
+    doc.rect(M, y, W-M*2, resH, 'S');
+    doc.setFontSize(8);
+    doc.setTextColor(...NEGRO);
+    doc.setFont('helvetica','normal');
+    const resLines = doc.splitTextToSize(String(d.resolucion||'').toUpperCase(), W-M*2-3);
+    doc.text(resLines, M+1.5, y+4);
+
+    // ── BAREMOS ──
+    y += resH + 2;
+    if(Array.isArray(d.baremos) && d.baremos.length) {
+      doc.setFillColor(...ROJO);
+      doc.rect(M, y, (W-M*2)/2-1, 5, 'F');
+      doc.setFontSize(7);
+      doc.setTextColor(...BLANCO);
+      doc.setFont('helvetica','bold');
+      doc.text('UNIDADES', M+1.5, y+3.5);
+      y += 5;
+      d.baremos.forEach(b => {
+        doc.setFillColor(...GRIS);
+        doc.rect(M, y, (W-M*2)/2-1, 7, 'F');
+        doc.setDrawColor(200,200,200);
+        doc.rect(M, y, (W-M*2)/2-1, 7, 'S');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...NEGRO);
+        doc.setFont('helvetica','bold');
+        doc.text(`${b.cod} X ${b.ud}`, M+1.5, y+3);
+        doc.setFont('helvetica','normal');
+        const descLines = doc.splitTextToSize(String(b.desc||'').toUpperCase(), (W-M*2)/2-20);
+        doc.text(descLines[0]||'', M+22, y+3);
+        y += 7;
+      });
+      y -= d.baremos.length * 7 + 5; // reset y for materiales column
+    }
+
+    // ── MATERIALES ──
+    const matY0 = y - (Array.isArray(d.baremos)&&d.baremos.length ? (d.baremos.length*7+5) : 0);
+    let matY = matY0;
+    if(Array.isArray(d.materiales) && d.materiales.length) {
+      const xM = M + (W-M*2)/2 + 1;
+      const wM = (W-M*2)/2 - 1;
+      doc.setFillColor(...ROJO);
+      doc.rect(xM, matY, wM, 5, 'F');
+      doc.setFontSize(7);
+      doc.setTextColor(...BLANCO);
+      doc.setFont('helvetica','bold');
+      doc.text('MATERIALES', xM+1.5, matY+3.5);
+      matY += 5;
+      d.materiales.forEach(m => {
+        doc.setFillColor(...GRIS);
+        doc.rect(xM, matY, wM, 7, 'F');
+        doc.setDrawColor(200,200,200);
+        doc.rect(xM, matY, wM, 7, 'S');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...NEGRO);
+        doc.setFont('helvetica','bold');
+        doc.text(`${m.cod} X ${m.qty}`, xM+1.5, matY+3);
+        doc.setFont('helvetica','normal');
+        const descLines = doc.splitTextToSize(String(m.desc||'').toUpperCase(), wM-20);
+        doc.text(descLines[0]||'', xM+20, matY+3);
+        matY += 7;
+      });
+    }
+
+    // ── Guardar PDF ──
+    const zonaCode = getZonaCode(d.zona);
+    const nombre = `${d.centro}-${zonaCode}.pdf`;
+    doc.save(nombre);
+
+    // Guardar también en Drive si hay auth
+    if(S.auth) {
+      try {
+        const pdfBlob = doc.output('blob');
+        await subirPDFaDrive(pdfBlob, nombre, esModificado ? CARPETA_MODIFICADOS : CARPETA_PENDIENTES, d);
+      } catch(e) { console.warn('Error subiendo PDF a Drive:', e.message); }
+    }
+
+    return true;
+  } catch(e) {
+    console.error('Error generando PDF local:', e);
+    toast('ERROR AL GENERAR PDF: ' + e.message, 'err');
+    return false;
+  }
+}
+
+async function subirPDFaDrive(blob, nombre, carpeta, d) {
+  const metadata = { name: nombre, parents: [carpeta], mimeType: 'application/pdf' };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+  form.append('file', blob);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + S.auth },
+    body: form
+  });
+  const data = await res.json();
+  if(data.id) {
+    const iv = S.intervenciones.find(x=>x.intId===d.intId);
+    if(iv) { iv.driveFileId = data.id; setLS('t2-iv', S.intervenciones); }
+    toast('✓ PDF GUARDADO EN DRIVE', 'ok');
+  } else {
+    console.warn('Drive upload error:', JSON.stringify(data).slice(0,100));
+  }
+}
 async function generarPDFDrive(d, esModificado=false) {
   if(!S.auth) { toast('CONECTA DRIVE PARA GENERAR EL PDF','warn'); return; }
 
