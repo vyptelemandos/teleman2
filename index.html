@@ -42,6 +42,10 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 .sync-dot.ok{background:#4ade80;box-shadow:0 0 6px #4ade80;}
 .sync-dot.warn{background:#fbbf24;}
 .sync-label{color:rgba(255,255,255,0.8);font-size:11px;font-weight:500;}
+.proceso-dot-working{background:#ff9800;box-shadow:0 0 6px #ff9800;animation:pulseDot 1s ease-in-out infinite;}
+.proceso-dot-ok{background:#4ade80;box-shadow:0 0 8px #4ade80;}
+.proceso-dot-err{background:#f44336;box-shadow:0 0 6px #f44336;}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.7);}}
 
 /* SCROLL */
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
@@ -247,15 +251,11 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 
 <header class="hdr">
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
-  <div class="sync-pill" onclick="handleSync()">
-    <div class="sync-dot" id="syncDot" onclick="if(!S.auth)reconectarDrive()" style="cursor:pointer;"></div>
-    <span class="sync-label" id="syncLabel" style="cursor:default;">Cargando...</span>
+  <div class="sync-pill" id="procesoPill" style="display:none;">
+    <div class="sync-dot" id="procesoDot"></div>
+    <span class="sync-label" id="procesoLabel">...</span>
   </div>
 </header>
-<!-- Barra de estado de proceso -->
-<div id="statusBar" style="display:none;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;transition:background 0.3s;position:sticky;top:52px;z-index:99;">
-  <span id="statusBarText">...</span>
-</div>
 
 <div class="scroll" id="scrollArea">
 
@@ -1230,7 +1230,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.76';
+const APP_VERSION = 'v3.77';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5890,31 +5890,30 @@ function fmtDateExcel(f) {
 }
 
 function setSyncStatus(status) {
-  const dot = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
-  if(!dot||!label) return;
-  if(status==='ok') { dot.className='sync-dot ok'; label.textContent='Drive ✓'; }
-  else if(status==='err') { dot.className='sync-dot err'; label.textContent='Reconectar'; }
-  else { dot.className='sync-dot'; label.textContent='Sin conectar'; }
+  // Drive button removed — SA token handles connection silently
 }
 
 // ─── BARRA DE ESTADO DE PROCESO ───────────────────
 let _statusTimer = null;
 function setStatusBar(msg, tipo) {
-  // tipo: 'working' (naranja), 'ok' (verde), 'err' (rojo), null (ocultar)
-  const bar = document.getElementById('statusBar');
-  const txt = document.getElementById('statusBarText');
-  if(!bar||!txt) return;
+  const pill = document.getElementById('procesoPill');
+  const dot  = document.getElementById('procesoDot');
+  const lbl  = document.getElementById('procesoLabel');
+  if(!pill||!dot||!lbl) return;
   if(_statusTimer) { clearTimeout(_statusTimer); _statusTimer = null; }
-  if(!msg) { bar.style.display='none'; return; }
-  txt.textContent = msg;
+  if(!msg) { pill.style.display='none'; return; }
+  pill.style.display = 'flex';
+  lbl.textContent = msg;
   if(tipo==='ok') {
-    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#1a3a1a;color:#4caf50;position:sticky;top:52px;z-index:99;';
+    dot.className = 'sync-dot proceso-dot-ok';
+    lbl.style.color = '#4ade80';
     _statusTimer = setTimeout(() => setStatusBar(null), 5000);
   } else if(tipo==='err') {
-    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#3a1a1a;color:#f44336;position:sticky;top:52px;z-index:99;';
+    dot.className = 'sync-dot proceso-dot-err';
+    lbl.style.color = '#f44336';
   } else {
-    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#3a2a00;color:#ff9800;position:sticky;top:52px;z-index:99;';
+    dot.className = 'sync-dot proceso-dot-working';
+    lbl.style.color = '#ff9800';
   }
 }
 
