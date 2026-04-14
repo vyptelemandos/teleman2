@@ -1206,7 +1206,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.67';
+const APP_VERSION = 'v3.68';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1295,16 +1295,61 @@ function pedirConexionGoogle(onSuccess) {
 function iniciarOAuthGoogle() {
   const cfg = getLS('t2-cfg') || {};
   const clientId = cfg.clientId || CLIENT_ID;
+  const redirectUri = window.location.origin + window.location.pathname;
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: window.location.origin + window.location.pathname,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
     access_type: 'offline',
     prompt: 'consent',
     state: 'google_oauth_pdf'
   });
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+
+  // Abrir popup en lugar de redirect
+  const popup = window.open(authUrl, 'google_oauth', 'width=500,height=600,left=200,top=100');
+
+  // Escuchar cuando el popup vuelva con el código
+  const timer = setInterval(async () => {
+    try {
+      if(!popup || popup.closed) {
+        clearInterval(timer);
+        return;
+      }
+      const popupUrl = popup.location.href;
+      if(popupUrl.includes('code=') && popupUrl.includes('google_oauth_pdf')) {
+        clearInterval(timer);
+        const code = new URLSearchParams(popup.location.search).get('code');
+        popup.close();
+        if(code) {
+          await procesarOAuthCode(code, redirectUri);
+          if(window._onGoogleConnected) window._onGoogleConnected();
+        }
+      }
+    } catch(e) {
+      // cross-origin — aún cargando, ignorar
+    }
+  }, 500);
+}
+
+async function procesarOAuthCode(code, redirectUri) {
+  try {
+    toast('GUARDANDO CONEXIÓN GOOGLE...','warn');
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('google-oauth-exchange', {
+      body: { code, redirect_uri: redirectUri, client_id: CLIENT_ID }
+    });
+    if(error || !data?.refresh_token) throw new Error(error?.message || 'Sin refresh_token');
+    await saveGoogleRefreshToken(data.refresh_token);
+    document.getElementById('modalGoogleConnect')?.remove();
+    toast('✓ GOOGLE DRIVE CONECTADO PARA SIEMPRE','ok');
+    return true;
+  } catch(e) {
+    console.error('OAuth error:', e);
+    toast('ERROR AL CONECTAR GOOGLE: ' + e.message.slice(0,50), 'err');
+    return false;
+  }
 }
 
 async function manejarOAuthCallback() {
