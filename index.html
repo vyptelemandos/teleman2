@@ -252,6 +252,10 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
     <span class="sync-label" id="syncLabel" style="cursor:default;">Cargando...</span>
   </div>
 </header>
+<!-- Barra de estado de proceso -->
+<div id="statusBar" style="display:none;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;transition:background 0.3s;position:sticky;top:52px;z-index:99;">
+  <span id="statusBarText">...</span>
+</div>
 
 <div class="scroll" id="scrollArea">
 
@@ -1226,7 +1230,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.75';
+const APP_VERSION = 'v3.76';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2236,32 +2240,34 @@ function resetFotos() {
   renderFotosPreview();
 }
 
-async function subirFotosDrive(d) {
-  if(!_fotosActuales.length) return;
+async function subirFotosDrive(d, fotos) {
+  fotos = fotos || _fotosActuales;
+  if(!fotos.length) return true;
   const refreshToken = await getGoogleRefreshToken();
-  if(!refreshToken) { toast('CONECTA GOOGLE PARA SUBIR FOTOS','warn'); return; }
+  if(!refreshToken) { console.warn('Sin refresh token para fotos'); return false; }
   const zonaCode = getZonaCode(d.zona);
   const baseName = `${d.centro}-${zonaCode}`;
-  toast(`SUBIENDO ${_fotosActuales.length} FOTO(S)...`, 'warn');
   let ok = 0;
-  for(let i = 0; i < _fotosActuales.length; i++) {
+  for(let i = 0; i < fotos.length; i++) {
     try {
-      const foto = _fotosActuales[i];
+      const foto = fotos[i];
       const ext = foto.file.type.includes('png') ? 'png' : 'jpg';
       const nombre = `${baseName}-FOTO${i+1}.${ext}`;
+      console.log('Subiendo foto:', nombre, 'tipo:', foto.file.type, 'base64 len:', foto.dataUrl?.length);
       const sb = getSB();
       const { data, error } = await sb.functions.invoke('subir-foto', {
         body: {
           nombre,
-          tipo: foto.file.type,
+          tipo: foto.file.type || 'image/jpeg',
           base64: foto.dataUrl.split(',')[1],
           _refreshToken: refreshToken,
         }
       });
+      console.log('Resultado foto', i+1, ':', data, error?.message);
       if(!error && data?.ok) ok++;
     } catch(e) { console.warn('Error subiendo foto', i+1, e.message); }
   }
-  toast(`✓ ${ok}/${_fotosActuales.length} FOTOS SUBIDAS`, ok > 0 ? 'ok' : 'err');
+  return ok > 0;
 }
 
 function guardarBorrador() {
@@ -2750,17 +2756,44 @@ async function generarInforme() {
       else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
       await escribirEnSupabase(d);
+      setStatusBar('⏳ GENERANDO PDF...', 'working');
       const pdfOk = await generarPDFviaEdge(d);
       if(pdfOk) {
-        toast('INFORME GENERADO ✓','ok');
-        añadirFilaCertificacion(d);
-        // Subir fotos si las hay
-        if(_fotosActuales.length > 0) subirFotosDrive(d);
-        // Generar Vale A1 si está marcado
-        if(d.vale) {
-          setTimeout(() => generarValeA1viaEdge(d), 1000);
+        setStatusBar('✓ PDF GENERADO', 'ok');
+        // Certificación
+        setStatusBar('⏳ GUARDANDO CERTIFICACIÓN...', 'working');
+        const certOk = await añadirFilaCertificacion(d);
+        if(certOk === false) {
+          setStatusBar('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+        } else {
+          setStatusBar('✓ CERTIFICACIÓN GUARDADA', 'ok');
         }
+        // Fotos
+        const fotosGuardadas = [..._fotosActuales];
+        if(fotosGuardadas.length > 0) {
+          setStatusBar(`⏳ SUBIENDO ${fotosGuardadas.length} FOTO(S)...`, 'working');
+          const fotosOk = await subirFotosDrive(d, fotosGuardadas);
+          if(fotosOk === false) {
+            setStatusBar('⚠️ FOTOS NO SUBIDAS', 'err');
+          } else {
+            setStatusBar(`✓ ${fotosGuardadas.length} FOTO(S) SUBIDAS`, 'ok');
+          }
+        }
+        // Vale A1
+        if(d.vale) {
+          setStatusBar('⏳ GENERANDO VALE A1...', 'working');
+          const valeOk = await generarValeA1viaEdge(d);
+          if(valeOk === false) {
+            setStatusBar('⚠️ VALE A1 NO GENERADO', 'err');
+          } else {
+            setStatusBar('✓ TODO COMPLETADO ✓', 'ok');
+          }
+        } else {
+          setStatusBar('✓ TODO COMPLETADO ✓', 'ok');
+        }
+        toast('INFORME GENERADO ✓','ok');
       } else {
+        setStatusBar('⚠️ ERROR AL GENERAR PDF', 'err');
         toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
     }
@@ -4772,7 +4805,7 @@ async function buscarOcrearCertExcel() {
 async function añadirFilaCertificacion(d) {
   try {
     const refreshToken = await getGoogleRefreshToken();
-    if(!refreshToken) { console.warn('Sin refresh token para certificación'); return; }
+    if(!refreshToken) { console.warn('Sin refresh token para certificación'); return false; }
 
     const tdc = String(d.tdc||'').trim();
     const digitos = tdc.replace(/\D/g,'').length;
@@ -4791,11 +4824,12 @@ async function añadirFilaCertificacion(d) {
     });
     if(error || !data?.ok) {
       console.warn('Error certificación:', error?.message || data?.error);
-      toast('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+      return false;
     }
+    return true;
   } catch(e) {
     console.error('Error certificación:', e);
-    toast('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+    return false;
   }
 }
 
@@ -5862,6 +5896,26 @@ function setSyncStatus(status) {
   if(status==='ok') { dot.className='sync-dot ok'; label.textContent='Drive ✓'; }
   else if(status==='err') { dot.className='sync-dot err'; label.textContent='Reconectar'; }
   else { dot.className='sync-dot'; label.textContent='Sin conectar'; }
+}
+
+// ─── BARRA DE ESTADO DE PROCESO ───────────────────
+let _statusTimer = null;
+function setStatusBar(msg, tipo) {
+  // tipo: 'working' (naranja), 'ok' (verde), 'err' (rojo), null (ocultar)
+  const bar = document.getElementById('statusBar');
+  const txt = document.getElementById('statusBarText');
+  if(!bar||!txt) return;
+  if(_statusTimer) { clearTimeout(_statusTimer); _statusTimer = null; }
+  if(!msg) { bar.style.display='none'; return; }
+  txt.textContent = msg;
+  if(tipo==='ok') {
+    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#1a3a1a;color:#4caf50;position:sticky;top:52px;z-index:99;';
+    _statusTimer = setTimeout(() => setStatusBar(null), 5000);
+  } else if(tipo==='err') {
+    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#3a1a1a;color:#f44336;position:sticky;top:52px;z-index:99;';
+  } else {
+    bar.style.cssText = 'display:block;padding:6px 16px;font-size:12px;font-weight:600;letter-spacing:0.5px;background:#3a2a00;color:#ff9800;position:sticky;top:52px;z-index:99;';
+  }
 }
 
 async function reconectarDrive() {
