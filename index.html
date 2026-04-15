@@ -714,10 +714,20 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
       <div class="card-head"><div class="card-title">☁️ Google Drive</div></div>
       <div class="card-body">
         <div class="fg"><label class="fl">Google Client ID</label><input class="fi" id="cfg-clientid" type="text" placeholder="XXXXXXXX.apps.googleusercontent.com" style="text-transform:none;"></div>
-        <div class="fg"><label class="fl">Correo de la oficina</label><input class="fi" id="cfg-email" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
         <div class="btn-gap">
           <button class="btn btn-gray" onclick="saveConfig()" style="font-size:12px;padding:8px;">Guardar configuración</button>
-          <button class="btn btn-dark" onclick="enviarPendientes()">📤 Enviar informes pendientes ahora</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">📨 Envío automático</div></div>
+      <div class="card-body">
+        <div class="fg"><label class="fl">Email destino 1</label><input class="fi" id="cfg-email1b" type="email" placeholder="oficina@empresa.com" style="text-transform:none;"></div>
+        <div class="fg"><label class="fl">Email destino 2</label><input class="fi" id="cfg-email2b" type="email" placeholder="jefe@empresa.com" style="text-transform:none;"></div>
+        <p style="font-size:11px;color:var(--gris3);margin:4px 0 10px;">El envío automático ocurre cada domingo a las 20:00h.</p>
+        <div class="btn-gap">
+          <button class="btn btn-gray" onclick="guardarEmailsEnvio()" style="font-size:12px;padding:8px;">Guardar emails</button>
+          <button class="btn btn-red" onclick="enviarPendientesAhora()">📤 Enviar pendientes ahora</button>
         </div>
       </div>
     </div>
@@ -1240,7 +1250,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.89';
+const APP_VERSION = 'v3.90';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2221,8 +2231,8 @@ async function notificarTelegram(msg) {
 }
 
 async function guardarEmailsEnvio() {
-  const e1 = document.getElementById('cfg-email1')?.value?.trim() || '';
-  const e2 = document.getElementById('cfg-email2')?.value?.trim() || '';
+  const e1 = (document.getElementById('cfg-email1')?.value || document.getElementById('cfg-email1b')?.value || '').trim();
+  const e2 = (document.getElementById('cfg-email2')?.value || document.getElementById('cfg-email2b')?.value || '').trim();
   try {
     const sb = getSB();
     await sb.from('config_app').upsert([
@@ -2238,8 +2248,12 @@ async function cargarEmailsEnvio() {
     const sb = getSB();
     const { data } = await sb.from('config_app').select('clave,valor').in('clave', ['email_destino_1','email_destino_2']);
     (data || []).forEach(r => {
-      if(r.clave === 'email_destino_1') { const el = document.getElementById('cfg-email1'); if(el) el.value = r.valor || ''; }
-      if(r.clave === 'email_destino_2') { const el = document.getElementById('cfg-email2'); if(el) el.value = r.valor || ''; }
+      if(r.clave === 'email_destino_1') {
+        ['cfg-email1','cfg-email1b'].forEach(id => { const el=document.getElementById(id); if(el) el.value=r.valor||''; });
+      }
+      if(r.clave === 'email_destino_2') {
+        ['cfg-email2','cfg-email2b'].forEach(id => { const el=document.getElementById(id); if(el) el.value=r.valor||''; });
+      }
     });
   } catch(e) { console.warn('Error cargando emails:', e.message); }
 }
