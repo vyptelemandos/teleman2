@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.83';
+const APP_VERSION = 'v3.84';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3399,13 +3399,15 @@ async function parsearVyP(texto) {
   }
 
   // Formato 2: "Fecha Inicio" con fecha a continuación (formato Confirmado)
-  // El texto tiene "Fecha Final\nFecha Inicio\n..." así que buscamos Inicio específicamente
+  // pdfjs extrae columnas de arriba a abajo: después de "Fecha Inicio" aparece
+  // primero la Fecha Final (12:00) y luego la de Inicio real (11:00)
   if(!fecha) {
-    // Buscar "Fecha Inicio" y coger la fecha que aparece después (no antes)
     const idx = texto.indexOf('Fecha Inicio');
     if(idx >= 0) {
       const despues = texto.slice(idx);
-      const m = despues.match(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
+      const matches = [...despues.matchAll(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/g)];
+      // Coger la segunda fecha si existe (la primera es la Final), sino la primera
+      const m = matches.length >= 2 ? matches[1] : matches[0];
       if(m) {
         const [dd,mm,yy] = m[1].split('-');
         fecha = `${yy}-${mm}-${dd}`;
