@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.88';
+const APP_VERSION = 'v3.89';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3365,11 +3365,10 @@ async function extraerTextoPDF(file) {
         const typedArray = new Uint8Array(e.target.result);
         const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
         let texto = '';
-        for(let i=1; i<=pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          texto += content.items.map(item=>item.str).join(' ') + '\n';
-        }
+        // Solo primera página — ahí están todos los datos relevantes
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        texto = content.items.map(item=>item.str).join(' ') + '\n';
         resolve(texto);
       } catch(err) { reject(err); }
     };
