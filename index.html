@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.87';
+const APP_VERSION = 'v3.88';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3377,41 +3377,15 @@ async function extraerTextoPDF(file) {
   });
 }
 
-const GEMINI_API_KEY = 'AIzaSyCJjaIxTj2c83M9R7vsNgbOePRN065pIUw';
-
 async function parsearVyP(texto) {
-  // Intentar primero con Gemini para máxima fiabilidad
+  // Usar Edge Function como proxy seguro para Gemini
   try {
-    const prompt = `Eres un extractor de datos de documentos técnicos eléctricos españoles.
-Analiza este texto extraído de un PDF (puede estar desordenado por columnas) y extrae los datos.
-
-TEXTO DEL PDF:
-${texto.slice(0, 3000)}
-
-Devuelve SOLO un JSON válido con estos campos (sin texto adicional, sin markdown):
-{
-  "vyp": "número de 8 dígitos del trabajo programado (Ref. Trabajo Programado)",
-  "fecha": "fecha inicio en formato YYYY-MM-DD (busca Fecha Inicio, no Fecha Final)",
-  "hora": "hora inicio en formato HH:MM",
-  "centro": "código del centro como Z03594 o similar (después de En CD/DM/CT)",
-  "zona": "zona en mayúsculas como TERUEL, ZARAGOZA, ALCAÑIZ, HUESCA, JACA, CALATAYUD, SORIA, MONZÓN, ALAGÓN, NOROESTE",
-  "tdc": "número de Origen Actividad (puede empezar por T)",
-  "solicitante": "nombre del solicitante en mayúsculas",
-  "trabajo": "descripción de trabajos previstos (códigos PRO/ACT y descripción, máximo 200 caracteres)"
-}`;
-
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 500 }
-      })
+    const sb = getSB();
+    const { data, error } = await sb.functions.invoke('gemini-vyp', {
+      body: { texto }
     });
-    const data = await res.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    if(error || !data?.ok) throw new Error(error?.message || 'Gemini error');
+    const parsed = data.data;
 
     // Buscar alias del centro
     let alias = '';
