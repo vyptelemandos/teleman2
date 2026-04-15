@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.84';
+const APP_VERSION = 'v3.85';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3445,21 +3445,23 @@ async function parsearVyP(texto) {
   // Normalizar: quitar coma si la hay (APELLIDO APELLIDO, NOMBRE → APELLIDO APELLIDO NOMBRE)
   solicitante = solicitante.replace(/,/g, '').replace(/\s+/g,' ').trim();
 
-  // Trabajo previsto — todo el texto entre los prefijos PRO/ACT y "Trabajos previstos"
-  // El texto libre puede ocupar varias líneas
+  // Trabajo previsto — varios formatos
   let trabajo = '';
-  // Primero intentar: último ; seguido del texto libre hasta "Trabajos previstos"
+  // Formato A: texto libre después del último ";" antes de "Trabajos previstos"
   const t1 = texto.match(/;([^;]+?)\s{2,}Trabajos\s*previstos/s);
   if(t1) trabajo = t1[1].replace(/\s+/g,' ').trim();
-  // Si no, buscar todo después de ACT hasta Trabajos previstos
   if(!trabajo) {
     const t2 = texto.match(/ACT\d+\s*-[^;]+;\s*(.+?)\s{2,}Trabajos\s*previstos/s);
     if(t2) trabajo = t2[1].replace(/\s+/g,' ').trim();
   }
-  // Si sigue sin resultado, intentar con un solo espacio
   if(!trabajo) {
     const t3 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/s);
     if(t3) trabajo = t3[1].replace(/\s+/g,' ').trim();
+  }
+  // Formato B: texto en la misma línea que "Trabajos previstos"
+  if(!trabajo) {
+    const t4 = texto.match(/Trabajos\s+previstos\s+(.+?)(?:\n|Afectaciones)/s);
+    if(t4) trabajo = t4[1].replace(/\s+/g,' ').trim();
   }
   if(trabajo.length > 200) trabajo = trabajo.slice(0, 200).trim();
 
