@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.85';
+const APP_VERSION = 'v3.87';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3377,132 +3377,114 @@ async function extraerTextoPDF(file) {
   });
 }
 
-async function parsearVyP(texto) {
-  const get = (pattern, group=1) => {
-    const m = texto.match(pattern);
-    return m ? m[group].trim() : '';
-  };
+const GEMINI_API_KEY = 'AIzaSyCJjaIxTj2c83M9R7vsNgbOePRN065pIUw';
 
-  // Número VyP — puede aparecer ANTES o DESPUÉS de "Ref. Trabajo Programado:"
+async function parsearVyP(texto) {
+  // Intentar primero con Gemini para máxima fiabilidad
+  try {
+    const prompt = `Eres un extractor de datos de documentos técnicos eléctricos españoles.
+Analiza este texto extraído de un PDF (puede estar desordenado por columnas) y extrae los datos.
+
+TEXTO DEL PDF:
+${texto.slice(0, 3000)}
+
+Devuelve SOLO un JSON válido con estos campos (sin texto adicional, sin markdown):
+{
+  "vyp": "número de 8 dígitos del trabajo programado (Ref. Trabajo Programado)",
+  "fecha": "fecha inicio en formato YYYY-MM-DD (busca Fecha Inicio, no Fecha Final)",
+  "hora": "hora inicio en formato HH:MM",
+  "centro": "código del centro como Z03594 o similar (después de En CD/DM/CT)",
+  "zona": "zona en mayúsculas como TERUEL, ZARAGOZA, ALCAÑIZ, HUESCA, JACA, CALATAYUD, SORIA, MONZÓN, ALAGÓN, NOROESTE",
+  "tdc": "número de Origen Actividad (puede empezar por T)",
+  "solicitante": "nombre del solicitante en mayúsculas",
+  "trabajo": "descripción de trabajos previstos (códigos PRO/ACT y descripción, máximo 200 caracteres)"
+}`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 500 }
+      })
+    });
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    // Buscar alias del centro
+    let alias = '';
+    if(parsed.centro) {
+      const centroLocal = S.centros.find(c =>
+        (c.Nombre||c.nombre||'').toUpperCase() === parsed.centro.toUpperCase()
+      );
+      if(centroLocal) alias = centroLocal.Alias || centroLocal.alias || '';
+    }
+
+    return {
+      vyp:         parsed.vyp || '',
+      fecha:       parsed.fecha || '',
+      hora:        parsed.hora || '',
+      centro:      (parsed.centro || '').toUpperCase(),
+      zona:        (parsed.zona || '').toUpperCase(),
+      tdc:         parsed.tdc || '',
+      solicitante: (parsed.solicitante || '').toUpperCase(),
+      trabajo:     (parsed.trabajo || '').toUpperCase(),
+      alias:       alias.toUpperCase(),
+    };
+  } catch(e) {
+    console.warn('Gemini falló, usando regex:', e.message);
+    return parsearVyPRegex(texto);
+  }
+}
+
+// Fallback con regex por si Gemini no está disponible
+async function parsearVyPRegex(texto) {
+  const get = (pattern, group=1) => { const m = texto.match(pattern); return m ? m[group].trim() : ''; };
+
   let vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
   if(!vyp) vyp = get(/Ref\.\s*Trabajo\s*Programado[:\s]+(\d{8})/);
 
-  // Fecha y hora inicio — varios formatos posibles
   let fecha = '', hora = '';
-
-  // Formato 1: "Aprobado DD-MM-YYYY HH:MM ... DD-MM-YYYY HH:MM" (formato antiguo)
   const fechasMatch = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
-  if(fechasMatch) {
-    const [d,m,y] = fechasMatch[3].split('-');
-    fecha = `${y}-${m}-${d}`;
-    hora = fechasMatch[4];
-  }
-
-  // Formato 2: "Fecha Inicio" con fecha a continuación (formato Confirmado)
-  // pdfjs extrae columnas de arriba a abajo: después de "Fecha Inicio" aparece
-  // primero la Fecha Final (12:00) y luego la de Inicio real (11:00)
+  if(fechasMatch) { const [d,m,y]=fechasMatch[3].split('-'); fecha=`${y}-${m}-${d}`; hora=fechasMatch[4]; }
   if(!fecha) {
     const idx = texto.indexOf('Fecha Inicio');
-    if(idx >= 0) {
-      const despues = texto.slice(idx);
-      const matches = [...despues.matchAll(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/g)];
-      // Coger la segunda fecha si existe (la primera es la Final), sino la primera
-      const m = matches.length >= 2 ? matches[1] : matches[0];
-      if(m) {
-        const [dd,mm,yy] = m[1].split('-');
-        fecha = `${yy}-${mm}-${dd}`;
-        hora = m[2];
-      }
+    if(idx>=0) {
+      const matches=[...texto.slice(idx).matchAll(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/g)];
+      const m = matches.length>=2 ? matches[1] : matches[0];
+      if(m) { const [dd,mm,yy]=m[1].split('-'); fecha=`${yy}-${mm}-${dd}`; hora=m[2]; }
     }
   }
+  if(!fecha) { const m=texto.match(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/); if(m){const[d,mm,y]=m[1].split('-');fecha=`${y}-${mm}-${d}`;hora=m[2];} }
 
-  // Formato 3: cualquier fecha DD-MM-YYYY HH:MM en el texto
-  if(!fecha) {
-    const anyFecha = texto.match(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
-    if(anyFecha) {
-      const [d,m,y] = anyFecha[1].split('-');
-      fecha = `${y}-${m}-${d}`;
-      hora = anyFecha[2];
-    }
-  }
-
-  // Zona — "ARA-Teruel" con o sin "A. resp." después
   const zonaMatch = texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
-  let zona = '';
-  if(zonaMatch) {
-    zona = zonaMatch[1].toUpperCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(zona === 'ALCANIZ') zona = 'ALCAÑIZ';
-  }
+  let zona = zonaMatch ? zonaMatch[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') : '';
+  if(zona==='ALCANIZ') zona='ALCAÑIZ';
 
-  // TDC = Origen Actividad — puede ser T-NNNNN, T NNNNN, TNNNNN, o solo NNNNN (LCL)
   const tdcMatch = texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
   const tdc = tdcMatch ? tdcMatch[1] : '';
 
-  // Solicitante — entre "Nombre" y el teléfono, con o sin coma
   const solMatch = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
-  let solicitante = solMatch ? solMatch[1].trim() : '';
-  // Normalizar: quitar coma si la hay (APELLIDO APELLIDO, NOMBRE → APELLIDO APELLIDO NOMBRE)
-  solicitante = solicitante.replace(/,/g, '').replace(/\s+/g,' ').trim();
+  let solicitante = solMatch ? solMatch[1].replace(/,/g,'').replace(/\s+/g,' ').trim() : '';
 
-  // Trabajo previsto — varios formatos
   let trabajo = '';
-  // Formato A: texto libre después del último ";" antes de "Trabajos previstos"
-  const t1 = texto.match(/;([^;]+?)\s{2,}Trabajos\s*previstos/s);
-  if(t1) trabajo = t1[1].replace(/\s+/g,' ').trim();
-  if(!trabajo) {
-    const t2 = texto.match(/ACT\d+\s*-[^;]+;\s*(.+?)\s{2,}Trabajos\s*previstos/s);
-    if(t2) trabajo = t2[1].replace(/\s+/g,' ').trim();
-  }
-  if(!trabajo) {
-    const t3 = texto.match(/;([^;]+?)\s+Trabajos\s*previstos/s);
-    if(t3) trabajo = t3[1].replace(/\s+/g,' ').trim();
-  }
-  // Formato B: texto en la misma línea que "Trabajos previstos"
-  if(!trabajo) {
-    const t4 = texto.match(/Trabajos\s+previstos\s+(.+?)(?:\n|Afectaciones)/s);
-    if(t4) trabajo = t4[1].replace(/\s+/g,' ').trim();
-  }
-  if(trabajo.length > 200) trabajo = trabajo.slice(0, 200).trim();
+  const t1=texto.match(/;([^;]+?)\s{2,}Trabajos\s*previstos/s); if(t1) trabajo=t1[1].replace(/\s+/g,' ').trim();
+  if(!trabajo){const t2=texto.match(/ACT\d+\s*-[^;]+;\s*(.+?)\s{2,}Trabajos\s*previstos/s);if(t2)trabajo=t2[1].replace(/\s+/g,' ').trim();}
+  if(!trabajo){const t3=texto.match(/;([^;]+?)\s+Trabajos\s*previstos/s);if(t3)trabajo=t3[1].replace(/\s+/g,' ').trim();}
+  if(!trabajo){const t4=texto.match(/Trabajos\s+previstos\s+(.+?)(?:\n|Afectaciones)/s);if(t4){let r=t4[1].replace(/\s+/g,' ').trim();const ls=r.lastIndexOf(';');if(ls>0)r=r.slice(0,ls+1);trabajo=r;}}
+  if(trabajo.length>200) trabajo=trabajo.slice(0,200).trim();
 
-  // Centro desde "En CD/DM/... NOMBRE/CODIGO"
-  const enCDMatch = texto.match(/En\s+(?:CD|DM|CT|MT)\s+([^\/\n]+?)\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
-  const alias_cd = enCDMatch ? enCDMatch[1].replace(/\s+/g,' ').trim() : '';
-  const centro = enCDMatch ? enCDMatch[2].trim().toUpperCase() : '';
-
-  // Alias desde tabla centros de Supabase (o local)
-  let alias = '';
-  if(centro) {
-    // Buscar primero en local
-    const centroLocal = S.centros.find(c =>
-      (c.Nombre||c.nombre||'').toUpperCase() === centro.toUpperCase()
-    );
-    if(centroLocal) {
-      alias = centroLocal.Alias || centroLocal.alias || '';
-    } else {
-      // Buscar en Supabase si hay conexión
-      try {
-        const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
-          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
-          signal: AbortSignal.timeout(3000)
-        });
-        const data = await res.json();
-        if(data?.[0]?.alias) alias = data[0].alias;
-      } catch(e) { /* sin conexión, alias vacío */ }
-    }
+  const enCDMatch=texto.match(/En\s+(?:CD|DM|CT|MT)\s+([^\/\n]+?)\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
+  const centro=enCDMatch?enCDMatch[2].trim().toUpperCase():'';
+  let alias='';
+  if(centro){
+    const cl=S.centros.find(c=>(c.Nombre||c.nombre||'').toUpperCase()===centro.toUpperCase());
+    if(cl) alias=cl.Alias||cl.alias||'';
   }
 
-  return {
-    vyp,
-    fecha,
-    hora,
-    tdc,
-    zona: zona.toUpperCase(),
-    solicitante: solicitante.toUpperCase(),
-    trabajo: trabajo.toUpperCase(),
-    centro: centro.toUpperCase(),
-    alias: alias.toUpperCase(),
-  };
+  return { vyp, fecha, hora, tdc, zona:zona.toUpperCase(), solicitante:solicitante.toUpperCase(), trabajo:trabajo.toUpperCase(), centro, alias:alias.toUpperCase() };
 }
 
 // Estado del proceso de importación VyP
