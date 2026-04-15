@@ -1240,7 +1240,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.78';
+const APP_VERSION = 'v3.82';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3383,23 +3383,43 @@ async function parsearVyP(texto) {
     return m ? m[group].trim() : '';
   };
 
-  // Número VyP — aparece ANTES de "Ref. Trabajo Programado:"
-  const vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
+  // Número VyP — puede aparecer ANTES o DESPUÉS de "Ref. Trabajo Programado:"
+  let vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
+  if(!vyp) vyp = get(/Ref\.\s*Trabajo\s*Programado[:\s]+(\d{8})/);
 
-  // Fecha y hora inicio — "Aprobado DD-MM-YYYY HH:MM ... HH:MM"
-  // Formato: "Aprobado 02-03-2026 09:00 U.O. Alcañiz ARA-Alcañiz A. resp. 02-03-2026 08:00"
-  // Fecha inicio es la SEGUNDA fecha (la de Inicio real), hora inicio también la segunda
-  const fechasMatch = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
+  // Fecha y hora inicio — varios formatos posibles
   let fecha = '', hora = '';
+
+  // Formato 1: "Aprobado DD-MM-YYYY HH:MM ... DD-MM-YYYY HH:MM" (formato antiguo)
+  const fechasMatch = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
   if(fechasMatch) {
-    // La segunda fecha es la de inicio real
     const [d,m,y] = fechasMatch[3].split('-');
     fecha = `${y}-${m}-${d}`;
     hora = fechasMatch[4];
   }
 
-  // Zona desde "ARA-Alcañiz A. resp."
-  const zonaMatch = texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s+A\.\s*resp\./i);
+  // Formato 2: "Fecha Inicio" seguido de fecha en líneas cercanas (formato Confirmado)
+  if(!fecha) {
+    const fechaInicioMatch = texto.match(/Fecha\s+Inicio[\s\S]{0,80}?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
+    if(fechaInicioMatch) {
+      const [d,m,y] = fechaInicioMatch[1].split('-');
+      fecha = `${y}-${m}-${d}`;
+      hora = fechaInicioMatch[2];
+    }
+  }
+
+  // Formato 3: cualquier fecha DD-MM-YYYY HH:MM en el texto
+  if(!fecha) {
+    const anyFecha = texto.match(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/);
+    if(anyFecha) {
+      const [d,m,y] = anyFecha[1].split('-');
+      fecha = `${y}-${m}-${d}`;
+      hora = anyFecha[2];
+    }
+  }
+
+  // Zona — "ARA-Teruel" con o sin "A. resp." después
+  const zonaMatch = texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
   let zona = '';
   if(zonaMatch) {
     zona = zonaMatch[1].toUpperCase()
@@ -3567,8 +3587,8 @@ function mostrarVyPUno() {
         <div style="border-left:3px solid var(--rojo);padding-left:12px;margin-bottom:12px;">
           <div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:15px;color:var(--rojo);margin-bottom:8px;">VyP ${d.vyp}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
-            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Fecha</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.fecha}</div></div>
-            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Hora</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.hora}</div></div>
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Fecha</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;color:${d.fecha?'inherit':'var(--rojo)'};">${d.fecha||'⚠ SIN FECHA'}</div></div>
+            <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Hora</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;color:${d.hora?'inherit':'var(--gris3)'};">${d.hora||'—'}</div></div>
           </div>
           <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Centro</div><div style="font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;">${d.centro} — ${d.alias||'SIN ALIAS'}</div></div>
           <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">TDC</div><div style="font-family:'Roboto Mono',monospace;font-weight:600;">${d.tdc||'—'}</div></div>
@@ -3576,12 +3596,67 @@ function mostrarVyPUno() {
           <div style="margin-bottom:6px;"><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Trabajo</div><div style="font-size:13px;">${d.trabajo||'—'}</div></div>
           <div><div style="font-size:10px;color:var(--gris3);text-transform:uppercase;margin-bottom:2px;">Solicitante</div><div style="font-size:13px;">${d.solicitante||'—'}</div></div>
         </div>
+        <div id="vypEditForm" style="display:none;"></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-gray" style="flex:1;" onclick="saltarVyP()">Omitir</button>
+          <button class="btn btn-gray" style="flex:1;" onclick="toggleVypEdit()" id="btnVypEdit">✏️ Editar</button>
           <button class="btn btn-red" style="flex:2;" onclick="añadirVyPActual()">✓ Añadir</button>
         </div>
       </div>
     </div>`;
+
+  // Build edit form with JS to avoid template literal issues
+  const editForm = document.getElementById('vypEditForm');
+  if(editForm) {
+    editForm.innerHTML = '';
+    editForm.style.cssText = 'background:var(--negro3);border-radius:10px;padding:12px;margin-bottom:12px;';
+    const fields = [
+      {id:'vyp-edit-fecha', label:'FECHA', type:'date', val: d.fecha||''},
+      {id:'vyp-edit-hora',  label:'HORA',  type:'time', val: d.hora||''},
+      {id:'vyp-edit-centro',label:'CENTRO',type:'text', val: d.centro||'', upper:true},
+      {id:'vyp-edit-tdc',   label:'TDC',   type:'text', val: d.tdc||''},
+      {id:'vyp-edit-zona',  label:'ZONA',  type:'text', val: d.zona||'', upper:true},
+      {id:'vyp-edit-sol',   label:'SOLICITANTE', type:'text', val: d.solicitante||'', upper:true},
+    ];
+    const title = document.createElement('div');
+    title.textContent = 'EDITAR DATOS';
+    title.style.cssText = 'font-size:11px;color:var(--gris3);font-weight:600;margin-bottom:10px;';
+    editForm.appendChild(title);
+    fields.forEach(f => {
+      const wrap = document.createElement('div');
+      wrap.style.marginBottom = '8px';
+      const lbl = document.createElement('label');
+      lbl.textContent = f.label;
+      lbl.style.cssText = 'font-size:10px;color:var(--gris3);display:block;margin-bottom:2px;';
+      const inp = document.createElement('input');
+      inp.id = f.id; inp.type = f.type; inp.value = f.val;
+      inp.className = 'fi';
+      inp.style.cssText = 'color:white;background:var(--negro2);width:100%;';
+      if(f.upper) inp.style.textTransform = 'uppercase';
+      wrap.appendChild(lbl); wrap.appendChild(inp);
+      editForm.appendChild(wrap);
+    });
+    // Trabajo textarea
+    const twrap = document.createElement('div');
+    const tlbl = document.createElement('label');
+    tlbl.textContent = 'TRABAJO';
+    tlbl.style.cssText = 'font-size:10px;color:var(--gris3);display:block;margin-bottom:2px;';
+    const ta = document.createElement('textarea');
+    ta.id = 'vyp-edit-trabajo'; ta.value = d.trabajo||'';
+    ta.className = 'fi';
+    ta.style.cssText = 'color:white;background:var(--negro2);width:100%;text-transform:uppercase;resize:none;height:60px;';
+    twrap.appendChild(tlbl); twrap.appendChild(ta);
+    editForm.appendChild(twrap);
+  }
+}
+
+function toggleVypEdit() {
+  const form = document.getElementById('vypEditForm');
+  const btn = document.getElementById('btnVypEdit');
+  if(!form) return;
+  const visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : 'block';
+  if(btn) btn.textContent = visible ? '✏️ Editar' : '✏️ Cerrar';
 }
 
 function cerrarOverlayVyP() {
@@ -3596,6 +3671,18 @@ function saltarVyP() {
 
 async function añadirVyPActual() {
   const d = _importVyPQueue[_importVyPIdx];
+
+  // Recoger datos editados si el formulario está visible
+  const form = document.getElementById('vypEditForm');
+  if(form && form.style.display !== 'none') {
+    d.fecha    = document.getElementById('vyp-edit-fecha')?.value || d.fecha;
+    d.hora     = document.getElementById('vyp-edit-hora')?.value || d.hora;
+    d.centro   = (document.getElementById('vyp-edit-centro')?.value || d.centro).toUpperCase();
+    d.tdc      = document.getElementById('vyp-edit-tdc')?.value || d.tdc;
+    d.zona     = (document.getElementById('vyp-edit-zona')?.value || d.zona).toUpperCase();
+    d.solicitante = (document.getElementById('vyp-edit-sol')?.value || d.solicitante).toUpperCase();
+    d.trabajo  = (document.getElementById('vyp-edit-trabajo')?.value || d.trabajo).toUpperCase();
+  }
   const payload = {
     id: 'VYP-' + d.vyp,
     centro: d.centro,
