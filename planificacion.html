@@ -502,8 +502,11 @@ sb.auth.onAuthStateChange((event, session) => {
     document.getElementById('sbUserEmail').textContent = session.user.email;
     initApp();
   } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+    // MODO PRUEBAS — sin login
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('sbUserEmail').textContent = 'modo pruebas';
+    initApp();
   }
 });
 
