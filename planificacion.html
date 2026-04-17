@@ -9,21 +9,23 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
 :root {
-  --bg: #0a0a0c;
-  --bg2: #111114;
-  --bg3: #18181d;
-  --bg4: #222228;
-  --border: #2a2a32;
-  --text: #f0f0f5;
-  --text2: #9090a0;
-  --text3: #555560;
+  --bg: #f5f5f7;
+  --bg2: #ffffff;
+  --bg3: #f0f0f3;
+  --bg4: #e8e8ec;
+  --border: #e0e0e5;
+  --text: #111118;
+  --text2: #555565;
+  --text3: #999aaa;
   --red: #e63946;
-  --red2: #ff6b74;
-  --green: #2d9e6b;
-  --green2: #3ecf8e;
-  --yellow: #f4a621;
-  --orange: #f97316;
-  --blue: #3b82f6;
+  --red2: #c0001a;
+  --green: #1a8a55;
+  --green2: #1a8a55;
+  --yellow: #c98000;
+  --yellow-bg: #fff8e6;
+  --orange: #c95000;
+  --orange-bg: #fff3ea;
+  --blue: #2563eb;
   --mono: 'JetBrains Mono', monospace;
   --sans: 'DM Sans', sans-serif;
 }
@@ -195,10 +197,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-weight: 500; transition: opacity 0.15s;
 }
 .cal-event:hover { opacity: 0.8; }
-.ev-pending { background: rgba(230,57,70,0.2); color: var(--red2); border-left: 2px solid var(--red); }
-.ev-late { background: rgba(244,166,33,0.2); color: var(--yellow); border-left: 2px solid var(--yellow); }
-.ev-done { background: rgba(62,207,142,0.2); color: var(--green2); border-left: 2px solid var(--green2); }
-.ev-cancelled { background: rgba(249,115,22,0.2); color: var(--orange); border-left: 2px solid var(--orange); }
+.ev-pending  { background: #fff8e6; color: #9a6000; border-left: 3px solid #f4a621; }
+.ev-late     { background: #fff3ea; color: #8a3800; border-left: 3px solid #f97316; }
+.ev-done     { background: #edfaf3; color: #1a6e40; border-left: 3px solid #1a8a55; }
+.ev-cancelled{ background: #fff0f0; color: #9a0010; border-left: 3px solid #e63946; }
 
 /* LIST VIEW */
 .planif-table { width: 100%; border-collapse: collapse; }
@@ -217,10 +219,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
   font-family: var(--mono);
 }
-.badge-red { background: rgba(230,57,70,0.15); color: var(--red2); }
-.badge-yellow { background: rgba(244,166,33,0.15); color: var(--yellow); }
-.badge-green { background: rgba(62,207,142,0.15); color: var(--green2); }
-.badge-orange { background: rgba(249,115,22,0.15); color: var(--orange); }
+.badge-red    { background: #fff0f0; color: #9a0010; border: 1px solid #ffc0c5; }
+.badge-yellow { background: #fff8e6; color: #9a6000; border: 1px solid #ffd97a; }
+.badge-green  { background: #edfaf3; color: #1a6e40; border: 1px solid #7dd4a8; }
+.badge-orange { background: #fff3ea; color: #8a3800; border: 1px solid #ffb380; }
 .badge-gray { background: var(--bg4); color: var(--text3); }
 
 /* MODAL */
@@ -348,17 +350,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </button>
     <div class="sb-section">Leyenda</div>
     <div style="padding:4px 14px;">
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
-        <span style="width:10px;height:10px;background:var(--red);border-radius:2px;flex-shrink:0;"></span> Pendiente
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+        <span style="width:10px;height:10px;background:#f4a621;border-radius:2px;flex-shrink:0;"></span> Pendiente
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
-        <span style="width:10px;height:10px;background:var(--yellow);border-radius:2px;flex-shrink:0;"></span> No realizado en hora
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+        <span style="width:10px;height:10px;background:#f97316;border-radius:2px;flex-shrink:0;"></span> Caducado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
-        <span style="width:10px;height:10px;background:var(--green2);border-radius:2px;flex-shrink:0;"></span> Realizado
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+        <span style="width:10px;height:10px;background:#1a8a55;border-radius:2px;flex-shrink:0;"></span> Realizado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
-        <span style="width:10px;height:10px;background:var(--orange);border-radius:2px;flex-shrink:0;"></span> Cancelado
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+        <span style="width:10px;height:10px;background:#e63946;border-radius:2px;flex-shrink:0;"></span> Cancelado
       </div>
     </div>
     <div class="sb-bottom">
@@ -572,17 +574,12 @@ function renderCurrentView() {
 // ─── COLORES ─────────────────────────────────────────
 function getColor(p) {
   if(p.estado==='CANCELADO') return 'cancelled';
-  // Buscar si existe intervención realizada para este VyP o centro+fecha
   const interv = intervenciones.find(i =>
-    (p.vyp && i.tdc && (i.tdc===p.tdc || i.int_id?.includes(p.vyp))) ||
+    (p.tdc && i.tdc && i.tdc===p.tdc) ||
     (i.centro===p.centro && i.fecha===p.fecha)
   );
-  if(interv) {
-    // Comprobar si fue tarde
-    if(p.hora && interv.hora && interv.hora > p.hora) return 'late';
-    return 'done';
-  }
-  // Pendiente — ¿ya pasó?
+  if(interv) return 'done';
+  // Sin intervención — ¿ya pasó la fecha?
   const ahora = new Date();
   const fechaPlanif = new Date(p.fecha + 'T' + (p.hora||'00:00'));
   if(fechaPlanif < ahora) return 'late';
@@ -591,7 +588,7 @@ function getColor(p) {
 
 function getIntervencion(p) {
   return intervenciones.find(i =>
-    (p.vyp && i.tdc && (i.tdc===p.tdc)) ||
+    (p.tdc && i.tdc && i.tdc===p.tdc) ||
     (i.centro===p.centro && i.fecha===p.fecha)
   );
 }
@@ -600,10 +597,10 @@ function colorClass(c) {
   return {pending:'ev-pending', late:'ev-late', done:'ev-done', cancelled:'ev-cancelled'}[c] || 'ev-pending';
 }
 function badgeClass(c) {
-  return {pending:'badge-red', late:'badge-yellow', done:'badge-green', cancelled:'badge-orange'}[c] || 'badge-gray';
+  return {pending:'badge-yellow', late:'badge-orange', done:'badge-green', cancelled:'badge-red'}[c] || 'badge-gray';
 }
 function badgeText(c) {
-  return {pending:'PENDIENTE', late:'SIN REALIZAR', done:'REALIZADO', cancelled:'CANCELADO'}[c] || c;
+  return {pending:'PENDIENTE', late:'CADUCADO', done:'REALIZADO', cancelled:'CANCELADO'}[c] || c;
 }
 
 // ─── CALENDARIO ──────────────────────────────────────
@@ -646,10 +643,10 @@ function renderCalendario() {
 
   content.innerHTML = `
     <div class="stats-bar">
-      <div class="stat-card stat-red"><div class="stat-num">${pending}</div><div class="stat-label">Pendientes</div></div>
-      <div class="stat-card stat-yellow"><div class="stat-num">${late}</div><div class="stat-label">Sin realizar</div></div>
-      <div class="stat-card stat-green"><div class="stat-num">${done}</div><div class="stat-label">Realizados</div></div>
-      <div class="stat-card stat-orange"><div class="stat-num">${cancelled}</div><div class="stat-label">Cancelados</div></div>
+      <div class="stat-card" style="border-left:3px solid #f4a621;"><div class="stat-num" style="color:#9a6000;">${pending}</div><div class="stat-label">Pendientes</div></div>
+      <div class="stat-card" style="border-left:3px solid #f97316;"><div class="stat-num" style="color:#8a3800;">${late}</div><div class="stat-label">Caducados</div></div>
+      <div class="stat-card" style="border-left:3px solid #1a8a55;"><div class="stat-num" style="color:#1a6e40;">${done}</div><div class="stat-label">Realizados</div></div>
+      <div class="stat-card" style="border-left:3px solid #e63946;"><div class="stat-num" style="color:#9a0010;">${cancelled}</div><div class="stat-label">Cancelados</div></div>
     </div>
     <div class="filters">
       <select class="filter-select" id="filtroTecnico" onchange="renderCurrentView()">
