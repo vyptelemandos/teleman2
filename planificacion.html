@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teleman2 — Planificación</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0c;
+  --bg2: #111114;
+  --bg3: #18181d;
+  --bg4: #222228;
+  --border: #2a2a32;
+  --text: #f0f0f5;
+  --text2: #9090a0;
+  --text3: #555560;
+  --red: #e63946;
+  --red2: #ff6b74;
+  --green: #2d9e6b;
+  --green2: #3ecf8e;
+  --yellow: #f4a621;
+  --orange: #f97316;
+  --blue: #3b82f6;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+/* LOGIN */
+#loginScreen {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  z-index: 100;
+}
+.login-box {
+  width: 380px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px;
+}
+.login-logo {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.login-logo span { color: var(--red); }
+.login-sub { font-size: 12px; color: var(--text3); margin-bottom: 32px; letter-spacing: 0.08em; text-transform: uppercase; }
+.login-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+.login-input {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: var(--sans); font-size: 14px;
+  outline: none; margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.login-input:focus { border-color: var(--red); }
+.login-btn {
+  width: 100%; padding: 11px;
+  background: var(--red); border: none; border-radius: 6px;
+  color: white; font-family: var(--sans); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.2s;
+}
+.login-btn:hover { opacity: 0.85; }
+.login-err { font-size: 12px; color: var(--red2); margin-top: 10px; text-align: center; }
+
+/* LAYOUT */
+#app { display: flex; height: 100vh; }
+#sidebar {
+  width: 240px; flex-shrink: 0;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* SIDEBAR */
+.sb-logo {
+  padding: 20px 20px 16px;
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+.sb-logo span { color: var(--red); }
+.sb-logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; margin-top: 2px; }
+
+.sb-section { padding: 16px 12px 8px; font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+.sb-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; margin: 1px 8px;
+  border-radius: 6px; cursor: pointer;
+  font-size: 13px; color: var(--text2);
+  transition: all 0.15s; border: none; background: none; width: calc(100% - 16px);
+  text-align: left;
+}
+.sb-btn:hover { background: var(--bg3); color: var(--text); }
+.sb-btn.active { background: var(--red); color: white; }
+.sb-btn .icon { font-size: 15px; width: 20px; text-align: center; }
+
+.sb-bottom { margin-top: auto; padding: 12px; border-top: 1px solid var(--border); }
+.sb-user { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.sb-user strong { color: var(--text2); }
+.sb-logout {
+  width: 100%; padding: 8px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2); font-size: 12px; cursor: pointer;
+  font-family: var(--sans); transition: all 0.15s;
+}
+.sb-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* TOPBAR */
+#topbar {
+  height: 52px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* BUTTONS */
+.btn {
+  padding: 7px 14px; border-radius: 6px; border: none;
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-red { background: var(--red); color: white; }
+.btn-red:hover { opacity: 0.85; }
+.btn-gray { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+.btn-gray:hover { background: var(--bg4); color: var(--text); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* CONTENT AREA */
+#content { flex: 1; overflow: auto; padding: 24px; }
+
+/* STATS BAR */
+.stats-bar {
+  display: flex; gap: 12px; margin-bottom: 20px;
+}
+.stat-card {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 16px;
+}
+.stat-num { font-family: var(--mono); font-size: 24px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-red .stat-num { color: var(--red2); }
+.stat-yellow .stat-num { color: var(--yellow); }
+.stat-green .stat-num { color: var(--green2); }
+.stat-orange .stat-num { color: var(--orange); }
+
+/* VIEW TOGGLE */
+.view-toggle { display: flex; gap: 4px; background: var(--bg3); padding: 3px; border-radius: 6px; margin-bottom: 20px; }
+.view-btn {
+  padding: 6px 14px; border-radius: 4px; border: none; background: none;
+  color: var(--text2); font-size: 12px; cursor: pointer; font-family: var(--sans);
+  transition: all 0.15s;
+}
+.view-btn.active { background: var(--bg); color: var(--text); }
+
+/* FILTERS */
+.filters { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+.filter-select {
+  padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 12px; font-family: var(--sans); outline: none;
+}
+.filter-select:focus { border-color: var(--red); }
+.filter-label { font-size: 11px; color: var(--text3); }
+
+/* CALENDAR */
+#calendarView { }
+.cal-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.cal-month { font-family: var(--mono); font-size: 16px; font-weight: 600; }
+.cal-nav { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text2); font-size: 14px; }
+.cal-nav:hover { color: var(--text); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.cal-dow { background: var(--bg3); padding: 8px; text-align: center; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.cal-day {
+  background: var(--bg2); min-height: 100px; padding: 8px;
+  position: relative; transition: background 0.15s;
+}
+.cal-day:hover { background: var(--bg3); }
+.cal-day.other-month { background: var(--bg); }
+.cal-day.today { outline: 1px solid var(--red); outline-offset: -1px; }
+.cal-day-num { font-size: 11px; color: var(--text3); margin-bottom: 4px; font-family: var(--mono); }
+.cal-day.today .cal-day-num { color: var(--red2); font-weight: 700; }
+.cal-event {
+  padding: 3px 6px; border-radius: 3px; font-size: 10px; margin-bottom: 2px;
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 500; transition: opacity 0.15s;
+}
+.cal-event:hover { opacity: 0.8; }
+.ev-pending { background: rgba(230,57,70,0.2); color: var(--red2); border-left: 2px solid var(--red); }
+.ev-late { background: rgba(244,166,33,0.2); color: var(--yellow); border-left: 2px solid var(--yellow); }
+.ev-done { background: rgba(62,207,142,0.2); color: var(--green2); border-left: 2px solid var(--green2); }
+.ev-cancelled { background: rgba(249,115,22,0.2); color: var(--orange); border-left: 2px solid var(--orange); }
+
+/* LIST VIEW */
+.planif-table { width: 100%; border-collapse: collapse; }
+.planif-table th {
+  text-align: left; padding: 8px 12px;
+  font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border); font-weight: 600;
+}
+.planif-table td {
+  padding: 10px 12px; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.planif-table tr:hover td { background: var(--bg3); cursor: pointer; }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 3px;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  font-family: var(--mono);
+}
+.badge-red { background: rgba(230,57,70,0.15); color: var(--red2); }
+.badge-yellow { background: rgba(244,166,33,0.15); color: var(--yellow); }
+.badge-green { background: rgba(62,207,142,0.15); color: var(--green2); }
+.badge-orange { background: rgba(249,115,22,0.15); color: var(--orange); }
+.badge-gray { background: var(--bg4); color: var(--text3); }
+
+/* MODAL */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+}
+.overlay.open { display: flex; }
+.modal-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  width: 560px; max-width: 95vw; max-height: 85vh; overflow-y: auto;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 14px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+.field-group { margin-bottom: 14px; }
+.field-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.field-input, .field-select, .field-textarea {
+  width: 100%; padding: 9px 12px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); font-family: var(--sans); font-size: 13px; outline: none;
+}
+.field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--red); }
+.field-textarea { resize: vertical; min-height: 70px; }
+.fr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.dr-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.dr-label { color: var(--text3); width: 130px; flex-shrink: 0; font-size: 12px; }
+.dr-val { color: var(--text); font-weight: 500; }
+
+/* DROP ZONE */
+#dropZone {
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 40px; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 20px;
+}
+#dropZone:hover, #dropZone.drag-over { border-color: var(--red); background: rgba(230,57,70,0.05); }
+#dropZone .dz-icon { font-size: 36px; margin-bottom: 10px; }
+#dropZone .dz-text { font-size: 14px; color: var(--text2); margin-bottom: 4px; }
+#dropZone .dz-sub { font-size: 12px; color: var(--text3); }
+#fileInputHidden { display: none; }
+
+/* IMPORT PREVIEW */
+.import-preview {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin-bottom: 12px;
+}
+.import-vyp-num { font-family: var(--mono); font-size: 12px; color: var(--text3); margin-bottom: 8px; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  opacity: 0; transform: translateY(8px); transition: all 0.25s;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.ok { background: var(--green); color: white; }
+#toast.err { background: var(--red); color: white; }
+#toast.warn { background: var(--yellow); color: #000; }
+
+/* LOADING */
+.loading { text-align: center; padding: 60px; color: var(--text3); font-size: 13px; }
+.dot-anim::after { content: '...'; animation: dots 1.2s infinite; }
+@keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'} }
+
+/* RESOLUTION PANEL */
+.resolution-box {
+  background: rgba(62,207,142,0.08); border: 1px solid rgba(62,207,142,0.2);
+  border-radius: 8px; padding: 14px; margin-top: 12px;
+}
+.resolution-title { font-size: 11px; color: var(--green2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 600; }
+
+/* REALTIME indicator */
+.rt-dot { width: 7px; height: 7px; background: var(--green2); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">TELE<span>MAN</span>2</div>
+    <div class="login-sub">Panel de Planificación</div>
+    <div class="login-label">Email</div>
+    <input class="login-input" id="loginEmail" type="email" placeholder="correo@empresa.com" autocomplete="email">
+    <div class="login-label">Contraseña</div>
+    <input class="login-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-logo">
+      TELE<span>MAN</span>2
+      <div class="sb-logo-sub">Planificación PC</div>
+    </div>
+    <div class="sb-section">Vistas</div>
+    <button class="sb-btn active" id="sb-calendario" onclick="setView('calendario')">
+      <span class="icon">📅</span> Calendario
+    </button>
+    <button class="sb-btn" id="sb-lista" onclick="setView('lista')">
+      <span class="icon">☰</span> Lista
+    </button>
+    <button class="sb-btn" id="sb-importar" onclick="setView('importar')">
+      <span class="icon">📄</span> Importar VyP
+    </button>
+    <div class="sb-section">Leyenda</div>
+    <div style="padding:4px 14px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
+        <span style="width:10px;height:10px;background:var(--red);border-radius:2px;flex-shrink:0;"></span> Pendiente
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
+        <span style="width:10px;height:10px;background:var(--yellow);border-radius:2px;flex-shrink:0;"></span> No realizado en hora
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
+        <span style="width:10px;height:10px;background:var(--green2);border-radius:2px;flex-shrink:0;"></span> Realizado
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text3);">
+        <span style="width:10px;height:10px;background:var(--orange);border-radius:2px;flex-shrink:0;"></span> Cancelado
+      </div>
+    </div>
+    <div class="sb-bottom">
+      <div class="sb-user">
+        <span class="rt-dot"></span> &nbsp;Tiempo real activo<br>
+        <strong id="sbUserEmail"></strong>
+      </div>
+      <button class="sb-logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-title" id="topbarTitle">Calendario</div>
+      <div class="topbar-actions">
+        <button class="btn btn-gray btn-sm" onclick="setView('importar')">+ Importar VyP</button>
+        <button class="btn btn-red btn-sm" onclick="openNuevoManual()">+ Manual</button>
+      </div>
+    </div>
+    <div id="content">
+      <div class="loading">Cargando<span class="dot-anim"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="overlay" id="modalDetalle">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="modalDetalleTitle">Detalle</div>
+      <button class="modal-close" onclick="closeModal('modalDetalle')">×</button>
+    </div>
+    <div class="modal-body" id="modalDetalleBody"></div>
+    <div class="modal-footer" id="modalDetalleFooter"></div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO MANUAL -->
+<div class="overlay" id="modalNuevo">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Añadir trabajo manual</div>
+      <button class="modal-close" onclick="closeModal('modalNuevo')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fr2">
+        <div class="field-group">
+          <div class="field-label">Centro *</div>
+          <input class="field-input" id="n-centro" placeholder="Z17690" style="text-transform:uppercase;">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Fecha *</div>
+          <input class="field-input" id="n-fecha" type="date">
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="field-group">
+          <div class="field-label">Hora inicio</div>
+          <input class="field-input" id="n-hora" placeholder="08:00">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Nº VyP</div>
+          <input class="field-input" id="n-vyp" placeholder="18162931">
+        </div>
+      </div>
+      <div class="fr2">
+        <div class="field-group">
+          <div class="field-label">TDC / Ticket</div>
+          <input class="field-input" id="n-tdc" placeholder="1694333">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Teléfono</div>
+          <input class="field-input" id="n-tel" placeholder="666 123 456">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Trabajo previsto</div>
+        <textarea class="field-textarea" id="n-trabajo" placeholder="Descripción..." style="text-transform:uppercase;"></textarea>
+      </div>
+      <div class="fr2">
+        <div class="field-group">
+          <div class="field-label">Solicitante *</div>
+          <input class="field-input" id="n-solicitante" placeholder="NOMBRE APELLIDO" style="text-transform:uppercase;">
+        </div>
+        <div class="field-group">
+          <div class="field-label">Técnico asignado</div>
+          <select class="field-select" id="n-tecnico"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('modalNuevo')">Cancelar</button>
+      <button class="btn btn-red" onclick="guardarManual()">Añadir planificación</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+const SB_URL = 'https://ulphecelibnrhmkbetnj.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVscGhlY2VsaWJucmhta2JldG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk5MjA4OTAsImV4cCI6MjAyNTQ5Njg5MH0.hQ742rBgXuuNFYIdDIvM7dkgB0paEjyX7CPwge2O2-4';
+
+const { createClient } = supabase;
+const sb = createClient(SB_URL, SB_KEY);
+
+let planificacion = [];
+let intervenciones = [];
+let tecnicos = [];
+let currentView = 'calendario';
+let calYear, calMonth;
+
+// ─── AUTH ───────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  err.textContent = '';
+  if(!email || !pass) { err.textContent = 'Introduce email y contraseña'; return; }
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if(error) { err.textContent = 'Email o contraseña incorrectos'; return; }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+sb.auth.onAuthStateChange((event, session) => {
+  if(session) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('sbUserEmail').textContent = session.user.email;
+    initApp();
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ─── INIT ────────────────────────────────────────────
+async function initApp() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos()]);
+  setView('calendario');
+  iniciarRealtime();
+}
+
+async function cargarPlanificacion() {
+  const { data } = await sb.from('planificacion').select('*').order('fecha');
+  planificacion = data || [];
+}
+
+async function cargarIntervenciones() {
+  const { data } = await sb.from('intervenciones').select('int_id,centro,fecha,hora,resultado,resolucion,tdc,tec1,tec2,motivo').order('fecha', {ascending:false});
+  intervenciones = data || [];
+}
+
+async function cargarTecnicos() {
+  const { data } = await sb.from('tecnicos').select('nombre');
+  tecnicos = (data||[]).map(t=>t.nombre).filter(Boolean);
+  // Poblar selects
+  const opts = '<option value="">-- Sin asignar --</option>' + tecnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  ['n-tecnico','edit-tecnico'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+  // Poblar filtro
+  const filtro = document.getElementById('filtroTecnico');
+  if(filtro) {
+    filtro.innerHTML = '<option value="">Todos los técnicos</option>' + tecnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  }
+}
+
+function iniciarRealtime() {
+  sb.channel('pc-live')
+    .on('postgres_changes', {event:'*', schema:'public', table:'planificacion'}, async () => {
+      await cargarPlanificacion();
+      renderCurrentView();
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'intervenciones'}, async () => {
+      await cargarIntervenciones();
+      renderCurrentView();
+    })
+    .subscribe();
+}
+
+// ─── VIEWS ───────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  ['calendario','lista','importar'].forEach(id => {
+    const btn = document.getElementById('sb-'+id);
+    if(btn) btn.classList.toggle('active', id===v);
+  });
+  const titles = {calendario:'Calendario', lista:'Lista de trabajos', importar:'Importar VyPs'};
+  document.getElementById('topbarTitle').textContent = titles[v] || v;
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  if(currentView==='calendario') renderCalendario();
+  else if(currentView==='lista') renderLista();
+  else if(currentView==='importar') renderImportar();
+}
+
+// ─── COLORES ─────────────────────────────────────────
+function getColor(p) {
+  if(p.estado==='CANCELADO') return 'cancelled';
+  // Buscar si existe intervención realizada para este VyP o centro+fecha
+  const interv = intervenciones.find(i =>
+    (p.vyp && i.tdc && (i.tdc===p.tdc || i.int_id?.includes(p.vyp))) ||
+    (i.centro===p.centro && i.fecha===p.fecha)
+  );
+  if(interv) {
+    // Comprobar si fue tarde
+    if(p.hora && interv.hora && interv.hora > p.hora) return 'late';
+    return 'done';
+  }
+  // Pendiente — ¿ya pasó?
+  const ahora = new Date();
+  const fechaPlanif = new Date(p.fecha + 'T' + (p.hora||'00:00'));
+  if(fechaPlanif < ahora) return 'late';
+  return 'pending';
+}
+
+function getIntervencion(p) {
+  return intervenciones.find(i =>
+    (p.vyp && i.tdc && (i.tdc===p.tdc)) ||
+    (i.centro===p.centro && i.fecha===p.fecha)
+  );
+}
+
+function colorClass(c) {
+  return {pending:'ev-pending', late:'ev-late', done:'ev-done', cancelled:'ev-cancelled'}[c] || 'ev-pending';
+}
+function badgeClass(c) {
+  return {pending:'badge-red', late:'badge-yellow', done:'badge-green', cancelled:'badge-orange'}[c] || 'badge-gray';
+}
+function badgeText(c) {
+  return {pending:'PENDIENTE', late:'SIN REALIZAR', done:'REALIZADO', cancelled:'CANCELADO'}[c] || c;
+}
+
+// ─── CALENDARIO ──────────────────────────────────────
+function renderCalendario() {
+  const filtroTec = document.getElementById('filtroTecnico')?.value || '';
+  const content = document.getElementById('content');
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // Stats
+  const total = planificacion.length;
+  const pending = planificacion.filter(p=>getColor(p)==='pending').length;
+  const late = planificacion.filter(p=>getColor(p)==='late').length;
+  const done = planificacion.filter(p=>getColor(p)==='done').length;
+  const cancelled = planificacion.filter(p=>p.estado==='CANCELADO').length;
+
+  // Build calendar
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDay = new Date(calYear, calMonth+1, 0);
+  const startDow = (firstDay.getDay()+6)%7; // Lunes=0
+  const today = new Date();
+
+  let days = [];
+  // Días del mes anterior
+  for(let i=startDow-1; i>=0; i--) {
+    const d = new Date(calYear, calMonth, -i);
+    days.push({date:d, other:true});
+  }
+  // Días del mes
+  for(let i=1; i<=lastDay.getDate(); i++) {
+    days.push({date:new Date(calYear,calMonth,i), other:false});
+  }
+  // Completar hasta múltiplo de 7
+  while(days.length%7!==0) {
+    const last = days[days.length-1].date;
+    days.push({date:new Date(last.getFullYear(),last.getMonth(),last.getDate()+1), other:true});
+  }
+
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  content.innerHTML = `
+    <div class="stats-bar">
+      <div class="stat-card stat-red"><div class="stat-num">${pending}</div><div class="stat-label">Pendientes</div></div>
+      <div class="stat-card stat-yellow"><div class="stat-num">${late}</div><div class="stat-label">Sin realizar</div></div>
+      <div class="stat-card stat-green"><div class="stat-num">${done}</div><div class="stat-label">Realizados</div></div>
+      <div class="stat-card stat-orange"><div class="stat-num">${cancelled}</div><div class="stat-label">Cancelados</div></div>
+    </div>
+    <div class="filters">
+      <select class="filter-select" id="filtroTecnico" onchange="renderCurrentView()">
+        <option value="">Todos los técnicos</option>
+        ${tecnicos.map(t=>`<option value="${t}"${t===filtroTec?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div id="calendarView">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calPrev()">‹</button>
+        <div class="cal-month">${meses[calMonth]} ${calYear}</div>
+        <button class="cal-nav" onclick="calNext()">›</button>
+        <button class="btn btn-gray btn-sm" onclick="calHoy()" style="margin-left:8px;">Hoy</button>
+      </div>
+      <div class="cal-grid">
+        ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+        ${days.map(({date,other}) => {
+          const dateStr = fmt(date);
+          const isToday = fmt(today)===dateStr;
+          const eventos = planificacion.filter(p => {
+            if(filtroTec && p.tecnico_asignado !== filtroTec) return false;
+            return p.fecha === dateStr;
+          });
+          return `<div class="cal-day${other?' other-month':''}${isToday?' today':''}">
+            <div class="cal-day-num">${date.getDate()}</div>
+            ${eventos.map(p => {
+              const c = getColor(p);
+              return `<div class="cal-event ${colorClass(c)}" onclick="verDetalle('${p.id}')" title="${p.centro} — ${p.trabajo||''}">
+                ${p.hora||''} ${p.centro}${p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:''}
+              </div>`;
+            }).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendario(); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendario(); }
+function calHoy() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); renderCalendario(); }
+
+// ─── LISTA ───────────────────────────────────────────
+function renderLista() {
+  const filtroTec = document.getElementById('filtroTecnicoLista')?.value || '';
+  const filtroEstado = document.getElementById('filtroEstadoLista')?.value || '';
+  const content = document.getElementById('content');
+
+  let datos = [...planificacion].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  if(filtroTec) datos = datos.filter(p=>p.tecnico_asignado===filtroTec);
+  if(filtroEstado) datos = datos.filter(p=>getColor(p)===filtroEstado);
+
+  content.innerHTML = `
+    <div class="filters">
+      <select class="filter-select" id="filtroTecnicoLista" onchange="renderLista()">
+        <option value="">Todos los técnicos</option>
+        ${tecnicos.map(t=>`<option value="${t}"${t===filtroTec?' selected':''}>${t}</option>`).join('')}
+      </select>
+      <select class="filter-select" id="filtroEstadoLista" onchange="renderLista()">
+        <option value="">Todos los estados</option>
+        <option value="pending">Pendiente</option>
+        <option value="late">Sin realizar</option>
+        <option value="done">Realizado</option>
+        <option value="cancelled">Cancelado</option>
+      </select>
+    </div>
+    <table class="planif-table">
+      <thead><tr>
+        <th>Fecha</th><th>Centro</th><th>Trabajo</th><th>Técnico</th><th>Estado</th>
+      </tr></thead>
+      <tbody>
+        ${datos.length ? datos.map(p => {
+          const c = getColor(p);
+          return `<tr onclick="verDetalle('${p.id}')">
+            <td style="font-family:var(--mono);font-size:12px;">${p.fecha||'—'} ${p.hora||''}</td>
+            <td style="font-weight:600;">${p.centro||'—'}<br><span style="font-size:11px;color:var(--text3);">${p.alias||''}</span></td>
+            <td style="max-width:300px;color:var(--text2);font-size:12px;">${(p.trabajo||'').slice(0,80)}${(p.trabajo||'').length>80?'…':''}</td>
+            <td style="font-size:12px;">${p.tecnico_asignado||'<span style="color:var(--text3)">Sin asignar</span>'}</td>
+            <td><span class="badge ${badgeClass(c)}">${badgeText(c)}</span></td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3);">Sin resultados</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+// ─── DETALLE ─────────────────────────────────────────
+function verDetalle(id) {
+  const p = planificacion.find(x=>x.id===id);
+  if(!p) return;
+  const c = getColor(p);
+  const interv = getIntervencion(p);
+
+  const dr = (l,v) => `<div class="dr-row"><div class="dr-label">${l}</div><div class="dr-val">${v||'—'}</div></div>`;
+
+  let html = `<span class="badge ${badgeClass(c)}" style="margin-bottom:14px;display:inline-block;">${badgeText(c)}</span>`;
+  html += dr('Fecha / Hora', `${p.fecha||''} ${p.hora||''}`);
+  html += dr('Centro', p.centro);
+  html += dr('Alias', p.alias);
+  html += dr('VyP', p.vyp);
+  html += dr('TDC', p.tdc);
+  html += dr('Solicitante', p.solicitante);
+  html += dr('Trabajo', p.trabajo);
+  html += dr('Técnico asignado', p.tecnico_asignado || '<span style="color:var(--text3)">Sin asignar</span>');
+
+  if(interv) {
+    html += `<div class="resolution-box">
+      <div class="resolution-title">✓ Resolución del informe</div>
+      ${dr('Técnico', interv.tec1 + (interv.tec2?' + '+interv.tec2:''))}
+      ${dr('Resultado', interv.resultado)}
+      ${dr('Resolución', interv.resolucion)}
+    </div>`;
+  }
+
+  document.getElementById('modalDetalleTitle').textContent = `${p.centro} — ${p.alias||p.vyp||''}`;
+  document.getElementById('modalDetalleBody').innerHTML = html;
+
+  // Footer buttons
+  let footer = '';
+  if(p.estado !== 'CANCELADO') {
+    footer += `<button class="btn btn-gray" onclick="cancelarPlanif('${id}')">Cancelar trabajo</button>`;
+  }
+  footer += `<button class="btn btn-red" onclick="editarPlanif('${id}')">Editar</button>`;
+  document.getElementById('modalDetalleFooter').innerHTML = footer;
+
+  openModal('modalDetalle');
+}
+
+async function cancelarPlanif(id) {
+  if(!confirm('¿Cancelar este trabajo?')) return;
+  await sb.from('planificacion').update({estado:'CANCELADO'}).eq('id',id);
+  await cargarPlanificacion();
+  closeModal('modalDetalle');
+  renderCurrentView();
+  toast('Trabajo cancelado','warn');
+}
+
+function editarPlanif(id) {
+  const p = planificacion.find(x=>x.id===id);
+  if(!p) return;
+  closeModal('modalDetalle');
+  // Reutiliza modal nuevo con datos precargados
+  document.getElementById('n-centro').value = p.centro||'';
+  document.getElementById('n-fecha').value = p.fecha||'';
+  document.getElementById('n-hora').value = p.hora||'';
+  document.getElementById('n-vyp').value = p.vyp||'';
+  document.getElementById('n-tdc').value = p.tdc||'';
+  document.getElementById('n-tel').value = p.telefono||'';
+  document.getElementById('n-trabajo').value = p.trabajo||'';
+  document.getElementById('n-solicitante').value = p.solicitante||'';
+  document.getElementById('n-tecnico').value = p.tecnico_asignado||'';
+  const btn = document.querySelector('#modalNuevo .modal-footer .btn-red');
+  btn.textContent = 'Guardar cambios';
+  btn.onclick = () => guardarEdicion(id);
+  document.querySelector('#modalNuevo .modal-title').textContent = 'Editar trabajo';
+  openModal('modalNuevo');
+}
+
+async function guardarEdicion(id) {
+  const centro = document.getElementById('n-centro').value.trim().toUpperCase();
+  const fecha = document.getElementById('n-fecha').value;
+  if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
+  await sb.from('planificacion').update({
+    centro, fecha,
+    hora: document.getElementById('n-hora').value,
+    vyp: document.getElementById('n-vyp').value,
+    tdc: document.getElementById('n-tdc').value,
+    telefono: document.getElementById('n-tel').value,
+    trabajo: document.getElementById('n-trabajo').value.toUpperCase(),
+    solicitante: document.getElementById('n-solicitante').value.toUpperCase(),
+    tecnico_asignado: document.getElementById('n-tecnico').value,
+  }).eq('id',id);
+  await cargarPlanificacion();
+  closeModal('modalNuevo');
+  renderCurrentView();
+  toast('Planificación actualizada','ok');
+}
+
+// ─── NUEVO MANUAL ────────────────────────────────────
+function openNuevoManual() {
+  document.getElementById('n-centro').value='';
+  document.getElementById('n-fecha').value=new Date().toISOString().slice(0,10);
+  document.getElementById('n-hora').value='';
+  document.getElementById('n-vyp').value='';
+  document.getElementById('n-tdc').value='';
+  document.getElementById('n-tel').value='';
+  document.getElementById('n-trabajo').value='';
+  document.getElementById('n-solicitante').value='';
+  document.getElementById('n-tecnico').value='';
+  const btn = document.querySelector('#modalNuevo .modal-footer .btn-red');
+  btn.textContent = 'Añadir planificación';
+  btn.onclick = guardarManual;
+  document.querySelector('#modalNuevo .modal-title').textContent = 'Añadir trabajo manual';
+  openModal('modalNuevo');
+}
+
+async function guardarManual() {
+  const centro = document.getElementById('n-centro').value.trim().toUpperCase();
+  const fecha = document.getElementById('n-fecha').value;
+  const solicitante = document.getElementById('n-solicitante').value.trim().toUpperCase();
+  if(!centro||!fecha||!solicitante) { toast('Centro, fecha y solicitante son obligatorios','err'); return; }
+  const id = 'VYP-'+Date.now();
+  await sb.from('planificacion').insert({
+    id, centro, fecha,
+    hora: document.getElementById('n-hora').value,
+    vyp: document.getElementById('n-vyp').value,
+    tdc: document.getElementById('n-tdc').value,
+    telefono: document.getElementById('n-tel').value,
+    trabajo: document.getElementById('n-trabajo').value.toUpperCase(),
+    solicitante,
+    tecnico_asignado: document.getElementById('n-tecnico').value,
+    estado: 'PENDIENTE',
+  });
+  await cargarPlanificacion();
+  closeModal('modalNuevo');
+  renderCurrentView();
+  toast('Trabajo añadido','ok');
+}
+
+// ─── IMPORTAR VyP ────────────────────────────────────
+function renderImportar() {
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div style="max-width:700px;">
+      <div id="dropZone" onclick="document.getElementById('fileInputHidden').click()">
+        <input type="file" id="fileInputHidden" accept=".pdf" multiple onchange="handleFiles(this.files)">
+        <div class="dz-icon">📄</div>
+        <div class="dz-text">Arrastra los PDFs de VyP aquí</div>
+        <div class="dz-sub">o haz clic para seleccionar archivos</div>
+      </div>
+      <div id="importResults"></div>
+    </div>`;
+
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+async function handleFiles(files) {
+  const arr = Array.from(files).filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(!arr.length) return;
+  const res = document.getElementById('importResults');
+  res.innerHTML = `<div class="loading">Procesando ${arr.length} PDF(s)<span class="dot-anim"></span></div>`;
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+  const resultados = [];
+  for(const file of arr) {
+    try {
+      const texto = await extraerTextoPDF(file);
+      const datos = await parsearVyPGemini(texto);
+      resultados.push({file: file.name, datos, texto});
+    } catch(e) {
+      resultados.push({file: file.name, error: e.message});
+    }
+  }
+
+  res.innerHTML = resultados.map((r,i) => {
+    if(r.error) return `<div class="import-preview"><div style="color:var(--red2);">❌ ${r.file}: ${r.error}</div></div>`;
+    const d = r.datos;
+    return `<div class="import-preview">
+      <div class="import-vyp-num">📄 ${r.file}</div>
+      <div class="fr2" style="gap:8px;margin-bottom:10px;">
+        <div><div class="field-label">VyP</div><input class="field-input" id="imp-vyp-${i}" value="${d.vyp||''}"></div>
+        <div><div class="field-label">Centro</div><input class="field-input" id="imp-centro-${i}" value="${d.centro||''}" style="text-transform:uppercase;"></div>
+        <div><div class="field-label">Fecha</div><input class="field-input" id="imp-fecha-${i}" type="date" value="${d.fecha||''}"></div>
+        <div><div class="field-label">Hora</div><input class="field-input" id="imp-hora-${i}" value="${d.hora||''}"></div>
+        <div><div class="field-label">TDC</div><input class="field-input" id="imp-tdc-${i}" value="${d.tdc||''}"></div>
+        <div><div class="field-label">Zona</div><input class="field-input" id="imp-zona-${i}" value="${d.zona||''}" style="text-transform:uppercase;"></div>
+      </div>
+      <div style="margin-bottom:8px;"><div class="field-label">Solicitante</div><input class="field-input" id="imp-sol-${i}" value="${d.solicitante||''}" style="text-transform:uppercase;"></div>
+      <div style="margin-bottom:8px;"><div class="field-label">Trabajo</div><textarea class="field-textarea" id="imp-trabajo-${i}" style="text-transform:uppercase;min-height:50px;">${d.trabajo||''}</textarea></div>
+      <div style="margin-bottom:12px;"><div class="field-label">Técnico asignado</div>
+        <select class="field-select" id="imp-tecnico-${i}">
+          <option value="">-- Sin asignar --</option>
+          ${tecnicos.map(t=>`<option value="${t}">${t}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-red" onclick="añadirVyPImportado(${i},'${r.file}')">✓ Añadir a planificación</button>
+      <button class="btn btn-gray" onclick="this.closest('.import-preview').remove()" style="margin-left:8px;">Descartar</button>
+    </div>`;
+  }).join('');
+}
+
+async function extraerTextoPDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try {
+        const pdf = await pdfjsLib.getDocument({data: new Uint8Array(e.target.result)}).promise;
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        resolve(content.items.map(i=>i.str).join(' '));
+      } catch(err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function parsearVyPGemini(texto) {
+  try {
+    const { data, error } = await sb.functions.invoke('gemini-vyp', { body: { texto } });
+    if(error || !data?.ok) throw new Error('Gemini error');
+    return data.data;
+  } catch(e) {
+    console.warn('Gemini falló, usando regex');
+    return parsearVyPRegex(texto);
+  }
+}
+
+function parsearVyPRegex(texto) {
+  const get = (p,g=1) => { const m=texto.match(p); return m?m[g].trim():''; };
+  let vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
+  if(!vyp) vyp = get(/Ref\.\s*Trabajo\s*Programado[:\s]+(\d{8})/);
+  let fecha='', hora='';
+  const fm = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
+  if(fm){const[d,m,y]=fm[3].split('-');fecha=`${y}-${m}-${d}`;hora=fm[4];}
+  if(!fecha){const idx=texto.indexOf('Fecha Inicio');if(idx>=0){const ms=[...texto.slice(idx).matchAll(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/g)];const mm=ms.length>=2?ms[1]:ms[0];if(mm){const[d,m,y]=mm[1].split('-');fecha=`${y}-${m}-${d}`;hora=mm[2];}}}
+  const zm=texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
+  let zona=zm?zm[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''):'';
+  if(zona==='ALCANIZ')zona='ALCAÑIZ';
+  const tm=texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
+  const tdc=tm?tm[1]:'';
+  const sm=texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
+  const solicitante=sm?sm[1].replace(/,/g,'').replace(/\s+/g,' ').trim():'';
+  const cm=texto.match(/En\s+(?:CD|DM|CT|MT)\s+[^\/\n]+?\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
+  const centro=cm?cm[1].toUpperCase():'';
+  return {vyp,fecha,hora,tdc,zona,solicitante,trabajo:'',centro};
+}
+
+async function añadirVyPImportado(i, filename) {
+  const centro = (document.getElementById(`imp-centro-${i}`)?.value||'').toUpperCase().trim();
+  const fecha = document.getElementById(`imp-fecha-${i}`)?.value||'';
+  const solicitante = (document.getElementById(`imp-sol-${i}`)?.value||'').toUpperCase().trim();
+  if(!centro||!fecha) { toast('Centro y fecha son obligatorios','err'); return; }
+  const vyp = document.getElementById(`imp-vyp-${i}`)?.value||'';
+  const id = 'VYP-' + (vyp || Date.now());
+  // Check duplicate
+  if(planificacion.find(p=>p.id===id||p.vyp===vyp)) { toast('VyP ya existe en planificación','warn'); return; }
+  await sb.from('planificacion').insert({
+    id, centro, fecha,
+    hora: document.getElementById(`imp-hora-${i}`)?.value||'',
+    vyp,
+    tdc: document.getElementById(`imp-tdc-${i}`)?.value||'',
+    trabajo: (document.getElementById(`imp-trabajo-${i}`)?.value||'').toUpperCase(),
+    solicitante,
+    zona: (document.getElementById(`imp-zona-${i}`)?.value||'').toUpperCase(),
+    tecnico_asignado: document.getElementById(`imp-tecnico-${i}`)?.value||'',
+    estado: 'PENDIENTE',
+  });
+  await cargarPlanificacion();
+  document.querySelector(`#importResults .import-preview:nth-child(${i+1})`)?.remove();
+  toast(`VyP ${vyp} añadido ✓`, 'ok');
+}
+
+// ─── MODALS ──────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Cerrar modals al click fuera
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+});
+
+// ─── TOAST ───────────────────────────────────────────
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+</script>
+</body>
+</html>
