@@ -313,12 +313,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   <div class="login-box">
     <div class="login-logo">TELE<span>MAN</span>2</div>
     <div class="login-sub">Panel de Planificación</div>
-    <div class="login-label">Email</div>
-    <input class="login-input" id="loginEmail" type="email" placeholder="correo@empresa.com" autocomplete="email">
-    <div class="login-label">Contraseña</div>
-    <input class="login-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Entrar</button>
-    <div class="login-err" id="loginErr"></div>
+    <div id="loginForm">
+      <div class="login-label">Tu email</div>
+      <input class="login-input" id="loginEmail" type="email" placeholder="correo@empresa.com" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" onclick="doLogin()">Enviar enlace de acceso</button>
+      <div class="login-err" id="loginErr"></div>
+    </div>
+    <div id="loginSent" style="display:none;text-align:center;">
+      <div style="font-size:36px;margin-bottom:16px;">📬</div>
+      <div style="font-size:14px;color:var(--text);margin-bottom:8px;font-weight:600;">Enlace enviado</div>
+      <div style="font-size:12px;color:var(--text2);">Revisa tu correo y pincha el enlace para entrar. Puedes cerrar esta pestaña.</div>
+    </div>
   </div>
 </div>
 
@@ -471,12 +476,16 @@ let calYear, calMonth;
 // ─── AUTH ───────────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
   const err = document.getElementById('loginErr');
   err.textContent = '';
-  if(!email || !pass) { err.textContent = 'Introduce email y contraseña'; return; }
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if(error) { err.textContent = 'Email o contraseña incorrectos'; return; }
+  if(!email) { err.textContent = 'Introduce tu email'; return; }
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: 'https://vyptelemandos.github.io/teleman2/planificacion.html' }
+  });
+  if(error) { err.textContent = 'Error: ' + error.message; return; }
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('loginSent').style.display = 'block';
 }
 
 async function doLogout() {
