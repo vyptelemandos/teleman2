@@ -680,12 +680,36 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
     <p class="pg-title">Mi Área</p>
     <p class="pg-sub">ESTADÍSTICAS Y CONFIGURACIÓN</p>
 
-    <!-- Tabs -->
-    <div style="display:flex;gap:0;margin-bottom:14px;background:var(--negro2);border-radius:var(--r);overflow:hidden;">
-      <button id="tab-stats" onclick="switchTab('stats')" style="flex:1;padding:11px;background:var(--rojo);color:white;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📈 Stats</button>
-      <button id="tab-horas" onclick="switchTab('horas')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">🕐 Horas</button>
-      <button id="tab-cfg" onclick="switchTab('cfg')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">⚙️ Ajustes</button>
+    <!-- Mi Perfil — sin contraseña -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-head"><div class="card-title">👤 Mi perfil</div></div>
+      <div class="card-body">
+        <div class="fg">
+          <label class="fl">Mi nombre (Técnico 1)</label>
+          <select class="fs" id="cfg-nombre">
+            <option value="">-- Seleccionar --</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Mi compañero habitual (Técnico 2)</label>
+          <select class="fs" id="cfg-companero">
+            <option value="">-- Ninguno --</option>
+          </select>
+        </div>
+        <button class="btn btn-red" onclick="savePerfil()">Guardar perfil</button>
+      </div>
     </div>
+
+    <!-- Acceso restringido -->
+    <button class="btn btn-dark" style="width:100%;margin-bottom:14px;" onclick="desbloquearMiArea()">🔒 Acceso restringido</button>
+
+    <!-- Tabs — requieren contraseña -->
+    <div id="miAreaRestringida" style="display:none;">
+      <div style="display:flex;gap:0;margin-bottom:14px;background:var(--negro2);border-radius:var(--r);overflow:hidden;">
+        <button id="tab-stats" onclick="switchTab('stats')" style="flex:1;padding:11px;background:var(--rojo);color:white;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">📈 Stats</button>
+        <button id="tab-horas" onclick="switchTab('horas')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">🕐 Horas</button>
+        <button id="tab-cfg" onclick="switchTab('cfg')" style="flex:1;padding:11px;background:transparent;color:var(--gris4);border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;">⚙️ Ajustes</button>
+      </div>
 
     <!-- Stats tab -->
     <div id="tab-stats-content">
@@ -729,26 +753,6 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
           <button class="btn btn-gray" onclick="guardarEmailsEnvio()" style="font-size:12px;padding:8px;">Guardar emails</button>
           <button class="btn btn-red" onclick="enviarPendientesAhora()">📤 Enviar pendientes ahora</button>
         </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">👤 Mi perfil</div></div>
-      <div class="card-body">
-        <div class="fg">
-          <label class="fl">Mi nombre (Técnico 1)</label>
-          <select class="fs" id="cfg-nombre">
-            <option value="">-- Seleccionar --</option>
-            
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl">Mi compañero habitual (Técnico 2)</label>
-          <select class="fs" id="cfg-companero">
-            <option value="">-- Ninguno --</option>
-            
-          </select>
-        </div>
-        <button class="btn btn-red" onclick="savePerfil()">Guardar perfil</button>
       </div>
     </div>
     <div class="card">
@@ -855,6 +859,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
     <div style="text-align:center;padding:8px 0;font-size:11px;color:var(--gris4);">Teleman2 <span id="footerVersion"></span></div>
 
     </div><!-- /tab-cfg-content -->
+    </div><!-- /miAreaRestringida -->
   </div><!-- /p-miaera -->
 
   <!-- ══ AJUSTES (legacy, hidden) ══ -->
@@ -1102,6 +1107,11 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
         </select>
         <input class="fi" id="mv-solicitante-manual" type="text" placeholder="Nombre del solicitante..." style="display:none;margin-top:6px;" oninput="toUpper(this)">
       </div>
+      <div class="fg"><label class="fl">Técnico asignado</label>
+        <select class="fs" id="mv-tecnico-asignado">
+          <option value="">-- Sin asignar --</option>
+        </select>
+      </div>
       <button class="btn btn-red" onclick="addVyPManual()">Añadir a planificación</button>
     </div>
   </div>
@@ -1250,7 +1260,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.94';
+const APP_VERSION = 'v3.99';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1542,14 +1552,25 @@ let autosaveTimer = null;
     if(!logo) return;
     logo.addEventListener('touchstart', () => {
       pressTimer = setTimeout(() => {
-        showPwd('miaera', 'MI ÁREA');
+        // Ir directamente a Mi Área sin contraseña
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+        document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
+        document.getElementById('p-miaera').classList.add('on');
+        document.getElementById('scrollArea').scrollTop=0;
+        setTimeout(()=>{ actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); cargarEmailsEnvio(); },50);
       }, 1500);
     }, {passive:true});
     logo.addEventListener('touchend', () => clearTimeout(pressTimer), {passive:true});
     logo.addEventListener('touchmove', () => clearTimeout(pressTimer), {passive:true});
     // Also support mousedown for desktop testing
     logo.addEventListener('mousedown', () => {
-      pressTimer = setTimeout(() => showPwd('miaera','MI ÁREA'), 1500);
+      pressTimer = setTimeout(() => {
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+        document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
+        document.getElementById('p-miaera').classList.add('on');
+        document.getElementById('scrollArea').scrollTop=0;
+        setTimeout(()=>{ actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); cargarEmailsEnvio(); },50);
+      }, 1500);
     });
     logo.addEventListener('mouseup', () => clearTimeout(pressTimer));
   });
@@ -1627,6 +1648,18 @@ function actualizarSelectTecnicos(tecnicos) {
     el.innerHTML=`<option value="">${placeholder}</option>`+tecnicos.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
     if(cur) el.value=cur;
   });
+  // Técnico asignado en modal planificación
+  const sel = document.getElementById('mv-tecnico-asignado');
+  if(sel) {
+    const cur = sel.value;
+    // Por defecto Fran primero, luego el resto
+    const miNombre = getLS('t2-cfg')?.nombre || '';
+    const companero = getLS('t2-cfg')?.companero || '';
+    sel.innerHTML = '<option value="">-- Sin asignar --</option>' +
+      tecnicos.map(t=>`<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+    // Si no hay valor seleccionado, poner miNombre por defecto
+    if(!cur && miNombre) sel.value = miNombre;
+  }
 }
 
 function renderModelosConfig() {
@@ -2023,6 +2056,9 @@ const navMap = {
 };
 
 function goPage(id) {
+  S._miAreaDesbloqueada = false;
+  const restricted = document.getElementById('miAreaRestringida');
+  if(restricted) restricted.style.display = 'none';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
   document.getElementById(id)?.classList.add('on');
@@ -2054,7 +2090,15 @@ function checkPwd() {
       S._pwdCallback = null;
       S.pwdTarget = null;
       fn();
+    } else if(S.pwdTarget && S.pwdTarget.startsWith('_switchTab_')) {
+      const tab = S.pwdTarget.replace('_switchTab_','');
+      S._miAreaDesbloqueada = true;
+      S.pwdTarget = null;
+      _doSwitchTab(tab);
     } else if(S.pwdTarget==='ajustes'||S.pwdTarget==='miaera') {
+      S._miAreaDesbloqueada = true;
+      const restricted = document.getElementById('miAreaRestringida');
+      if(restricted) restricted.style.display = 'block';
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
       document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
       document.getElementById('p-miaera').classList.add('on');
@@ -2985,7 +3029,14 @@ function detectarBaterias(trabajo) {
 // ═══════════════════════════════════════════════════
 function renderPlanif() {
   const el = document.getElementById('planifList');
-  const pendientes = S.planificacion.filter(p=>p.estado==='PENDIENTE'||!p.estado);
+  const miNombre = getLS('t2-cfg')?.nombre || '';
+  // Mostrar solo los asignados al técnico actual (o sin asignar)
+  const pendientes = S.planificacion.filter(p=>{
+    if(p.estado!=='PENDIENTE' && p.estado) return false;
+    if(!miNombre) return true; // sin configurar, ver todos
+    if(!p.tecnico_asignado) return true; // sin asignar, ver todos
+    return p.tecnico_asignado === miNombre;
+  });
   if(!pendientes.length) {
     el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Sin trabajos planificados</div><div class="empty-s">Sincroniza los VyP desde Drive<br>o añade uno manualmente</div></div>`;
     return;
@@ -3103,22 +3154,28 @@ function onZonaChange(sel) {
   autosave();
 }
 
+function desbloquearMiArea() {
+  showPwd('miaera', 'ACCESO RESTRINGIDO');
+}
+
 function switchTab(tab) {
-  // Hide all tabs
+  _doSwitchTab(tab);
+}
+
+function _doSwitchTab(tab) {
   ['stats','horas','cfg'].forEach(t=>{
     const el = document.getElementById(`tab-${t}-content`);
     const btn = document.getElementById(`tab-${t}`);
     if(el) el.style.display='none';
     if(btn) { btn.style.background='transparent'; btn.style.color='var(--gris4)'; }
   });
-  // Show selected
   const selEl = document.getElementById(`tab-${tab}-content`);
   const selBtn = document.getElementById(`tab-${tab}`);
   if(selEl) selEl.style.display='';
   if(selBtn) { selBtn.style.background='var(--rojo)'; selBtn.style.color='white'; }
   if(tab==='stats') renderStatsPage();
   if(tab==='horas') { const m=document.getElementById('horas-mes'); if(m&&!m.value) m.value=new Date().toISOString().slice(0,7); }
-  if(tab==='cfg') renderZonasCC();
+  if(tab==='cfg') { renderZonasCC(); setTimeout(()=>{ renderMaterilesConfig(); renderTecnicosConfig(); renderBaremosEditList(); renderFrasesConfig(); renderSolicitantesConfig(); renderModelosConfig(); actualizarSelectTecnicos(getLS('t2-tec')||[]); loadConfig(); cargarEmailsEnvio(); },50); }
 }
 
 function abrirMapsCoord(targetId) {
@@ -3162,7 +3219,7 @@ function showPlanifDetalle(id) {
     html+=`<div class="div"></div>`;
     html+=`<div class="dr"><div class="dr-l">ZONA / MUNICIPIO</div><div class="dr-v">${c.Area||'—'} · ${c.Municipio||'—'}</div></div>`;
     html+=`<div class="dr"><div class="dr-l">REMOTA</div><div class="dr-v">${c.RTU_marca||''} ${c.RTU_Mod||''}</div></div>`;
-    html+=`<div class="dr"><div class="dr-l">BATERÍAS</div><div class="dr-v">${c.Bat_Modelo||'—'}</div></div>`;
+    html+=`<div class="dr"><div class="dr-l">BATERÍAS</div><div class="dr-v">${c.Bat_Tipo?c.Bat_Tipo+' — ':''} ${c.Bat_Modelo||'—'}</div></div>`;
   }
   if(coord) html+=`<div class="dr"><div class="dr-l">GPS</div><div class="dr-v"><a href="https://maps.google.com/?q=${coord}" target="_blank" style="color:var(--rojo);">📍 Abrir en Maps</a></div></div>`;
   if(tieneBat) html+=`<div class="alert alert-warn" style="margin-top:8px;">🔋 El trabajo indica CAMBIO DE BATERÍAS. ${c?.Bat_Modelo?'Modelo actual: '+c.Bat_Modelo:''}</div>`;
@@ -3285,7 +3342,7 @@ function openNuevoVyP() {
   openModal('modalNuevoVyP');
 }
 
-function addVyPManual() {
+async function addVyPManual() {
   const centro=vu('mv-centro'), fecha=v('mv-fecha');
   if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
   const c=findCentro(centro);
@@ -3302,14 +3359,26 @@ function addVyPManual() {
       if(S.auth) writeConfigValue('Solicitantes', solicitanteVal);
     }
   }
-  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),telefono:v('mv-telefono')||'',trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal};
+  const tecnicoAsignado = document.getElementById('mv-tecnico-asignado')?.value || '';
+  const newPlanif = {id:'VYP-'+Date.now(),centro,alias:c?.Alias||'',fecha,hora:v('mv-hora'),vyp:v('mv-vyp'),tdc:v('mv-tdc'),telefono:v('mv-telefono')||'',trabajo:vu('mv-trabajo'),coord:coordFinal,estado:'PENDIENTE',solicitante:solicitanteVal,tecnico_asignado:tecnicoAsignado};
   S.planificacion.push(newPlanif);
   setLS('t2-pl',S.planificacion);
-  
+
+  // Guardar en Supabase siempre
+  try {
+    const sb = getSB();
+    await sb.from('planificacion').upsert({
+      id: newPlanif.id, centro: newPlanif.centro, alias: newPlanif.alias,
+      fecha: newPlanif.fecha, hora: newPlanif.hora, vyp: newPlanif.vyp,
+      tdc: newPlanif.tdc, telefono: newPlanif.telefono, trabajo: newPlanif.trabajo,
+      coord: newPlanif.coord, estado: newPlanif.estado, solicitante: newPlanif.solicitante,
+      tecnico_asignado: tecnicoAsignado
+    }, {onConflict:'id'});
+  } catch(e) { console.warn('Error guardando planif manual en Supabase:', e.message); }
+
   if(S.auth) {
     crearEventoCalendario(newPlanif);
   }
-  else toast('SIN CONEXIÓN DRIVE — GUARDADO SOLO LOCAL','warn');
   ['mv-centro','mv-hora','mv-vyp','mv-tdc','mv-trabajo','mv-coord','mv-telefono'].forEach(id=>sv(id,''));
   document.getElementById('mv-fecha').value=hoy();
   closeModal('modalNuevoVyP'); renderPlanif(); renderStats(); toast('TRABAJO AÑADIDO','ok');
@@ -3640,8 +3709,22 @@ function mostrarVyPUno() {
     ta.id = 'vyp-edit-trabajo'; ta.value = d.trabajo||'';
     ta.className = 'fi';
     ta.style.cssText = 'color:white;background:var(--negro2);width:100%;text-transform:uppercase;resize:none;height:60px;';
-    twrap.appendChild(tlbl); twrap.appendChild(ta);
-    editForm.appendChild(twrap);
+    // Técnico asignado select
+    const swrap = document.createElement('div');
+    swrap.style.marginBottom = '8px';
+    const slbl = document.createElement('label');
+    slbl.textContent = 'TÉCNICO ASIGNADO';
+    slbl.style.cssText = 'font-size:10px;color:var(--gris3);display:block;margin-bottom:2px;';
+    const sel = document.createElement('select');
+    sel.id = 'vyp-edit-tecnico';
+    sel.className = 'fs';
+    sel.style.cssText = 'color:white;background:var(--negro2);width:100%;';
+    const tecnicos = getLS('t2-tec') || [];
+    const miNombre = getLS('t2-cfg')?.nombre || '';
+    sel.innerHTML = '<option value="">-- Sin asignar --</option>' +
+      tecnicos.map(t=>`<option value="${t}"${t===miNombre?' selected':''}>${t}</option>`).join('');
+    swrap.appendChild(slbl); swrap.appendChild(sel);
+    editForm.appendChild(swrap);
   }
 }
 
@@ -3677,7 +3760,9 @@ async function añadirVyPActual() {
     d.zona     = (document.getElementById('vyp-edit-zona')?.value || d.zona).toUpperCase();
     d.solicitante = (document.getElementById('vyp-edit-sol')?.value || d.solicitante).toUpperCase();
     d.trabajo  = (document.getElementById('vyp-edit-trabajo')?.value || d.trabajo).toUpperCase();
+    d.tecnico_asignado = document.getElementById('vyp-edit-tecnico')?.value || '';
   }
+  const tecnicoAsignado = d.tecnico_asignado || (getLS('t2-cfg')?.nombre || '');
   const payload = {
     id: 'VYP-' + d.vyp,
     centro: d.centro,
@@ -3690,6 +3775,7 @@ async function añadirVyPActual() {
     solicitante: d.solicitante,
     telefono: d.telefono,
     estado: 'PENDIENTE',
+    tecnico_asignado: tecnicoAsignado,
   };
 
   try {
