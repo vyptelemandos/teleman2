@@ -348,7 +348,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <span class="icon">📅</span> Calendario
     </button>
     <button class="sb-btn" id="sb-lista" onclick="setView('lista')">
-      <span class="icon">☰</span> Lista
+      <span class="icon">🔍</span> Búsqueda
     </button>
     <button class="sb-btn" id="sb-importar" onclick="setView('importar')">
       <span class="icon">📄</span> Importar VyP
@@ -568,7 +568,7 @@ function setView(v) {
     const btn = document.getElementById('sb-'+id);
     if(btn) btn.classList.toggle('active', id===v);
   });
-  const titles = {calendario:'Calendario', lista:'Lista de trabajos', importar:'Importar VyPs'};
+  const titles = {calendario:'Calendario', lista:'Búsqueda', importar:'Importar VyPs'};
   document.getElementById('topbarTitle').textContent = titles[v] || v;
   renderCurrentView();
 }
@@ -582,14 +582,13 @@ function renderCurrentView() {
 // ─── COLORES ─────────────────────────────────────────
 function getColor(p) {
   if(p.estado==='CANCELADO') return 'cancelled';
-  const interv = intervenciones.find(i =>
-    (p.tdc && i.tdc && i.tdc===p.tdc) ||
-    (i.centro===p.centro && i.fecha===p.fecha)
-  );
+  if(p.estado==='COMPLETADO') return 'done';
+  // Buscar intervención realizada aunque el estado no esté actualizado
+  const interv = getIntervencion(p);
   if(interv) return 'done';
-  // Sin intervención — ¿ya pasó la fecha?
+  // PENDIENTE — caducado si la fecha/hora ya pasó
   const ahora = new Date();
-  const fechaPlanif = new Date(p.fecha + 'T' + (p.hora||'00:00'));
+  const fechaPlanif = new Date((p.fecha||'2099-01-01') + 'T' + (p.hora||'23:59'));
   if(fechaPlanif < ahora) return 'late';
   return 'pending';
 }
@@ -766,10 +765,15 @@ function verDetalle(id) {
 
   if(interv) {
     html += `<div class="resolution-box">
-      <div class="resolution-title">✓ Resolución del informe</div>
-      ${dr('Técnico', interv.tec1 + (interv.tec2?' + '+interv.tec2:''))}
+      <div class="resolution-title">✓ Intervención realizada</div>
+      ${dr('Técnico', (interv.tec1||'') + (interv.tec2?' + '+interv.tec2:''))}
+      ${dr('Motivo', interv.motivo)}
       ${dr('Resultado', interv.resultado)}
       ${dr('Resolución', interv.resolucion)}
+    </div>`;
+  } else if(getColor(p)==='late') {
+    html += `<div style="background:#fff3ea;border:1px solid var(--orange-border);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;color:var(--orange);">
+      ⚠️ Trabajo no realizado — la fecha/hora ya ha pasado
     </div>`;
   }
 
