@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v5.6</title>
+<title>Teleman2 — Planificación v5.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -405,7 +405,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.6</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.9</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1350,135 +1350,139 @@ function renderCalendario() {
   const filtroTec = document.getElementById('filtroTecnico')?.value || '';
   const content = document.getElementById('content');
   const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  // Stats
-  const total = planificacion.length;
-  const pending = planificacion.filter(p=>getColor(p)==='pending').length;
-  const late = planificacion.filter(p=>getColor(p)==='late').length;
-  const done = planificacion.filter(p=>getColor(p)==='done').length;
-  const cancelled = planificacion.filter(p=>p.estado==='CANCELADO').length;
-
-  // Build calendar
-  const firstDay = new Date(calYear, calMonth, 1);
-  const lastDay = new Date(calYear, calMonth+1, 0);
-  const startDow = (firstDay.getDay()+6)%7; // Lunes=0
   const today = new Date();
-
-  let days = [];
-  // Días del mes anterior
-  for(let i=startDow-1; i>=0; i--) {
-    const d = new Date(calYear, calMonth, -i);
-    days.push({date:d, other:true});
-  }
-  // Días del mes
-  for(let i=1; i<=lastDay.getDate(); i++) {
-    days.push({date:new Date(calYear,calMonth,i), other:false});
-  }
-  // Completar hasta múltiplo de 7
-  while(days.length%7!==0) {
-    const last = days[days.length-1].date;
-    days.push({date:new Date(last.getFullYear(),last.getMonth(),last.getDate()+1), other:true});
-  }
-
-  const pad = n => String(n).padStart(2,'0');
-  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
   const dualStatsHtml = renderDualStats();
 
-  // Build calendar HTML with proper 8-col grid (sem + 7 days)
-  const wr2 = getWeekRange(selectedWeekDate);
-  let calCells = '';
-  for(let i=0; i<days.length; i++) {
-    const {date, other} = days[i];
-    const dateStr = fmt(date);
-    // Week number cell at start of each row
-    if(i%7===0) {
-      const wn = getWeekNumber(date);
-      const isActiveWk = fmt(date)>=wr2.ini && fmt(date)<=wr2.fin || (i<7 && days.slice(i,i+7).some(d=>fmt(d.date)>=wr2.ini&&fmt(d.date)<=wr2.fin));
-      const weekBg = isActiveWk ? '#d0d0d0' : '#f0f0f0';
-      const weekColor = isActiveWk ? '#333' : '#999';
-      calCells += '<div style="background:'+weekBg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:'+weekColor+';font-family:monospace;">'+wn+'</div>';
-    }
-    const isToday = fmt(today)===dateStr;
-    const inActiveWeek = dateStr>=wr2.ini && dateStr<=wr2.fin;
-    // Group events by tecnico, sorted by hora within each group
-    const todoEventos = planificacion.filter(p=>{
-      if(filtroTec && p.tecnico_asignado!==filtroTec) return false;
-      return p.fecha===dateStr;
-    });
-    // Build ordered list: group by tecnico maintaining order of first appearance, sorted by hora within group
-    const tecOrder = [];
-    todoEventos.forEach(p=>{
-      const t = p.tecnico_asignado||'';
-      if(!tecOrder.includes(t)) tecOrder.push(t);
-    });
-    const eventosPorTec = tecOrder.map(t=>todoEventos.filter(p=>(p.tecnico_asignado||'')===t).sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')));
-    const eventosHtml = eventosPorTec.map((grupo, gi) => {
-      const sep = gi>0 ? '<div style="border-top:1px solid #ddd;margin:2px 0;"></div>' : '';
-      return sep + grupo.map(p=>{
-        const col=getColor(p);
-        return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
-      }).join('');
-    }).join('');
-    const festivo = esFestivo(dateStr);
-    const domingo = esDomingo(dateStr);
-    const sabado = esSabado(dateStr);
-    const diaRojo = festivo || domingo;
-    const agItems = agendaItems.filter(a=>a.fecha===dateStr && (!filtroTec||!a.tecnico||a.tecnico===filtroTec));
-    let dayClass = 'cal-day';
-    if(other) dayClass += ' other-month';
-    if(isToday) dayClass += ' today';
-    if(inActiveWeek && !isToday) dayClass += ' active-week';
-    if(inActiveWeek && other) dayClass += ' active-week-other';
-    if(diaRojo) dayClass += ' festivo-day';
-    else if(sabado) dayClass += ' sabado-day';
-    const numColor = diaRojo ? 'color:#cc0000;font-weight:700;' : '';
-    const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
-    const agBadges = agItems.map(a=>{
-      const ini = a.tecnico?a.tecnico.trim()[0].toUpperCase():'?';
-      return '<span style="display:inline-block;font-size:10px;font-weight:700;background:#00bcd4;color:#fff;border-radius:3px;padding:2px 5px;margin-left:2px;">AG-'+ini+'</span>';
-    }).join('');
-    const zonaBadges = zonasPorTec.flatMap(zt=>{
-      const zs = normZonas(zt.zonas);
-      const ini = zt.tecnico?zt.tecnico.trim()[0].toUpperCase():'?';
-      return zs.map(z=>{
-        const col = ZONA_COLORS[z]||{bg:'#888',text:'#fff'};
-        const code = (ZONA_CODES[z]||z.slice(0,2))+'-'+ini;
-        return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\''+dateStr+'\',\''+z+'\',\''+(zt.tecnico||'')+'\')" title="Click para editar/borrar">'+code+'</span>';
+  // Build infinite calendar - 104 weeks (2 years back, 2 years forward)
+  function buildWeekRow(mondayDate) {
+    const wr2 = getWeekRange(selectedWeekDate);
+    const wn = getWeekNumber(mondayDate);
+    let rowHtml = '';
+
+    // Check if any day in this week is in active week
+    const weekStart = fmt(mondayDate);
+    const weekEndD = new Date(mondayDate); weekEndD.setDate(weekEndD.getDate()+6);
+    const weekEnd = fmt(weekEndD);
+    const isActiveWk = weekStart <= wr2.fin && weekEnd >= wr2.ini;
+    const weekBg = isActiveWk ? '#d0d0d0' : '#f0f0f0';
+    const weekColor = isActiveWk ? '#333' : '#999';
+
+    rowHtml += '<div style="background:'+weekBg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:'+weekColor+';font-family:monospace;border-right:1px solid #bbb;">'+wn+'</div>';
+
+    for(let d=0; d<7; d++) {
+      const date = new Date(mondayDate); date.setDate(date.getDate()+d);
+      const dateStr = fmt(date);
+      const isToday = fmt(today)===dateStr;
+      const inActiveWeek = dateStr>=wr2.ini && dateStr<=wr2.fin;
+      const eventos = planificacion.filter(p=>{
+        if(filtroTec && p.tecnico_asignado!==filtroTec) return false;
+        return p.fecha===dateStr;
       });
-    }).join('');
-    calCells +=
-      '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
+      const festivo = esFestivo(dateStr);
+      const domingo = esDomingo(dateStr);
+      const sabado = esSabado(dateStr);
+      const diaRojo = festivo || domingo;
+      const agItems = agendaItems.filter(a=>a.fecha===dateStr && (!filtroTec||!a.tecnico||a.tecnico===filtroTec));
+      let dayClass = 'cal-day';
+      if(isToday) dayClass += ' today';
+      if(inActiveWeek && !isToday) dayClass += ' active-week';
+      if(diaRojo) dayClass += ' festivo-day';
+      else if(sabado) dayClass += ' sabado-day';
+      const numColor = diaRojo ? 'color:#cc0000;font-weight:700;' : '';
+
+      const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
+      const agBadges = agItems.map(a=>{
+        const ini = a.tecnico?a.tecnico.trim()[0].toUpperCase():'?';
+        return '<span style="display:inline-block;font-size:10px;font-weight:700;background:#00bcd4;color:#fff;border-radius:3px;padding:2px 5px;margin-left:2px;">AG-'+ini+'</span>';
+      }).join('');
+      const zonaBadges = zonasPorTec.flatMap(zt=>{
+        const zs = normZonas(zt.zonas);
+        const ini = zt.tecnico?zt.tecnico.trim()[0].toUpperCase():'?';
+        return zs.map(z=>{
+          const col = ZONA_COLORS[z]||{bg:'#888',text:'#fff'};
+          const code = (ZONA_CODES[z]||z.slice(0,2))+'-'+ini;
+          return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(''+dateStr+'',''+z+'',''+(zt.tecnico||'')+'')" title="Click para editar/borrar">'+code+'</span>';
+        });
+      }).join('');
+
+      // Group events by tecnico
+      const todoEventos = eventos.sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+      const tecOrder = [];
+      todoEventos.forEach(p=>{ const t=p.tecnico_asignado||''; if(!tecOrder.includes(t)) tecOrder.push(t); });
+      const eventosHtml = tecOrder.map((t,gi)=>{
+        const sep = gi>0?'<div style="border-top:1px solid #ddd;margin:2px 0;"></div>':'';
+        return sep+todoEventos.filter(p=>(p.tecnico_asignado||'')===t).map(p=>{
+          const col=getColor(p);
+          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(''+p.id+'')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+        }).join('');
+      }).join('');
+
+      // Month label on 1st of month
+      const monthLabel = date.getDate()===1 ? '<div style="font-size:9px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">'+meses[date.getMonth()].slice(0,3)+' '+date.getFullYear()+'</div>' : '';
+
+      rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(''+dateStr+'')">'+
+        monthLabel+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
           '<div class="cal-day-num" style="margin-bottom:0;'+numColor+'">'+date.getDate()+'</div>'+
           '<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;">'+agBadges+zonaBadges+
-            (other?'':'<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')" title="Asignar zona">+</span>')+
+            '<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(''+dateStr+'')" title="Asignar zona">+</span>'+
           '</div>'+
         '</div>'+
-        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
+        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(''+a.id+'')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
         eventosHtml+
       '</div>';
+    }
+    return rowHtml;
   }
 
-  content.innerHTML = '<div id="stickyHeader" style="flex-shrink:0;margin-bottom:8px;">' + dualStatsHtml + '</div>' + `
-    <div id="calendarView" style="display:flex;flex-direction:column;overflow:hidden;">
-      <div class="cal-grid" style="flex-shrink:0;">
-        <div class="cal-dow" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;padding:0;">Sem</div>
-        ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
-      </div>
-      <div class="cal-grid" style="flex:1;border-top:none;border-radius:0 0 8px 8px;overflow-y:auto;">
-        ${calCells}
-      </div>
-    </div>`;
-    // Update sidebar month label and tecnico filter
-    const sbMonth = document.getElementById('sb-cal-month');
-    if(sbMonth) sbMonth.textContent = meses[calMonth] + ' ' + calYear;
-    const sbFiltro = document.getElementById('filtroTecnico');
-    if(sbFiltro && sbFiltro.options.length <= 1) {
-      sbFiltro.innerHTML = '<option value="">Todos</option>' + tecnicos.map(t=>`<option value="${t}"${t===filtroTec?' selected':''}>${t}</option>`).join('');
-    } else if(sbFiltro) {
-      sbFiltro.value = filtroTec;
+  // Find Monday of week containing today
+  const todayMonday = new Date(today);
+  todayMonday.setDate(today.getDate() - (today.getDay()+6)%7);
+
+  // Generate 52 weeks back + 52 weeks forward = 104 weeks
+  let allRows = '';
+  for(let w=-52; w<=52; w++) {
+    const monday = new Date(todayMonday);
+    monday.setDate(todayMonday.getDate() + w*7);
+    allRows += buildWeekRow(monday);
+  }
+
+  content.innerHTML = '<div id="stickyHeader" style="position:sticky;top:-24px;z-index:20;background:#f4f4f4;padding-top:1px;padding-bottom:8px;">'+dualStatsHtml+'</div>' +
+    '<div id="calendarView">' +
+    '<div style="position:sticky;top:0;z-index:15;background:#f4f4f4;padding-bottom:1px;" id="calHeader">'+
+      '<div class="cal-grid" style="border-radius:8px 8px 0 0;">'+
+        '<div class="cal-dow" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;padding:0;">Sem</div>'+
+        ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>'<div class="cal-dow">'+d+'</div>').join('')+
+      '</div>'+
+    '</div>'+
+    '<div class="cal-grid" id="calBody" style="border-top:none;border-radius:0 0 8px 8px;">'+
+      allRows+
+    '</div>'+
+    '</div>';
+
+  // Scroll to today's week
+  requestAnimationFrame(() => {
+    const todayEl = content.querySelector('.cal-day.today');
+    if(todayEl) {
+      const offset = todayEl.getBoundingClientRect().top + content.scrollTop - content.getBoundingClientRect().top - 120;
+      content.scrollTop = offset;
     }
+    // Adjust sticky cal header top
+    const sh = document.getElementById('stickyHeader');
+    const ch = document.getElementById('calHeader');
+    if(sh && ch) ch.style.top = (sh.offsetHeight - 24) + 'px';
+  });
+
+  const sbMonth = document.getElementById('sb-cal-month');
+  if(sbMonth) sbMonth.textContent = meses[calMonth] + ' ' + calYear;
+  const sbFiltro = document.getElementById('filtroTecnico');
+  if(sbFiltro && sbFiltro.options.length <= 1) {
+    sbFiltro.innerHTML = '<option value="">Todos</option>' + tecnicos.map(t=>`<option value="${t}"${t===filtroTec?' selected':''}>${t}</option>`).join('');
+  } else if(sbFiltro) {
+    sbFiltro.value = filtroTec;
+  }
   } catch(e) {
     console.error('renderCalendario error:', e);
     document.getElementById('content').innerHTML = '<div class="loading" style="color:var(--red);">Error cargando calendario: ' + e.message + '</div>';
@@ -1486,7 +1490,9 @@ function renderCalendario() {
 }
 
 function selectWeek(dateStr) {
-  selectedWeekDate = new Date(dateStr);
+  selectedWeekDate = new Date(dateStr+'T12:00:00');
+  calYear = selectedWeekDate.getFullYear();
+  calMonth = selectedWeekDate.getMonth();
   renderCalendario();
 }
 
