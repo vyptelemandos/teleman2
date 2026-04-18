@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v2.2</title>
+<title>Teleman2 — Planificación v2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -387,20 +387,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <span style="font-size:10px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:2px 5px;">AL</span>
         <span style="font-size:10px;font-weight:700;background:#ca8a04;color:#fff;border-radius:3px;padding:2px 5px;">CA</span>
       </div>
-      <div class="sb-section" style="padding:4px 0 4px;font-size:9px;">Técnico — Forma</div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:14px;height:14px;background:#888;border-radius:3px;flex-shrink:0;display:inline-block;"></span> Fran
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:14px;height:14px;background:#888;border-radius:50%;flex-shrink:0;display:inline-block;"></span> Alberto
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:14px;height:14px;background:#888;border-radius:0px;flex-shrink:0;display:inline-block;"></span> Sin asignar / otro
-      </div>
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.2</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.3</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -704,7 +694,7 @@ function abrirModalZona(fecha) {
   const checks = ZONAS_LIST.map(z =>
     `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13px;">
       <input type="checkbox" value="${z}" ${zonasActuales.includes(z)?'checked':''} style="width:15px;height:15px;">
-      <span>${ZONA_CODES[z]} — ${z}</span>
+      <span style="display:inline-block;background:${(ZONA_COLORS[z]||{bg:'#888'}).bg};color:#fff;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:4px;">${ZONA_CODES[z]||z}</span>${z}
     </label>`
   ).join('');
 
@@ -713,6 +703,7 @@ function abrirModalZona(fecha) {
     <div style="margin-bottom:12px;">
       <div class="field-label">Técnico</div>
       <select class="field-select" id="zona-tecnico" style="width:100%;">
+        <option value="">— Sin técnico asignado</option>
         ${tecnicos.map(t=>`<option value="${t}"${t===tecnico?' selected':''}>${t}</option>`).join('')}
       </select>
     </div>
@@ -726,6 +717,78 @@ function abrirModalZona(fecha) {
   openModal('modalDetalle');
 }
 
+function editarZonaDia(fecha, zona, tecnico) {
+  const col = ZONA_COLORS[zona] || {bg:'#888'};
+  const code = ZONA_CODES[zona]||zona;
+  const inicial = tecnico ? tecnico[0].toUpperCase() : '?';
+
+  document.getElementById('modalDetalleTitle').textContent = `Editar zona ${code}-${inicial}`;
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <span style="font-size:20px;font-weight:700;background:${col.bg};color:#fff;border-radius:4px;padding:4px 12px;">${code}-${inicial}</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="field-label">Cambiar técnico</div>
+      <select class="field-select" id="edit-zona-tecnico" style="width:100%;">
+        <option value="">— Sin técnico asignado</option>
+        ${tecnicos.map(t=>`<option value="${t}"${t===tecnico?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>`;
+
+  document.getElementById('modalDetalleFooter').innerHTML = `
+    <button class="btn btn-gray" onclick="borrarZonaDia('${fecha}','${zona}','${tecnico}')">🗑 Borrar</button>
+    <button class="btn btn-red" onclick="cambiarTecnicoZona('${fecha}','${zona}','${tecnico}')">Guardar</button>`;
+
+  openModal('modalDetalle');
+}
+
+async function borrarZonaDia(fecha, zona, tecnico) {
+  if(!confirm(`¿Borrar ${ZONA_CODES[zona]||zona} del ${fecha}?`)) return;
+  const reg = planificacionZonas.find(z=>z.fecha===fecha&&z.tecnico===tecnico);
+  if(!reg) { closeModal('modalDetalle'); return; }
+  const nuevasZonas = normZonas(reg.zonas).filter(z=>z!==zona);
+  if(nuevasZonas.length===0) {
+    await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+  } else {
+    await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zonas: nuevasZonas })
+    });
+  }
+  await cargarZonasDia();
+  closeModal('modalDetalle');
+  renderCurrentView();
+  toast('Zona eliminada','warn');
+}
+
+async function cambiarTecnicoZona(fecha, zona, tecnicoAnterior) {
+  const nuevoTecnico = document.getElementById('edit-zona-tecnico').value;
+  // Quitar zona del técnico anterior
+  const regAnterior = planificacionZonas.find(z=>z.fecha===fecha&&z.tecnico===tecnicoAnterior);
+  if(regAnterior) {
+    const zonasFiltradas = normZonas(regAnterior.zonas).filter(z=>z!==zona);
+    if(zonasFiltradas.length===0) {
+      await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnicoAnterior)}`, {
+        method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnicoAnterior)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zonas: zonasFiltradas })
+      });
+    }
+  }
+  // Añadir zona al nuevo técnico
+  await guardarZonaDia(fecha, nuevoTecnico, [...getZonasDia(fecha, nuevoTecnico), zona]);
+  closeModal('modalDetalle');
+  toast('Técnico actualizado ✓','ok');
+}
+
 function confirmarZona(fecha) {
   const tecnico = document.getElementById('zona-tecnico').value;
   const zonas = [...document.querySelectorAll('#zona-checks input:checked')].map(i=>i.value);
@@ -734,7 +797,22 @@ function confirmarZona(fecha) {
   toast('Zona guardada ✓','ok');
 }
 
-async function cargarSolicitantes() {
+async function autoAsignarZona(fecha, zona, tecnico) {
+  if(!zona || !fecha) return;
+  const zonasActuales = getZonasDia(fecha, tecnico||'');
+  if(zonasActuales.length === 0) {
+    // No hay zona asignada — asignar automáticamente
+    await guardarZonaDia(fecha, tecnico||'', [zona]);
+    toast(`Zona ${ZONA_CODES[zona]||zona} asignada automáticamente al ${fecha}`, 'ok');
+  } else if(!zonasActuales.includes(zona)) {
+    // Hay zona diferente — preguntar
+    const tec = tecnico || 'sin técnico';
+    const resp = confirm(`⚠️ El ${fecha} ya tiene ${zonasActuales.map(z=>ZONA_CODES[z]||z).join(',')} asignado a ${tec}.\n\nEl nuevo trabajo es de zona ${ZONA_CODES[zona]||zona}.\n\n[Aceptar] Añadir esta zona también\n[Cancelar] Mantener solo las actuales`);
+    if(resp) {
+      await guardarZonaDia(fecha, tecnico||'', [...zonasActuales, zona]);
+    }
+  }
+}
   try {
     const res = await fetch(`${SB_URL}/rest/v1/solicitantes?select=nombre&order=nombre.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
@@ -890,13 +968,11 @@ function renderCalendario() {
           const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
           const zonaBadges = zonasPorTec.flatMap(zt => {
             const zs = normZonas(zt.zonas);
-            // Shape by tecnico index
-            const tecIdx = tecnicos.indexOf(zt.tecnico);
-            const radius = tecIdx===0 ? '3px' : tecIdx===1 ? '50%' : tecIdx<0 ? '3px' : '0px';
+            const inicial = zt.tecnico ? zt.tecnico.trim()[0].toUpperCase() : '?';
             return zs.map(z => {
               const col = ZONA_COLORS[z] || {bg:'#888',text:'#fff'};
-              const code = ZONA_CODES[z]||z.slice(0,2);
-              return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:'+radius+';padding:2px 5px;margin-left:2px;min-width:20px;text-align:center;">'+code+'</span>';
+              const code = (ZONA_CODES[z]||z.slice(0,2)) + '-' + inicial;
+              return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\'' + dateStr + '\',\'' + z + '\',\'' + (zt.tecnico||'') + '\')" title="Click para editar/borrar">'+code+'</span>';
             });
           }).join('');
           return '<div class="' + dayClass + '" onclick="selectWeek(\'' + dateStr + '\')">' +
@@ -1211,6 +1287,7 @@ async function guardarManual() {
     estado: 'PENDIENTE',
   });
   await cargarPlanificacion();
+  await autoAsignarZona(fecha, zona, tecnico);
   closeModal('modalNuevo');
   renderCurrentView();
   toast('Trabajo añadido','ok');
@@ -1364,6 +1441,7 @@ async function añadirVyPImportado(i, filename) {
     estado: 'PENDIENTE',
   });
   await cargarPlanificacion();
+  await autoAsignarZona(fecha, zonaImp, tecnicoImp);
   document.querySelector(`#importResults .import-preview:nth-child(${i+1})`)?.remove();
   toast(`VyP ${vyp} añadido ✓`, 'ok');
 }
