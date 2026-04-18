@@ -1260,7 +1260,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.99a';
+const APP_VERSION = 'v3.99b';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -5959,19 +5959,21 @@ async function leerPlanificacionDrive() {
     if(error) throw new Error(error.message);
     if(data) {
       S.planificacion = data.map(r=>({
-        id:          r.id||'',
-        centro:      r.centro||'',
-        alias:       r.alias||'',
-        fecha:       r.fecha||'',
-        hora:        r.hora||'',
-        vyp:         r.vyp||'',
-        tdc:         r.tdc||'',
-        trabajo:     r.trabajo||'',
-        coord:       r.coord||'',
-        estado:      r.estado||'PENDIENTE',
-        solicitante: r.solicitante||'',
-        telefono:    r.telefono||'',
-        calEventId:  r.cal_event_id||null,
+        id:              r.id||'',
+        centro:          r.centro||'',
+        alias:           r.alias||'',
+        fecha:           r.fecha||'',
+        hora:            r.hora||'',
+        vyp:             r.vyp||'',
+        tdc:             r.tdc||'',
+        trabajo:         r.trabajo||'',
+        coord:           r.coord||'',
+        estado:          r.estado||'PENDIENTE',
+        solicitante:     r.solicitante||'',
+        telefono:        r.telefono||(_zonasCCCache[( r.zona||'').toUpperCase()]||''),
+        zona:            r.zona||'',
+        tecnico_asignado:r.tecnico_asignado||'',
+        calEventId:      r.cal_event_id||null,
       }));
       setLS('t2-pl', S.planificacion);
       return true;
