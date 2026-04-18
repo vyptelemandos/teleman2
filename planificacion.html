@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.36</title>
+<title>Teleman2 — Planificación v1.41</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -406,7 +406,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.36</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.41</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1926,15 +1926,25 @@ async function handleFiles(files) {
   _importResultados = [];
 
   console.log('currentView:', currentView);
-  // Make sure we're on the import view
+  // Switch to importar if needed, but don't re-render if already there
   if(currentView !== 'importar') {
     setView('importar');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 150));
   }
 
-  const res = document.getElementById('importResults');
+  // Inject log container into importResults if it exists, or into content directly
+  let res = document.getElementById('importResults');
+  if(!res) {
+    // importResults doesn't exist — inject directly into content
+    const content = document.getElementById('content');
+    if(!content) return;
+    const div = document.createElement('div');
+    div.id = 'importResults';
+    content.innerHTML = '';
+    content.appendChild(div);
+    res = div;
+  }
   console.log('importResults:', res);
-  if(!res) { toast('Error: vista de importar no disponible','err'); return; }
 
   res.innerHTML = `
     <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:16px;">
@@ -1945,14 +1955,19 @@ async function handleFiles(files) {
     </div>
     <div id="importCurrent"></div>`;
 
+  console.log('pdfjsLib:', typeof pdfjsLib);
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
   // Phase 1: scan ALL pdfs first
+  console.log('Starting scan loop, arr.length:', arr.length);
   for(let i=0; i<arr.length; i++) {
     const file = arr[i];
+    console.log('Processing file:', file.name, 'size:', file.size);
     logImport(`[${i+1}/${arr.length}] Leyendo: ${file.name}`, null);
     try {
+      console.log('Calling extraerTextoPDF...');
       const texto = await extraerTextoPDF(file);
+      console.log('texto length:', texto?.length);
       logImport(`[${i+1}/${arr.length}] Analizando con IA...`, null);
       const datos = await parsearVyPGemini(texto);
       logImport(`[${i+1}/${arr.length}] VyP ${datos.vyp||'?'} — ${datos.centro||'?'} ✓`, 'ok');
@@ -2073,6 +2088,89 @@ async function añadirVyPImportado(i, filename) {
 }
 
 // ─── MODALS ──────────────────────────────────────────
+
+async function extraerTextoPDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const typedArray = new Uint8Array(e.target.result);
+        const pdf = await pdfjsLib.getDocument({data: typedArray}).promise;
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        resolve(content.items.map(i=>i.str).join(' '));
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Error leyendo archivo'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function parsearVyPGemini(texto) {
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/gemini-vyp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+      body: JSON.stringify({ texto })
+    });
+    const data = await res.json();
+    console.log('Gemini respuesta:', data?.ok, data?.data?.trabajo?.slice(0,50));
+    if(!data?.ok) throw new Error('Gemini error');
+    return data.data;
+  } catch(e) {
+    console.warn('Gemini falló:', e.message, '— usando regex');
+    return parsearVyPRegex(texto);
+  }
+}
+
+function parsearVyPRegex(texto) {
+  const get = (p,g=1) => { const m=texto.match(p); return m?m[g].trim():''; };
+  let vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
+  if(!vyp) vyp = get(/Ref\.\s*Trabajo\s*Programado[:\s]+(\d{8})/);
+  let fecha='', hora='';
+  const fm = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
+  if(fm) {
+    const d1=fm[1],d2=fm[3];
+    const h1=fm[2],h2=fm[4];
+    // Use Fecha Inicio (second date in the block)
+    const parts=(d2||d1).split('-');
+    if(parts.length===3) fecha=`${parts[2]}-${parts[1]}-${parts[0]}`;
+    hora=h2||h1;
+  }
+  const tdc = get(/Origen\s+Actividad\s+(\d{7,12})/i) || get(/T[-\s]?(\d{6,10})/i);
+  let zona = '';
+  const zonaMatch = texto.match(/U\.O\.\s*(Zaragoza|Teruel|Soria|Alcañiz|Calatayud|Huesca|Jaca|Monzón|Alagón|Noroeste)/i);
+  if(zonaMatch) zona = zonaMatch[1].toUpperCase();
+  const sm = texto.match(/Nombre\s+([A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ,\s]+?)\s+Teléfono/);
+  const solicitante = sm?sm[1].replace(/,/g,'').replace(/\s+/g,' ').trim():'';
+  const cm = texto.match(/En\s+(?:CD|DM|CT|MT)\s+[^\/\n]+?\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
+  const centro = cm?cm[1].toUpperCase():'';
+  return {vyp,fecha,hora,tdc,zona,solicitante,trabajo:'',centro};
+}
+
+async function getAlias(centro) {
+  if(!centro) return '';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if(!res.ok) { console.warn('getAlias error:', res.status, centro); return ''; }
+    const data = await res.json();
+    return data?.[0]?.alias || '';
+  } catch(e) { return ''; }
+}
+
+async function getTelefonoZona(zona) {
+  if(!zona) return '';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?zona=eq.${encodeURIComponent(zona)}&select=telefono&limit=1`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const data = await res.json();
+    return data?.[0]?.telefono || '';
+  } catch(e) { return ''; }
+}
+
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
