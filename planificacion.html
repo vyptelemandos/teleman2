@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v5.9</title>
+<title>Teleman2 — Planificación v1.13</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -405,7 +405,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.9</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.13</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -570,6 +570,7 @@ const ZONA_COLORS = {
   CALATAYUD:{bg:'#FFDE21', text:'#333'},
 };
 let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
+let _scrollToToday = true; // scroll to today on first load
 
 // Festivos fijos perpetuos (MM-DD) — se aplican a cualquier año
 const FESTIVOS_FIJOS = [
@@ -1403,7 +1404,7 @@ function renderCalendario() {
         return zs.map(z=>{
           const col = ZONA_COLORS[z]||{bg:'#888',text:'#fff'};
           const code = (ZONA_CODES[z]||z.slice(0,2))+'-'+ini;
-          return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(''+dateStr+'',''+z+'',''+(zt.tecnico||'')+'')" title="Click para editar/borrar">'+code+'</span>';
+          return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\"'+dateStr+'\",\"'+z+'\",\"'+(zt.tecnico||'')+'\")" title="Click para editar/borrar">'+code+'</span>';
         });
       }).join('');
 
@@ -1415,22 +1416,22 @@ function renderCalendario() {
         const sep = gi>0?'<div style="border-top:1px solid #ddd;margin:2px 0;"></div>':'';
         return sep+todoEventos.filter(p=>(p.tecnico_asignado||'')===t).map(p=>{
           const col=getColor(p);
-          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(''+p.id+'')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')\"">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
         }).join('');
       }).join('');
 
       // Month label on 1st of month
       const monthLabel = date.getDate()===1 ? '<div style="font-size:9px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">'+meses[date.getMonth()].slice(0,3)+' '+date.getFullYear()+'</div>' : '';
 
-      rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(''+dateStr+'')">'+
+      rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
         monthLabel+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
           '<div class="cal-day-num" style="margin-bottom:0;'+numColor+'">'+date.getDate()+'</div>'+
           '<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;">'+agBadges+zonaBadges+
-            '<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(''+dateStr+'')" title="Asignar zona">+</span>'+
+            '<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')\"" title="Asignar zona">+</span>'+
           '</div>'+
         '</div>'+
-        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(''+a.id+'')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
+        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')\"">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
         eventosHtml+
       '</div>';
     }
@@ -1462,17 +1463,19 @@ function renderCalendario() {
     '</div>'+
     '</div>';
 
-  // Scroll to today's week
+  // Adjust sticky cal header top + optional scroll
   requestAnimationFrame(() => {
-    const todayEl = content.querySelector('.cal-day.today');
-    if(todayEl) {
-      const offset = todayEl.getBoundingClientRect().top + content.scrollTop - content.getBoundingClientRect().top - 120;
-      content.scrollTop = offset;
-    }
-    // Adjust sticky cal header top
     const sh = document.getElementById('stickyHeader');
     const ch = document.getElementById('calHeader');
     if(sh && ch) ch.style.top = (sh.offsetHeight - 24) + 'px';
+    if(_scrollToToday) {
+      _scrollToToday = false;
+      const todayEl = content.querySelector('.cal-day.today');
+      if(todayEl) {
+        const offset = todayEl.getBoundingClientRect().top + content.scrollTop - content.getBoundingClientRect().top - 120;
+        content.scrollTop = offset;
+      }
+    }
   });
 
   const sbMonth = document.getElementById('sb-cal-month');
@@ -1493,12 +1496,38 @@ function selectWeek(dateStr) {
   selectedWeekDate = new Date(dateStr+'T12:00:00');
   calYear = selectedWeekDate.getFullYear();
   calMonth = selectedWeekDate.getMonth();
+  _scrollToToday = false;
   renderCalendario();
 }
 
-function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendario(); }
-function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendario(); }
-function calHoy() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); renderCalendario(); }
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} scrollToMonth(calYear,calMonth); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} scrollToMonth(calYear,calMonth); }
+function scrollToMonth(year, month) {
+  // Find first day of month cell in the calendar and scroll to it
+  const pad = n => String(n).padStart(2,'0');
+  const targetDate = year+'-'+pad(month+1)+'-01';
+  const content = document.getElementById('content');
+  // Find the cell with that date
+  const cells = content.querySelectorAll('.cal-day');
+  for(const cell of cells) {
+    const onclick = cell.getAttribute('onclick')||'';
+    if(onclick.includes(targetDate)) {
+      const offset = cell.getBoundingClientRect().top + content.scrollTop - content.getBoundingClientRect().top - 120;
+      content.scrollTop = offset;
+      // Update month label
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      const sbMonth = document.getElementById('sb-cal-month');
+      if(sbMonth) sbMonth.textContent = meses[month] + ' ' + year;
+      return;
+    }
+  }
+  // If not found (out of range), re-render centered on that month
+  _scrollToToday = false;
+  selectedWeekDate = new Date(year, month, 1);
+  renderCalendario();
+}
+
+function calHoy() { const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); selectedWeekDate=n; _scrollToToday=true; renderCalendario(); }
 
 // ─── LISTA ───────────────────────────────────────────
 let _listaBusqueda = '';
