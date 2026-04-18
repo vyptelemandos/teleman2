@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v2.0</title>
+<title>Teleman2 — Planificación v2.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -363,24 +363,44 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <option value="">Todos</option>
       </select>
     </div>
-    <div class="sb-section">Leyenda</div>
-    <div style="padding:4px 14px;">
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+    <div class="sb-section">Leyenda — Estado</div>
+    <div style="padding:4px 14px 8px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
         <span style="width:10px;height:10px;background:#aaaaaa;border-radius:2px;flex-shrink:0;"></span> Pendiente
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
         <span style="width:10px;height:10px;background:#f97316;border-radius:2px;flex-shrink:0;"></span> Caducado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
         <span style="width:10px;height:10px;background:#1a8a55;border-radius:2px;flex-shrink:0;"></span> Realizado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text2);">
+      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
         <span style="width:10px;height:10px;background:#e63946;border-radius:2px;flex-shrink:0;"></span> Cancelado
+      </div>
+    </div>
+    <div class="sb-section">Leyenda — Zonas</div>
+    <div style="padding:4px 14px 8px;">
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
+        <span style="font-size:10px;font-weight:700;background:#cc0000;color:#fff;border-radius:3px;padding:2px 5px;">ZA</span>
+        <span style="font-size:10px;font-weight:700;background:#1d4ed8;color:#fff;border-radius:3px;padding:2px 5px;">TE</span>
+        <span style="font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:3px;padding:2px 5px;">SO</span>
+        <span style="font-size:10px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:2px 5px;">AL</span>
+        <span style="font-size:10px;font-weight:700;background:#ca8a04;color:#fff;border-radius:3px;padding:2px 5px;">CA</span>
+      </div>
+      <div class="sb-section" style="padding:4px 0 4px;font-size:9px;">Técnico — Forma</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
+        <span style="width:14px;height:14px;background:#888;border-radius:3px;flex-shrink:0;display:inline-block;"></span> Fran
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
+        <span style="width:14px;height:14px;background:#888;border-radius:50%;flex-shrink:0;display:inline-block;"></span> Alberto
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
+        <span style="width:14px;height:14px;background:#888;border-radius:0px;flex-shrink:0;display:inline-block;"></span> Sin asignar / otro
       </div>
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.0</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.2</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -497,6 +517,13 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 const ZONA_CODES = {ZARAGOZA:'ZA',CALATAYUD:'CA',TERUEL:'TE',ALCAÑIZ:'AL',SORIA:'SO',MONZÓN:'MO',HUESCA:'HU',JACA:'JA',ALAGÓN:'AG',NOROESTE:'NO'};
 const ZONAS_LIST = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
+const ZONA_COLORS = {
+  ZARAGOZA: {bg:'#cc0000', text:'#fff'},
+  TERUEL:   {bg:'#1d4ed8', text:'#fff'},
+  SORIA:    {bg:'#16a34a', text:'#fff'},
+  'ALCAÑIZ':{bg:'#7c3aed', text:'#fff'},
+  CALATAYUD:{bg:'#ca8a04', text:'#fff'},
+};
 let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
 
 const { createClient } = supabase;
@@ -860,9 +887,18 @@ function renderCalendario() {
             return p.fecha === dateStr;
           });
           const dayClass = 'cal-day' + (other?' other-month':'') + (isToday?' today':'') + (inActiveWeek&&!isToday?' active-week':'') + (inActiveWeek&&other?' active-week-other':'');
-          const todasZonas = getTodasZonasDia(dateStr);
-          const zonasUniq = [...new Set(todasZonas)];
-          const zonaBadges = zonasUniq.map(z=>'<span style="font-size:9px;font-weight:700;background:#e0e0e0;color:#444;border-radius:2px;padding:1px 4px;margin-left:2px;">'+( ZONA_CODES[z]||z)+'</span>').join('');
+          const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
+          const zonaBadges = zonasPorTec.flatMap(zt => {
+            const zs = normZonas(zt.zonas);
+            // Shape by tecnico index
+            const tecIdx = tecnicos.indexOf(zt.tecnico);
+            const radius = tecIdx===0 ? '3px' : tecIdx===1 ? '50%' : tecIdx<0 ? '3px' : '0px';
+            return zs.map(z => {
+              const col = ZONA_COLORS[z] || {bg:'#888',text:'#fff'};
+              const code = ZONA_CODES[z]||z.slice(0,2);
+              return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:'+radius+';padding:2px 5px;margin-left:2px;min-width:20px;text-align:center;">'+code+'</span>';
+            });
+          }).join('');
           return '<div class="' + dayClass + '" onclick="selectWeek(\'' + dateStr + '\')">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">' +
             '<div class="cal-day-num" style="margin-bottom:0;">' + date.getDate() + '</div>' +
