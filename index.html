@@ -1260,7 +1260,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.99c';
+const APP_VERSION = 'v3.99d';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -6290,18 +6290,17 @@ function renderFechaHoy() {
 }
 
 function getSemanaActual() {
-  // Week runs from Friday 20:00 to Friday 20:00
+  // Week runs from Monday 00:00 to Sunday 23:59
   const now = new Date();
-  const day = now.getDay(); // 0=Sun, 1=Mon... 5=Fri, 6=Sat
-  const hour = now.getHours();
-  // Find last Friday 20:00
-  let daysBack = (day - 5 + 7) % 7;
-  if(day === 5 && hour < 20) daysBack = 7; // Before 20:00 on Friday = previous week
+  const day = now.getDay(); // 0=Sun, 1=Mon... 6=Sat
+  // Find last Monday
+  const daysBack = (day + 6) % 7; // Mon=0, Tue=1... Sun=6
   const start = new Date(now);
   start.setDate(now.getDate() - daysBack);
-  start.setHours(20, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(start.getDate() + 7);
+  end.setHours(0, 0, 0, 0);
   return { start, end };
 }
 
