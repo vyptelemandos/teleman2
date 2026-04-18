@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v3.8</title>
+<title>Teleman2 — Planificación v5.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -173,7 +173,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cal-month { font-family: var(--mono); font-size: 16px; font-weight: 600; }
 .cal-nav { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text2); font-size: 14px; }
 .cal-nav:hover { color: var(--text); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #cccccc; border: 1px solid #cccccc; border-radius: 8px; overflow: hidden; }
+.cal-grid { display: grid; grid-template-columns: 32px repeat(7, 1fr); gap: 1px; background: #bbbbbb; border: 1px solid #bbbbbb; border-radius: 8px; overflow: hidden; }
 .cal-dow { background: var(--bg3); padding: 8px; text-align: center; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .cal-day {
   background: #ffffff; min-height: 120px; padding: 8px;
@@ -187,8 +187,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cal-day.active-week .cal-day-num { color: #333333; }
 .cal-day.active-week-other { border: 1px solid #cccccc; }
 .cal-day.active-week-other .cal-day-num { color: #555555; }
-.cal-day.festivo-day { background: #fff5f5; }
-.cal-day.festivo-day:hover { background: #ffecec; }
+.cal-day.festivo-day { background: #e4e4e4; }
+.cal-day.festivo-day:hover { background: #dcdcdc; }
+.cal-day.sabado-day { background: #f2f2f2; }
+.cal-day.sabado-day:hover { background: #ebebeb; }
 .cal-day.festivo { background: #fff5f5; }
 .cal-day.festivo .cal-day-num { color: #cc0000; font-weight: 800; }
 .cal-day.domingo .cal-day-num { color: #cc0000; }
@@ -355,9 +357,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <button class="sb-btn" id="sb-manual" onclick="openNuevoManual()">
       <span class="icon">✏️</span> Añadir manual
     </button>
-    <button class="sb-btn" id="sb-agenda" onclick="setView('agenda')">
-      <span class="icon">📅</span> Agenda
-    </button>
     <button class="sb-btn" id="sb-agenda" onclick="openNuevoAgenda()">
       <span class="icon">📆</span> Añadir agenda
     </button>
@@ -393,9 +392,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
         <span style="width:10px;height:10px;background:#00bcd4;border-radius:2px;flex-shrink:0;"></span> Agenda
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#fff5f5;border:1px solid #cc0000;border-radius:2px;flex-shrink:0;"></span> Festivo / Domingo
-      </div>
     </div>
     <div style="padding:4px 14px 8px;">
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
@@ -403,18 +399,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <span style="font-size:10px;font-weight:700;background:#1d4ed8;color:#fff;border-radius:3px;padding:2px 5px;">TE</span>
         <span style="font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:3px;padding:2px 5px;">SO</span>
         <span style="font-size:10px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:2px 5px;">AL</span>
-        <span style="font-size:10px;font-weight:700;background:#e6c000;color:#333;border-radius:3px;padding:2px 5px;">CA</span>
+        <span style="font-size:10px;font-weight:700;background:#FFDE21;color:#333;border-radius:3px;padding:2px 5px;">CA</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:14px;height:10px;background:#e0fafa;border-left:3px solid #00aaaa;flex-shrink:0;display:inline-block;border-radius:2px;"></span> Agenda
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="color:#cc0000;font-size:12px;">🔴</span> Festivo / Domingo
-      </div>
+
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v3.8</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.1</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -532,11 +523,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="fr2">
         <div class="field-group">
           <div class="field-label">Hora inicio</div>
-          <input class="field-input" id="ag-hora-ini" placeholder="08:00">
+          <input class="field-input" id="ag-hora-ini" placeholder="08:00" oninput="fmtHoraAgenda(this)">
         </div>
         <div class="field-group">
           <div class="field-label">Hora fin</div>
-          <input class="field-input" id="ag-hora-fin" placeholder="17:00">
+          <input class="field-input" id="ag-hora-fin" placeholder="17:00" oninput="fmtHoraAgenda(this)">
         </div>
       </div>
       <div class="field-group">
@@ -584,14 +575,11 @@ let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
 const FESTIVOS_FIJOS = [
   {mmdd:'01-01', descripcion:'Año Nuevo'},
   {mmdd:'01-06', descripcion:'Reyes Magos'},
-  {mmdd:'01-20', descripcion:'San Sebastián (Zaragoza)'},
-  {mmdd:'02-28', descripcion:'Día de Aragón'},
-  {mmdd:'04-23', descripcion:'San Jorge (Aragón)'},
-  {mmdd:'05-01', descripcion:'Día del Trabajador'},
+  {mmdd:'04-23', descripcion:'San Jorge — Día de Aragón'},
+  {mmdd:'05-01', descripcion:'Fiesta del Trabajo'},
   {mmdd:'08-15', descripcion:'Asunción de la Virgen'},
-  {mmdd:'10-12', descripcion:'Fiesta Nacional'},
-  {mmdd:'10-14', descripcion:'Virgen del Pilar'},
-  {mmdd:'11-01', descripcion:'Todos los Santos'},
+  {mmdd:'10-12', descripcion:'Fiesta Nacional de España'},
+  {mmdd:'12-06', descripcion:'Día de la Constitución'},
   {mmdd:'12-08', descripcion:'Inmaculada Concepción'},
   {mmdd:'12-25', descripcion:'Navidad'},
 ];
@@ -645,10 +633,119 @@ function openSettings() {
   const email = document.getElementById('sbUserEmail')?.textContent || '';
   document.getElementById('settingsBody').innerHTML = `
     <div style="padding:4px 0 12px;font-size:12px;color:var(--text3);">${email}</div>
-    <button class="btn btn-gray" style="width:100%;margin-bottom:8px;" onclick="closeModal('modalSettings');abrirGestionFestivos()">🗓 Gestionar festivos</button>
+    <button class="btn btn-gray" style="width:100%;margin-bottom:8px;text-align:left;" onclick="closeModal('modalSettings');abrirGestionFestivos()">🗓 Gestionar festivos</button>
+    <button class="btn btn-gray" style="width:100%;margin-bottom:8px;text-align:left;" onclick="closeModal('modalSettings');abrirAjustes()">⚙️ Ajustes completos</button>
     <button class="btn btn-gray" style="width:100%;margin-bottom:8px;" onclick="closeModal('modalSettings')">Cerrar</button>
     <button class="btn btn-red" style="width:100%;" onclick="doLogout()">Cerrar sesión</button>`;
   openModal('modalSettings');
+}
+
+function abrirAjustes() {
+  document.getElementById('modalDetalleTitle').textContent = 'Ajustes';
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('tecnicos','nombre','Técnicos')">👷 Técnicos</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('solicitantes','nombre','Solicitantes')">👤 Solicitantes</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('materiales','cod','Materiales')">🔧 Materiales</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('baremos','cod','Baremos')">📊 Baremos</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('frases','texto','Frases')">💬 Frases</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('modelos_remota','modelo','Modelos Remota')">📡 Modelos Remota</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirTablaAjuste('zonas_cc','zona','Teléfonos CC')">📞 Tlf. Control</button>
+      <button class="btn btn-gray" style="text-align:left;" onclick="abrirEmailsAjuste()">📨 Correos envío</button>
+    </div>`;
+  document.getElementById('modalDetalleFooter').innerHTML =
+    '<button class="btn btn-gray" onclick="closeModal(\'modalDetalle\')">Cerrar</button>';
+  openModal('modalDetalle');
+}
+
+async function abrirTablaAjuste(tabla, campoNombre, titulo) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/${tabla}?select=*&order=${campoNombre}.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const data = await res.json();
+    const cols = data?.length ? Object.keys(data[0]).filter(k=>k!=='id'&&k!=='created_at'&&k!=='updated_at') : [];
+    
+    document.getElementById('modalDetalleTitle').textContent = titulo;
+    document.getElementById('modalDetalleBody').innerHTML = `
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>${cols.map(c=>'<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #e0e0e0;font-weight:600;color:#555;text-transform:uppercase;font-size:10px;">'+c+'</th>').join('')}<th style="width:40px;"></th></tr></thead>
+          <tbody>
+            ${data.map(row=>'<tr style="border-bottom:1px solid #f0f0f0;">'+
+              cols.map(col=>'<td style="padding:6px 8px;">'+( row[col]||'')+'</td>').join('')+
+              '<td><button style="background:none;border:none;color:#cc0000;cursor:pointer;font-size:14px;" onclick="borrarFilaAjuste(\''+tabla+'\',\''+row.id+'\',\''+titulo+'\')">×</button></td>'+
+            '</tr>').join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e0e0;">
+        <div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;">Añadir nuevo</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="addRowFields">
+          ${cols.map(col=>'<input class="field-input" id="add-'+col+'" placeholder="'+col+'" style="flex:1;min-width:100px;">').join('')}
+        </div>
+      </div>`;
+    document.getElementById('modalDetalleFooter').innerHTML = `
+      <button class="btn btn-gray" onclick="abrirAjustes()">← Volver</button>
+      <button class="btn btn-red" onclick="añadirFilaAjuste('${tabla}','${campoNombre}','${titulo}',${JSON.stringify(cols)})">Añadir</button>`;
+  } catch(e) {
+    toast('Error cargando '+titulo,'err');
+  }
+}
+
+async function borrarFilaAjuste(tabla, id, titulo) {
+  if(!confirm('¿Borrar este registro?')) return;
+  await fetch(`${SB_URL}/rest/v1/${tabla}?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  });
+  await abrirTablaAjuste(tabla, 'id', titulo);
+}
+
+async function añadirFilaAjuste(tabla, campoNombre, titulo, cols) {
+  const newRow = {};
+  cols.forEach(col => {
+    const val = document.getElementById('add-'+col)?.value?.trim();
+    if(val) newRow[col] = val;
+  });
+  if(!newRow[campoNombre]) { toast('El campo '+campoNombre+' es obligatorio','err'); return; }
+  await fetch(`${SB_URL}/rest/v1/${tabla}`, {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(newRow)
+  });
+  await abrirTablaAjuste(tabla, campoNombre, titulo);
+  toast('Añadido ✓','ok');
+}
+
+async function abrirEmailsAjuste() {
+  const res = await fetch(`${SB_URL}/rest/v1/config_app?clave=in.(email_destino_1,email_destino_2)&select=clave,valor`, {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  });
+  const data = await res.json();
+  const e1 = data?.find(d=>d.clave==='email_destino_1')?.valor||'';
+  const e2 = data?.find(d=>d.clave==='email_destino_2')?.valor||'';
+  document.getElementById('modalDetalleTitle').textContent = 'Correos de envío';
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <div class="field-group"><div class="field-label">Email destino 1</div>
+      <input class="field-input" id="cfg-email-1" value="${e1}" type="email" style="text-transform:none;"></div>
+    <div class="field-group"><div class="field-label">Email destino 2</div>
+      <input class="field-input" id="cfg-email-2" value="${e2}" type="email" style="text-transform:none;"></div>`;
+  document.getElementById('modalDetalleFooter').innerHTML = `
+    <button class="btn btn-gray" onclick="abrirAjustes()">← Volver</button>
+    <button class="btn btn-red" onclick="guardarEmailsAjuste()">Guardar</button>`;
+}
+
+async function guardarEmailsAjuste() {
+  const e1 = document.getElementById('cfg-email-1')?.value?.trim()||'';
+  const e2 = document.getElementById('cfg-email-2')?.value?.trim()||'';
+  await fetch(`${SB_URL}/rest/v1/config_app`, {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify([{clave:'email_destino_1',valor:e1},{clave:'email_destino_2',valor:e2}])
+  });
+  toast('Emails guardados ✓','ok');
+  closeModal('modalDetalle');
 }
 
 async function doLogout() {
@@ -968,22 +1065,42 @@ async function cargarFestivos() {
     const manual = Array.isArray(data) ? data : [];
     // Generate fixed festivos for current year and next
     const now = new Date();
-    const years = [now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1];
+    const currentYear = now.getFullYear();
+    // Generate for 5 years past and 10 years future
+    const years = [];
+    for(let y = currentYear - 2; y <= currentYear + 10; y++) years.push(y);
     const fijos = years.flatMap(y => getFestivosFijos(y));
     const manualFechas = new Set(manual.map(f=>f.fecha));
     festivos = [...fijos.filter(f=>!manualFechas.has(f.fecha)), ...manual];
   } catch(e) {
+    console.warn('cargarFestivos error:', e.message, '— usando solo fijos');
     const now = new Date();
-    festivos = getFestivosFijos(now.getFullYear());
+    const years = [];
+    for(let y = now.getFullYear()-2; y <= now.getFullYear()+10; y++) years.push(y);
+    festivos = years.flatMap(y => getFestivosFijos(y));
   }
 }
 
 function esFestivo(fecha) {
-  return festivos.find(f=>f.fecha===fecha);
+  const found = festivos.find(f=>f.fecha===fecha);
+  if(fecha==='2027-01-01') console.log('esFestivo 2027-01-01:', found, 'total festivos:', festivos.length, 'sample:', festivos.slice(0,3).map(f=>f.fecha));
+  return found;
 }
 
 function esDomingo(dateStr) {
   return new Date(dateStr+'T12:00:00').getDay() === 0;
+}
+
+function esSabado(dateStr) {
+  return new Date(dateStr+'T12:00:00').getDay() === 6;
+}
+
+function getWeekNumber(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 3 - (d.getDay()+6)%7);
+  const week1 = new Date(d.getFullYear(),0,4);
+  return 1 + Math.round(((d-week1)/86400000 - 3 + (week1.getDay()+6)%7)/7);
 }
 
 async function cargarAgenda() {
@@ -1129,6 +1246,7 @@ async function addFestivoManual() {
 
 async function cargarSolicitantes() {
   try {
+    const res = await fetch(`${SB_URL}/rest/v1/solicitantes?select=nombre&order=nombre.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const data = await res.json();
@@ -1266,50 +1384,76 @@ function renderCalendario() {
   const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
   const dualStatsHtml = renderDualStats();
+
+  // Build calendar HTML with proper 8-col grid (sem + 7 days)
+  const wr2 = getWeekRange(selectedWeekDate);
+  let calCells = '';
+  for(let i=0; i<days.length; i++) {
+    const {date, other} = days[i];
+    const dateStr = fmt(date);
+    // Week number cell at start of each row
+    if(i%7===0) {
+      const wn = getWeekNumber(date);
+      const isActiveWk = fmt(date)>=wr2.ini && fmt(date)<=wr2.fin || (i<7 && days.slice(i,i+7).some(d=>fmt(d.date)>=wr2.ini&&fmt(d.date)<=wr2.fin));
+      const weekBg = isActiveWk ? '#d0d0d0' : '#f0f0f0';
+      const weekColor = isActiveWk ? '#333' : '#999';
+      calCells += '<div style="background:'+weekBg+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:'+weekColor+';font-family:monospace;">'+wn+'</div>';
+    }
+    const isToday = fmt(today)===dateStr;
+    const inActiveWeek = dateStr>=wr2.ini && dateStr<=wr2.fin;
+    const eventos = planificacion.filter(p=>{
+      if(filtroTec && p.tecnico_asignado!==filtroTec) return false;
+      return p.fecha===dateStr;
+    }).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    const festivo = esFestivo(dateStr);
+    const domingo = esDomingo(dateStr);
+    const sabado = esSabado(dateStr);
+    const diaRojo = festivo || domingo;
+    const agItems = agendaItems.filter(a=>a.fecha===dateStr && (!filtroTec||!a.tecnico||a.tecnico===filtroTec));
+    let dayClass = 'cal-day';
+    if(other) dayClass += ' other-month';
+    if(isToday) dayClass += ' today';
+    if(inActiveWeek && !isToday) dayClass += ' active-week';
+    if(inActiveWeek && other) dayClass += ' active-week-other';
+    if(diaRojo) dayClass += ' festivo-day';
+    else if(sabado) dayClass += ' sabado-day';
+    const numColor = diaRojo ? 'color:#cc0000;font-weight:700;' : '';
+    const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
+    const agBadges = agItems.map(a=>{
+      const ini = a.tecnico?a.tecnico.trim()[0].toUpperCase():'?';
+      return '<span style="display:inline-block;font-size:10px;font-weight:700;background:#00bcd4;color:#fff;border-radius:3px;padding:2px 5px;margin-left:2px;">AG-'+ini+'</span>';
+    }).join('');
+    const zonaBadges = zonasPorTec.flatMap(zt=>{
+      const zs = normZonas(zt.zonas);
+      const ini = zt.tecnico?zt.tecnico.trim()[0].toUpperCase():'?';
+      return zs.map(z=>{
+        const col = ZONA_COLORS[z]||{bg:'#888',text:'#fff'};
+        const code = (ZONA_CODES[z]||z.slice(0,2))+'-'+ini;
+        return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\''+dateStr+'\',\''+z+'\',\''+(zt.tecnico||'')+'\')" title="Click para editar/borrar">'+code+'</span>';
+      });
+    }).join('');
+    calCells +=
+      '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
+          '<div class="cal-day-num" style="margin-bottom:0;'+numColor+'">'+date.getDate()+'</div>'+
+          '<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;">'+agBadges+zonaBadges+
+            (other?'':'<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')" title="Asignar zona">+</span>')+
+          '</div>'+
+        '</div>'+
+        agItems.map(a=>'<div style="font-size:10px;font-weight:600;background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;border-radius:3px;padding:2px 5px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
+        eventos.map(p=>{
+          const col=getColor(p);
+          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+        }).join('')+
+      '</div>';
+  }
+
   content.innerHTML = dualStatsHtml + `
     <div id="calendarView">
       <div class="cal-grid">
+        <div class="cal-dow" style="background:#e8e8e8;text-align:center;padding:0;">Sem</div>
         ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
-        ${days.map(({date,other}) => {
-          const dateStr = fmt(date);
-          const isToday = fmt(today)===dateStr;
-          const wr2 = getWeekRange(selectedWeekDate);
-          const inActiveWeek = dateStr >= wr2.ini && dateStr <= wr2.fin;
-          const eventos = planificacion.filter(p => {
-            if(filtroTec && p.tecnico_asignado !== filtroTec) return false;
-            return p.fecha === dateStr;
-          }).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
-          const festivo = esFestivo(dateStr);
-          const domingo = esDomingo(dateStr);
-          const diaRojo = !other && (festivo || domingo);
-          const agItems = agendaItems.filter(a=>a.fecha===dateStr && (!filtroTec || !a.tecnico || a.tecnico===filtroTec));
-          const dayClass = 'cal-day' + (other?' other-month':'') + (isToday?' today':'') + (inActiveWeek&&!isToday?' active-week':'') + (inActiveWeek&&other?' active-week-other':'') + (diaRojo?' festivo-day':'');
-          const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
-          const zonaBadges = zonasPorTec.flatMap(zt => {
-            const zs = normZonas(zt.zonas);
-            const inicial = zt.tecnico ? zt.tecnico.trim()[0].toUpperCase() : '?';
-            return zs.map(z => {
-              const col = ZONA_COLORS[z] || {bg:'#888',text:'#fff'};
-              const code = (ZONA_CODES[z]||z.slice(0,2)) + '-' + inicial;
-              return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\'' + dateStr + '\',\'' + z + '\',\'' + (zt.tecnico||'') + '\')" title="Click para editar/borrar">'+code+'</span>';
-            });
-          }).join('');
-          return '<div class="' + dayClass + '" onclick="selectWeek(\'' + dateStr + '\')">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">' +
-            '<div class="cal-day-num" style="margin-bottom:0;' + (diaRojo?'color:#cc0000;font-weight:700;':'') + '">' + date.getDate() + (festivo?'<span style="font-size:8px;margin-left:2px;color:#cc0000;" title="'+festivo.descripcion+'">🔴</span>':'') + '</div>' +
-            '<div style="display:flex;gap:2px;align-items:center;">' + zonaBadges +
-            (other?'':'<span style="font-size:14px;color:#bbbbbb;cursor:pointer;line-height:1;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\'' + dateStr + '\')" title="Asignar zona">+</span>') +
-            (other?'':'<span style="font-size:14px;color:#00aaaa;cursor:pointer;line-height:1;padding:0 2px;" onclick="event.stopPropagation();abrirModalAgenda(\'' + dateStr + '\')" title="Añadir evento agenda">📅</span>') +
-            '</div></div>' +
-            agItems.map(a=>'<div style="font-size:10px;font-weight:500;background:#e0fafa;color:#007777;border-left:3px solid #00aaaa;border-radius:3px;padding:2px 5px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="event.stopPropagation();verDetalleAgenda(\'' + a.id + '\')">' + (a.hora_ini?a.hora_ini+' ':'' ) + a.descripcion + '</div>').join('') +
-            eventos.map(p => {
-              const col = getColor(p);
-              return '<div class="cal-event ' + colorClass(col) + '" onclick="event.stopPropagation();verDetalle(\'' + p.id + '\')" title="' + (p.centro||'') + '">' +
-                (p.hora||'') + ' ' + (p.centro||'') + (p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'') +
-                '</div>';
-            }).join('') +
-          '</div>';
-        }).join('')}
+        ${calCells}
       </div>
     </div>`;
     // Update sidebar month label and tecnico filter
@@ -1431,10 +1575,10 @@ function statsBar(items, label, highlight) {
   const pill = (color, num, lbl) =>
     '<div style="display:flex;flex-direction:column;align-items:center;flex:1;padding:6px 4px;border-left:3px solid '+color+';">' +
     '<span style="font-size:15px;font-weight:'+fw+';color:'+color+';">'+num+'</span>' +
-    '<span style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.04em;margin-top:1px;">'+lbl+'</span>' +
+    '<span style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-top:1px;">'+lbl+'</span>' +
     '</div>';
-  return '<div style="flex:1;background:'+bg+';border-radius:6px;border:1px solid #e0e0e0;overflow:hidden;">' +
-    '<div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding:5px 8px 3px;">'+label+'</div>' +
+  return '<div style="flex:1;background:'+bg+';border-radius:6px;border:1px solid #bbbbbb;overflow:hidden;">' +
+    '<div style="font-size:9px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:5px 8px 3px;">'+label+'</div>' +
     '<div style="display:flex;">' +
     pill('#aaaaaa', pending,  'Pendientes') +
     pill('#f97316', late,     'Caducados') +
@@ -1447,7 +1591,8 @@ function statsBar(items, label, highlight) {
 function renderDualStats() {
   if(!planificacion) return '';
   const wr = getWeekRange(selectedWeekDate);
-  const semLabel = 'Semana ' + wr.label;
+  const semWeekNum = getWeekNumber(selectedWeekDate);
+  const semLabel = 'Semana ' + semWeekNum + ' · ' + wr.label;
   const semItems = planificacion.filter(p=>p.fecha>=wr.ini && p.fecha<=wr.fin);
   return '<div style="display:flex;gap:10px;margin-bottom:12px;">' +
     statsBar(planificacion, 'Histórico total', false) +
@@ -1455,6 +1600,12 @@ function renderDualStats() {
     '</div>';
 }
 
+
+function fmtHoraAgenda(el) {
+  let v = el.value.replace(/\D/g,'');
+  if(v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
+  el.value = v;
+}
 
 function renderAgenda() {
   const content = document.getElementById('content');
