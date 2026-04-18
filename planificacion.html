@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.9</title>
+<title>Teleman2 — Planificación v2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -380,7 +380,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.9</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.0</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -627,29 +627,46 @@ async function cargarZonasDia() {
   } catch(e) { console.warn('cargarZonasDia:', e.message); }
 }
 
+function normZonas(z) {
+  if(!z) return [];
+  if(Array.isArray(z)) return z;
+  if(typeof z === 'string') {
+    try { return JSON.parse(z); } catch(e) { return z.split(',').map(x=>x.trim()).filter(Boolean); }
+  }
+  return [];
+}
+
 function getZonasDia(fecha, tecnico) {
   const reg = planificacionZonas.find(z => z.fecha===fecha && z.tecnico===tecnico);
-  return reg ? reg.zonas : [];
+  return reg ? normZonas(reg.zonas) : [];
 }
 
 function getTodasZonasDia(fecha) {
-  return planificacionZonas.filter(z => z.fecha===fecha).flatMap(z=>z.zonas);
+  return planificacionZonas.filter(z => z.fecha===fecha).flatMap(z=>normZonas(z.zonas));
 }
 
 async function guardarZonaDia(fecha, tecnico, zonas) {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas`, {
-      method: 'POST',
-      headers: {
-        'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ fecha, tecnico, zonas })
-    });
+    // Check if exists first
+    const existing = planificacionZonas.find(z=>z.fecha===fecha&&z.tecnico===tecnico);
+    let res;
+    if(existing) {
+      res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zonas })
+      });
+    } else {
+      res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha, tecnico, zonas })
+      });
+    }
+    console.log('guardarZonaDia status:', res.status);
     await cargarZonasDia();
     renderCurrentView();
-  } catch(e) { toast('Error guardando zona','err'); }
+  } catch(e) { console.error('guardarZonaDia error:', e); toast('Error guardando zona','err'); }
 }
 
 function abrirModalZona(fecha) {
