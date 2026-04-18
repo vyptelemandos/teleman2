@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v5.1</title>
+<title>Teleman2 — Planificación v5.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -174,7 +174,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cal-nav { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--text2); font-size: 14px; }
 .cal-nav:hover { color: var(--text); }
 .cal-grid { display: grid; grid-template-columns: 32px repeat(7, 1fr); gap: 1px; background: #bbbbbb; border: 1px solid #bbbbbb; border-radius: 8px; overflow: hidden; }
-.cal-dow { background: var(--bg3); padding: 8px; text-align: center; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.cal-dow { background: #e8e8e8; padding: 8px; text-align: center; font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .cal-day {
   background: #ffffff; min-height: 120px; padding: 8px;
   position: relative; transition: background 0.15s;
@@ -355,7 +355,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <span class="icon">📄</span> Importar VyP
     </button>
     <button class="sb-btn" id="sb-manual" onclick="openNuevoManual()">
-      <span class="icon">✏️</span> Añadir manual
+      <span class="icon">✏️</span> Añadir VyP manual
     </button>
     <button class="sb-btn" id="sb-agenda" onclick="openNuevoAgenda()">
       <span class="icon">📆</span> Añadir agenda
@@ -405,7 +405,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.1</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v5.6</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -567,7 +567,7 @@ const ZONA_COLORS = {
   TERUEL:   {bg:'#1d4ed8', text:'#fff'},
   SORIA:    {bg:'#16a34a', text:'#fff'},
   'ALCAÑIZ':{bg:'#7c3aed', text:'#fff'},
-  CALATAYUD:{bg:'#c8a800', text:'#000'},
+  CALATAYUD:{bg:'#FFDE21', text:'#333'},
 };
 let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
 
@@ -1401,10 +1401,25 @@ function renderCalendario() {
     }
     const isToday = fmt(today)===dateStr;
     const inActiveWeek = dateStr>=wr2.ini && dateStr<=wr2.fin;
-    const eventos = planificacion.filter(p=>{
+    // Group events by tecnico, sorted by hora within each group
+    const todoEventos = planificacion.filter(p=>{
       if(filtroTec && p.tecnico_asignado!==filtroTec) return false;
       return p.fecha===dateStr;
-    }).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    });
+    // Build ordered list: group by tecnico maintaining order of first appearance, sorted by hora within group
+    const tecOrder = [];
+    todoEventos.forEach(p=>{
+      const t = p.tecnico_asignado||'';
+      if(!tecOrder.includes(t)) tecOrder.push(t);
+    });
+    const eventosPorTec = tecOrder.map(t=>todoEventos.filter(p=>(p.tecnico_asignado||'')===t).sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')));
+    const eventosHtml = eventosPorTec.map((grupo, gi) => {
+      const sep = gi>0 ? '<div style="border-top:1px solid #ddd;margin:2px 0;"></div>' : '';
+      return sep + grupo.map(p=>{
+        const col=getColor(p);
+        return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+      }).join('');
+    }).join('');
     const festivo = esFestivo(dateStr);
     const domingo = esDomingo(dateStr);
     const sabado = esSabado(dateStr);
@@ -1440,19 +1455,18 @@ function renderCalendario() {
             (other?'':'<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')" title="Asignar zona">+</span>')+
           '</div>'+
         '</div>'+
-        agItems.map(a=>'<div style="font-size:10px;font-weight:600;background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;border-radius:3px;padding:2px 5px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
-        eventos.map(p=>{
-          const col=getColor(p);
-          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
-        }).join('')+
+        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
+        eventosHtml+
       '</div>';
   }
 
-  content.innerHTML = dualStatsHtml + `
-    <div id="calendarView">
-      <div class="cal-grid">
-        <div class="cal-dow" style="background:#e8e8e8;text-align:center;padding:0;">Sem</div>
+  content.innerHTML = '<div id="stickyHeader" style="flex-shrink:0;margin-bottom:8px;">' + dualStatsHtml + '</div>' + `
+    <div id="calendarView" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div class="cal-grid" style="flex-shrink:0;">
+        <div class="cal-dow" style="background:#e8e8e8;display:flex;align-items:center;justify-content:center;padding:0;">Sem</div>
         ${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      </div>
+      <div class="cal-grid" style="flex:1;border-top:none;border-radius:0 0 8px 8px;overflow-y:auto;">
         ${calCells}
       </div>
     </div>`;
@@ -1577,7 +1591,7 @@ function statsBar(items, label, highlight) {
     '<span style="font-size:15px;font-weight:'+fw+';color:'+color+';">'+num+'</span>' +
     '<span style="font-size:9px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-top:1px;">'+lbl+'</span>' +
     '</div>';
-  return '<div style="flex:1;background:'+bg+';border-radius:6px;border:1px solid #bbbbbb;overflow:hidden;">' +
+  return '<div style="flex:1;background:'+bg+';border-radius:6px;border:1px solid #bbbbbb;overflow:hidden;min-width:0;">' +
     '<div style="font-size:9px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:5px 8px 3px;">'+label+'</div>' +
     '<div style="display:flex;">' +
     pill('#aaaaaa', pending,  'Pendientes') +
