@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teleman2 — Planificación</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
@@ -31,8 +31,8 @@
   --yellow-light: #fefce8;
   --yellow-border: #fef08a;
   --blue: #2563eb;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
+  --mono: 'Roboto Mono', monospace;
+  --sans: 'Inter', sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -648,12 +648,15 @@ function getIntervencion(p) {
   if(!p) return null;
   const normTdc = t => String(t||'').trim().replace(/^T-?/i,'');
   const pTdc = normTdc(p.tdc);
+  console.log('getIntervencion for', p.centro, 'tdc:', pTdc, 'total intervenciones:', intervenciones.length);
+  if(intervenciones.length > 0) console.log('sample interv tdc:', normTdc(intervenciones[0].tdc), 'centro:', intervenciones[0].centro, 'fecha:', intervenciones[0].fecha);
   const found = intervenciones.find(i =>
     (pTdc && normTdc(i.tdc)===pTdc) ||
     (p.vyp && i.vyp && String(i.vyp).trim()===String(p.vyp).trim()) ||
     (p.vyp && i.int_id && i.int_id.includes(p.vyp)) ||
     (i.centro && p.centro && i.centro===p.centro && i.fecha===p.fecha)
   ) || null;
+  console.log('found:', found ? found.int_id : 'null');
   return found;
 }
 
