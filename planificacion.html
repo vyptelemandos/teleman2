@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v2.7</title>
+<title>Teleman2 — Planificación v3.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -390,7 +390,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.7</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v3.0</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1102,20 +1102,22 @@ function statsBar(items, label, highlight) {
   const done     = items.filter(p=>getColor(p)==='done').length;
   const cancelled= items.filter(p=>getColor(p)==='cancelled').length;
   const total    = items.length;
-  const nc = highlight ? '#111111' : '';
-  const lc = highlight ? '#333333' : 'var(--text3)';
-  const card = (border, num, numDefault, lbl) =>
-    '<div class="stat-card" style="border-left:3px solid '+border+';">' +
-    '<div class="stat-num" style="color:'+(nc||numDefault)+';">'+num+'</div>' +
-    '<div class="stat-label">'+lbl+'</div></div>';
-  return '<div style="margin-bottom:6px;font-size:10px;color:'+lc+';font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">'+label+'</div>' +
-    '<div class="stats-bar" style="margin-bottom:16px;">' +
-    card('#aaaaaa', pending,  '#555555', 'Pendientes') +
-    card('#f97316', late,     '#8a3800', 'Caducados') +
-    card('#1a8a55', done,     '#1a6e40', 'Realizados') +
-    card('#e63946', cancelled,'#9a0010', 'Cancelados') +
-    card('#2563eb', total,    '#2563eb', 'Total') +
+  const bg = highlight ? '#f0f0f0' : '#f8f8f8';
+  const fw = highlight ? '700' : '600';
+  const pill = (color, num, lbl) =>
+    '<div style="display:flex;flex-direction:column;align-items:center;flex:1;padding:6px 4px;border-left:3px solid '+color+';">' +
+    '<span style="font-size:15px;font-weight:'+fw+';color:'+color+';">'+num+'</span>' +
+    '<span style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.04em;margin-top:1px;">'+lbl+'</span>' +
     '</div>';
+  return '<div style="flex:1;background:'+bg+';border-radius:6px;border:1px solid #e0e0e0;overflow:hidden;">' +
+    '<div style="font-size:9px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding:5px 8px 3px;">'+label+'</div>' +
+    '<div style="display:flex;">' +
+    pill('#aaaaaa', pending,  'Pendientes') +
+    pill('#f97316', late,     'Caducados') +
+    pill('#1a8a55', done,     'Realizados') +
+    pill('#e63946', cancelled,'Cancelados') +
+    pill('#2563eb', total,    'Total') +
+    '</div></div>';
 }
 
 function renderDualStats() {
@@ -1123,8 +1125,12 @@ function renderDualStats() {
   const wr = getWeekRange(selectedWeekDate);
   const semLabel = 'Semana ' + wr.label;
   const semItems = planificacion.filter(p=>p.fecha>=wr.ini && p.fecha<=wr.fin);
-  return statsBar(planificacion, 'Histórico total', false) + statsBar(semItems, semLabel, true);
+  return '<div style="display:flex;gap:10px;margin-bottom:12px;">' +
+    statsBar(planificacion, 'Histórico total', false) +
+    statsBar(semItems, semLabel, true) +
+    '</div>';
 }
+
 
 function verDetalle(id) {
   const p = planificacion.find(x=>x.id===id);
@@ -1382,11 +1388,20 @@ async function extraerTextoPDF(file) {
 
 async function parsearVyPGemini(texto) {
   try {
-    const { data, error } = await sb.functions.invoke('gemini-vyp', { body: { texto } });
-    if(error || !data?.ok) throw new Error('Gemini error');
+    const res = await fetch(`${SB_URL}/functions/v1/gemini-vyp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SB_KEY
+      },
+      body: JSON.stringify({ texto })
+    });
+    const data = await res.json();
+    console.log('Gemini respuesta:', data?.ok, data?.data?.trabajo?.slice(0,50));
+    if(!data?.ok) throw new Error('Gemini error');
     return data.data;
   } catch(e) {
-    console.warn('Gemini falló, usando regex');
+    console.warn('Gemini falló:', e.message, '— usando regex');
     return parsearVyPRegex(texto);
   }
 }
