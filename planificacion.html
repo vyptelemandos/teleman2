@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.21</title>
+<title>Teleman2 — Planificación v1.22</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -405,7 +405,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.21</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.22</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1424,7 +1424,7 @@ function renderCalendario() {
         const sep = gi>0?'<div style="border-top:1px solid #ddd;margin:2px 0;"></div>':'';
         return sep+todoEventos.filter(p=>(p.tecnico_asignado||'')===t).map(p=>{
           const col=getColor(p);
-          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();verDetalle(\''+p.id+'\')\"">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+          return '<div class="cal-event '+colorClass(col)+'" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();verDetalle(\''+p.id+'\')\"">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
         }).join('');
       }).join('');
 
@@ -1439,7 +1439,7 @@ function renderCalendario() {
             '<span style="font-size:14px;color:#bbbbbb;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')\"" title="Asignar zona">+</span>'+
           '</div>'+
         '</div>'+
-        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')\"">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
+        agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')\"">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
         eventosHtml+
       '</div>';
     }
