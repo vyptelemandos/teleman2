@@ -580,7 +580,10 @@ async function cargarPlanificacion() {
 }
 
 async function cargarIntervenciones() {
-  const { data } = await sb.from('intervenciones').select('int_id,centro,fecha,hora,resultado,resolucion,tdc,vyp,tec1,tec2,motivo,zona,baremos').order('fecha', {ascending:false});
+  const { data, error } = await sb.from('intervenciones')
+    .select('int_id,centro,fecha,hora,resultado,resolucion,tdc,vyp,tec1,tec2,motivo,zona,baremos')
+    .order('fecha', {ascending:false});
+  console.log('cargarIntervenciones:', data?.length, error?.message);
   intervenciones = data || [];
 }
 
