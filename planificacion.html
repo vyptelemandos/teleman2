@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v3.1</title>
+<title>Teleman2 — Planificación v3.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -390,7 +390,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v3.1</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v3.2</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -607,7 +607,7 @@ async function initApp() {
 
 async function cargarPlanificacion() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/planificacion?select=*&order=fecha.asc`, {
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion?select=*&order=fecha.asc,hora.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const data = await res.json();
@@ -964,7 +964,7 @@ function renderCalendario() {
           const eventos = planificacion.filter(p => {
             if(filtroTec && p.tecnico_asignado !== filtroTec) return false;
             return p.fecha === dateStr;
-          });
+          }).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
           const dayClass = 'cal-day' + (other?' other-month':'') + (isToday?' today':'') + (inActiveWeek&&!isToday?' active-week':'') + (inActiveWeek&&other?' active-week-other':'');
           const zonasPorTec = planificacionZonas.filter(z=>z.fecha===dateStr);
           const zonaBadges = zonasPorTec.flatMap(zt => {
@@ -1063,7 +1063,11 @@ function renderLista() {
 }
 
 function renderListaTabla() {
-  let datos = [...planificacion].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  let datos = [...planificacion].sort((a,b)=>{
+    const fa = (a.fecha||'')+'T'+(a.hora||'00:00');
+    const fb = (b.fecha||'')+'T'+(b.hora||'00:00');
+    return fa.localeCompare(fb);
+  });
   if(_listaFiltroTec) datos = datos.filter(p=>p.tecnico_asignado===_listaFiltroTec);
   if(_listaFiltroEstado) datos = datos.filter(p=>getColor(p)===_listaFiltroEstado);
   if(_listaBusqueda) datos = datos.filter(p=>
