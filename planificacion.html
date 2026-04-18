@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.18</title>
+<title>Teleman2 — Planificación v1.21</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -367,7 +367,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <button class="cal-nav" onclick="calNext()" style="flex-shrink:0;">›</button>
     </div>
     <div style="padding:4px 12px 8px;">
-      <button class="btn btn-gray btn-sm" onclick="calHoy()" style="width:100%;font-size:11px;">Hoy</button>
+      <button class="btn btn-red" onclick="calHoy()" style="width:100%;font-size:12px;font-weight:700;padding:8px;">Hoy</button>
     </div>
     <div class="sb-section">Técnico</div>
     <div style="padding:2px 12px 8px;">
@@ -377,35 +377,35 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-section">Leyenda — Estado</div>
     <div style="padding:4px 14px 8px;">
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#aaaaaa;border-radius:2px;flex-shrink:0;"></span> Pendiente
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text1);">
+        <span style="width:13px;height:13px;background:#aaaaaa;border-radius:2px;flex-shrink:0;"></span> Pendiente
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#f97316;border-radius:2px;flex-shrink:0;"></span> Caducado
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text1);">
+        <span style="width:13px;height:13px;background:#f97316;border-radius:2px;flex-shrink:0;"></span> Caducado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#1a8a55;border-radius:2px;flex-shrink:0;"></span> Realizado
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text1);">
+        <span style="width:13px;height:13px;background:#1a8a55;border-radius:2px;flex-shrink:0;"></span> Realizado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#e63946;border-radius:2px;flex-shrink:0;"></span> Cancelado
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text1);">
+        <span style="width:13px;height:13px;background:#e63946;border-radius:2px;flex-shrink:0;"></span> Cancelado
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:var(--text2);">
-        <span style="width:10px;height:10px;background:#00bcd4;border-radius:2px;flex-shrink:0;"></span> Agenda
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text1);">
+        <span style="width:13px;height:13px;background:#00bcd4;border-radius:2px;flex-shrink:0;"></span> Agenda
       </div>
     </div>
+    <div class="sb-section">Leyenda — Zonas</div>
     <div style="padding:4px 14px 8px;">
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
-        <span style="font-size:10px;font-weight:700;background:#cc0000;color:#fff;border-radius:3px;padding:2px 5px;">ZA</span>
-        <span style="font-size:10px;font-weight:700;background:#1d4ed8;color:#fff;border-radius:3px;padding:2px 5px;">TE</span>
-        <span style="font-size:10px;font-weight:700;background:#16a34a;color:#fff;border-radius:3px;padding:2px 5px;">SO</span>
-        <span style="font-size:10px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:2px 5px;">AL</span>
-        <span style="font-size:10px;font-weight:700;background:#FFDE21;color:#333;border-radius:3px;padding:2px 5px;">CA</span>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">
+        <span style="font-size:11px;font-weight:700;background:#cc0000;color:#fff;border-radius:3px;padding:3px 7px;">ZA</span>
+        <span style="font-size:11px;font-weight:700;background:#1d4ed8;color:#fff;border-radius:3px;padding:3px 7px;">TE</span>
+        <span style="font-size:11px;font-weight:700;background:#16a34a;color:#fff;border-radius:3px;padding:3px 7px;">SO</span>
+        <span style="font-size:11px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:3px 7px;">AL</span>
+        <span style="font-size:11px;font-weight:700;background:#FFDE21;color:#333;border-radius:3px;padding:3px 7px;">CA</span>
       </div>
-
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.18</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.21</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -2115,6 +2115,34 @@ async function añadirVyPImportado(i, filename) {
 // ─── MODALS ──────────────────────────────────────────
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Global PDF drop — anywhere on the page
+let _globalDragOverlay = null;
+document.addEventListener('dragover', e => {
+  const hasPDF = Array.from(e.dataTransfer.items||[]).some(i=>i.type==='application/pdf');
+  if(!hasPDF) return;
+  e.preventDefault();
+  if(!_globalDragOverlay) {
+    _globalDragOverlay = document.createElement('div');
+    _globalDragOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(204,0,0,0.08);border:3px dashed #cc0000;display:flex;align-items:center;justify-content:center;pointer-events:none;';
+    _globalDragOverlay.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px 40px;font-size:18px;font-weight:700;color:#cc0000;box-shadow:0 4px 24px rgba(0,0,0,0.15);">📄 Soltar PDFs para importar VyPs</div>';
+    document.body.appendChild(_globalDragOverlay);
+  }
+});
+document.addEventListener('dragleave', e => {
+  if(e.relatedTarget === null) {
+    if(_globalDragOverlay) { _globalDragOverlay.remove(); _globalDragOverlay = null; }
+  }
+});
+document.addEventListener('drop', e => {
+  if(_globalDragOverlay) { _globalDragOverlay.remove(); _globalDragOverlay = null; }
+  const files = Array.from(e.dataTransfer.files||[]).filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+  if(!files.length) return;
+  e.preventDefault();
+  // Switch to importar view and process
+  setView('importar');
+  setTimeout(() => handleFiles(files), 100);
+});
 
 // Cerrar modals al click fuera
 document.querySelectorAll('.overlay').forEach(el => {
