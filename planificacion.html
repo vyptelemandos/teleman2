@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v2.3</title>
+<title>Teleman2 — Planificación v2.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -390,7 +390,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.3</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v2.6</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -608,7 +608,7 @@ async function initApp() {
 async function cargarPlanificacion() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/planificacion?select=*&order=fecha.asc`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const data = await res.json();
     planificacion = Array.isArray(data) ? data : [];
@@ -621,7 +621,7 @@ async function cargarPlanificacion() {
 async function cargarIntervenciones() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/intervenciones?select=int_id,centro,fecha,resultado,resolucion,tdc,tec1,tec2,motivo&order=fecha.desc&limit=200`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const text = await res.text();
     console.log('intervenciones raw:', res.status, text.slice(0,200));
@@ -637,7 +637,7 @@ async function cargarIntervenciones() {
 async function cargarZonasDia() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas?select=*`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const data = await res.json();
     planificacionZonas = Array.isArray(data) ? data : [];
@@ -670,13 +670,13 @@ async function guardarZonaDia(fecha, tecnico, zonas) {
     if(existing) {
       res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
         method: 'PATCH',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ zonas })
       });
     } else {
       res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas`, {
         method: 'POST',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fecha, tecnico, zonas })
       });
     }
@@ -722,22 +722,21 @@ function editarZonaDia(fecha, zona, tecnico) {
   const code = ZONA_CODES[zona]||zona;
   const inicial = tecnico ? tecnico[0].toUpperCase() : '?';
 
-  document.getElementById('modalDetalleTitle').textContent = `Editar zona ${code}-${inicial}`;
-  document.getElementById('modalDetalleBody').innerHTML = `
-    <div style="text-align:center;margin-bottom:16px;">
-      <span style="font-size:20px;font-weight:700;background:${col.bg};color:#fff;border-radius:4px;padding:4px 12px;">${code}-${inicial}</span>
-    </div>
-    <div style="margin-bottom:12px;">
-      <div class="field-label">Cambiar técnico</div>
-      <select class="field-select" id="edit-zona-tecnico" style="width:100%;">
-        <option value="">— Sin técnico asignado</option>
-        ${tecnicos.map(t=>`<option value="${t}"${t===tecnico?' selected':''}>${t}</option>`).join('')}
-      </select>
-    </div>`;
+  document.getElementById('modalDetalleTitle').textContent = 'Editar zona ' + code + '-' + inicial;
+  const tecOpts = '<option value="">— Sin técnico asignado</option>' +
+    tecnicos.map(t=>'<option value="'+t+'"'+(t===tecnico?' selected':'')+'>'+t+'</option>').join('');
+  document.getElementById('modalDetalleBody').innerHTML =
+    '<div style="text-align:center;margin-bottom:16px;">' +
+    '<span style="font-size:20px;font-weight:700;background:'+col.bg+';color:#fff;border-radius:4px;padding:4px 12px;">'+code+'-'+inicial+'</span>' +
+    '</div>' +
+    '<div style="margin-bottom:12px;">' +
+    '<div class="field-label">Cambiar técnico</div>' +
+    '<select class="field-select" id="edit-zona-tecnico" style="width:100%;">' + tecOpts + '</select>' +
+    '</div>';
 
-  document.getElementById('modalDetalleFooter').innerHTML = `
-    <button class="btn btn-gray" onclick="borrarZonaDia('${fecha}','${zona}','${tecnico}')">🗑 Borrar</button>
-    <button class="btn btn-red" onclick="cambiarTecnicoZona('${fecha}','${zona}','${tecnico}')">Guardar</button>`;
+  document.getElementById('modalDetalleFooter').innerHTML =
+    '<button class="btn btn-gray" onclick="borrarZonaDia(\''+fecha+'\',\''+zona+'\',\''+tecnico+'\')">🗑 Borrar</button>' +
+    '<button class="btn btn-red" onclick="cambiarTecnicoZona(\''+fecha+'\',\''+zona+'\',\''+tecnico+'\')">Guardar</button>';
 
   openModal('modalDetalle');
 }
@@ -750,12 +749,12 @@ async function borrarZonaDia(fecha, zona, tecnico) {
   if(nuevasZonas.length===0) {
     await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
       method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
   } else {
     await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnico)}`, {
       method: 'PATCH',
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ zonas: nuevasZonas })
     });
   }
@@ -773,12 +772,12 @@ async function cambiarTecnicoZona(fecha, zona, tecnicoAnterior) {
     const zonasFiltradas = normZonas(regAnterior.zonas).filter(z=>z!==zona);
     if(zonasFiltradas.length===0) {
       await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnicoAnterior)}`, {
-        method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
       });
     } else {
       await fetch(`${SB_URL}/rest/v1/planificacion_zonas?fecha=eq.${fecha}&tecnico=eq.${encodeURIComponent(tecnicoAnterior)}`, {
         method: 'PATCH',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ zonas: zonasFiltradas })
       });
     }
@@ -813,9 +812,10 @@ async function autoAsignarZona(fecha, zona, tecnico) {
     }
   }
 }
+
+async function cargarSolicitantes() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/solicitantes?select=nombre&order=nombre.asc`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const data = await res.json();
     const dl = document.getElementById('solicitantesList');
