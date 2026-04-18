@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.26</title>
+<title>Teleman2 — Planificación v1.28</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -406,7 +406,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.26</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.28</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1047,19 +1047,21 @@ function confirmarZona(fecha) {
   toast('Zona guardada ✓','ok');
 }
 
-async function autoAsignarZona(fecha, zona, tecnico) {
+async function autoAsignarZona(fecha, zona, tecnico, silencioso=false) {
   if(!zona || !fecha) return;
   const zonasActuales = getZonasDia(fecha, tecnico||'');
   if(zonasActuales.length === 0) {
-    // No hay zona asignada — asignar automáticamente
     await guardarZonaDia(fecha, tecnico||'', [zona]);
-    toast(`Zona ${ZONA_CODES[zona]||zona} asignada automáticamente al ${fecha}`, 'ok');
+    if(!silencioso) toast(`Zona ${ZONA_CODES[zona]||zona} asignada al ${fecha}`, 'ok');
   } else if(!zonasActuales.includes(zona)) {
-    // Hay zona diferente — preguntar
-    const tec = tecnico || 'sin técnico';
-    const resp = confirm(`⚠️ El ${fecha} ya tiene ${zonasActuales.map(z=>ZONA_CODES[z]||z).join(',')} asignado a ${tec}.\n\nEl nuevo trabajo es de zona ${ZONA_CODES[zona]||zona}.\n\n[Aceptar] Añadir esta zona también\n[Cancelar] Mantener solo las actuales`);
-    if(resp) {
+    if(silencioso) {
+      // En importación automática: añadir sin preguntar, loguear conflicto
       await guardarZonaDia(fecha, tecnico||'', [...zonasActuales, zona]);
+      logImport(`⚠️ Conflicto zona ${fecha}: ya tenía ${zonasActuales.map(z=>ZONA_CODES[z]||z).join(',')} — añadida ${ZONA_CODES[zona]||zona}`, 'warn');
+    } else {
+      const tec = tecnico || 'sin técnico';
+      const resp = confirm(`⚠️ El ${fecha} ya tiene ${zonasActuales.map(z=>ZONA_CODES[z]||z).join(',')} asignado a ${tec}.\n\nEl nuevo trabajo es de zona ${ZONA_CODES[zona]||zona}.\n\n[Aceptar] Añadir esta zona también\n[Cancelar] Mantener solo las actuales`);
+      if(resp) await guardarZonaDia(fecha, tecnico||'', [...zonasActuales, zona]);
     }
   }
 }
@@ -1330,16 +1332,26 @@ function getIntervencion(p) {
   if(!p) return null;
   const normTdc = t => String(t||'').trim().replace(/^T-?/i,'');
   const pTdc = normTdc(p.tdc);
-  console.log('getIntervencion for', p.centro, 'tdc:', pTdc, 'total intervenciones:', intervenciones.length);
-  if(intervenciones.length > 0) console.log('sample interv tdc:', normTdc(intervenciones[0].tdc), 'centro:', intervenciones[0].centro, 'fecha:', intervenciones[0].fecha);
-  const found = intervenciones.find(i =>
-    (pTdc && normTdc(i.tdc)===pTdc) ||
-    (p.vyp && i.vyp && String(i.vyp).trim()===String(p.vyp).trim()) ||
-    (p.vyp && i.int_id && i.int_id.includes(p.vyp)) ||
-    (i.centro && p.centro && i.centro===p.centro && i.fecha===p.fecha)
-  ) || null;
-  console.log('found:', found ? found.int_id : 'null');
-  return found;
+  const pVyp = String(p.vyp||'').trim();
+
+  // 1. Match by VyP first — VyP is always unique per job
+  if(pVyp) {
+    const byVyp = intervenciones.find(i =>
+      (i.vyp && String(i.vyp).trim() === pVyp) ||
+      (i.int_id && i.int_id.includes(pVyp))
+    );
+    if(byVyp) return byVyp;
+  }
+
+  // 2. Only match by TDC if it starts with T- (ticket, unique per job)
+  // LCL tickets are reused across jobs so never match by TDC alone
+  const isTDCTicket = /^T-?\d/i.test(String(p.tdc||'').trim());
+  if(pTdc && isTDCTicket) {
+    const byTdc = intervenciones.find(i => normTdc(i.tdc) === pTdc);
+    if(byTdc) return byTdc;
+  }
+
+  return null;
 }
 
 function colorClass(c) {
@@ -2109,7 +2121,7 @@ async function añadirVyPImportado(i, filename) {
   });
   if(!impRes.ok) { const err=await impRes.text(); console.error('insert imp error:',err); toast('Error: '+err.slice(0,80),'err'); return; }
   await cargarPlanificacion();
-  await autoAsignarZona(fecha, zonaImp, tecnicoImp);
+  await autoAsignarZona(fecha, zonaImp, tecnicoImp, true);
   // El flujo secuencial gestiona el DOM
 }
 
