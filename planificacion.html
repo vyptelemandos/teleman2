@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.5</title>
+<title>Teleman2 — Planificación v1.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -194,10 +194,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   font-weight: 500; transition: opacity 0.15s;
 }
 .cal-event:hover { opacity: 0.8; }
-.ev-pending  { background: #f5f5f5; color: #555555; border-left: 3px solid #aaaaaa; font-weight:500; }
-.ev-late     { background: var(--orange-light); color: var(--orange); border-left: 3px solid var(--orange); font-weight:500; }
-.ev-done     { background: var(--green-light); color: var(--green); border-left: 3px solid var(--green); font-weight:500; }
-.ev-cancelled{ background: var(--red-light); color: var(--red); border-left: 3px solid var(--red); font-weight:500; }
+.ev-pending  { background: #f0f0f0; color: #333333; border-left: 3px solid #888888; font-weight:500; }
+.ev-late     { background: #fff3ea; color: #7a3000; border-left: 3px solid #d97306; font-weight:500; }
+.ev-done     { background: #edfaf3; color: #0f5c30; border-left: 3px solid #16a34a; font-weight:500; }
+.ev-cancelled{ background: #fff0f0; color: #7a0000; border-left: 3px solid #cc0000; font-weight:500; }
 
 /* LIST VIEW */
 .planif-table { width: 100%; border-collapse: collapse; }
@@ -380,7 +380,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.5</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.9</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -453,12 +453,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="fr2">
         <div class="field-group">
           <div class="field-label">Solicitante *</div>
-          <input class="field-input" id="n-solicitante" placeholder="NOMBRE APELLIDO" style="text-transform:uppercase;">
+          <input class="field-input" id="n-solicitante" placeholder="NOMBRE APELLIDO" style="text-transform:uppercase;" list="solicitantesList" autocomplete="off">
+          <datalist id="solicitantesList"></datalist>
         </div>
         <div class="field-group">
           <div class="field-label">Técnico asignado</div>
           <select class="field-select" id="n-tecnico"></select>
         </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Zona</div>
+        <select class="field-select" id="n-zona">
+          <option value="">-- Sin zona --</option>
+          <option>ZARAGOZA</option><option>CALATAYUD</option><option>TERUEL</option>
+          <option>ALCAÑIZ</option><option>SORIA</option>
+        </select>
       </div>
     </div>
     <div class="modal-footer">
@@ -485,6 +494,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script>
 const SB_URL = 'https://ulphecelibnrhmkbetnj.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVscGhlY2VsaWJucmhta2JldG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzQwMzAsImV4cCI6MjA5MTQxMDAzMH0.hQ742rBgXuuNFYIdDIvM7dkgB0paEjyX7CPwge2O2-4';
+
+const ZONA_CODES = {ZARAGOZA:'ZA',CALATAYUD:'CA',TERUEL:'TE',ALCAÑIZ:'AL',SORIA:'SO',MONZÓN:'MO',HUESCA:'HU',JACA:'JA',ALAGÓN:'AG',NOROESTE:'NO'};
+const ZONAS_LIST = ['ZARAGOZA','CALATAYUD','TERUEL','ALCAÑIZ','SORIA'];
+let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
 
 const { createClient } = supabase;
 const sb = createClient(SB_URL, SB_KEY);
@@ -568,7 +581,7 @@ async function initApp() {
   calYear = now.getFullYear();
   calMonth = now.getMonth();
   console.log('loading data...');
-  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos()]);
+  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia()]);
   console.log('data loaded, planif:', planificacion.length, 'interv:', intervenciones.length);
   setView('calendario');
   iniciarRealtime();
@@ -602,6 +615,92 @@ async function cargarIntervenciones() {
     console.warn('cargarIntervenciones error:', e.message);
     intervenciones = [];
   }
+}
+
+async function cargarZonasDia() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas?select=*`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    const data = await res.json();
+    planificacionZonas = Array.isArray(data) ? data : [];
+  } catch(e) { console.warn('cargarZonasDia:', e.message); }
+}
+
+function getZonasDia(fecha, tecnico) {
+  const reg = planificacionZonas.find(z => z.fecha===fecha && z.tecnico===tecnico);
+  return reg ? reg.zonas : [];
+}
+
+function getTodasZonasDia(fecha) {
+  return planificacionZonas.filter(z => z.fecha===fecha).flatMap(z=>z.zonas);
+}
+
+async function guardarZonaDia(fecha, tecnico, zonas) {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion_zonas`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ fecha, tecnico, zonas })
+    });
+    await cargarZonasDia();
+    renderCurrentView();
+  } catch(e) { toast('Error guardando zona','err'); }
+}
+
+function abrirModalZona(fecha) {
+  const filtroTec = document.getElementById('filtroTecnico')?.value || '';
+  const tecnico = filtroTec || (tecnicos[0]||'');
+  const zonasActuales = getZonasDia(fecha, tecnico);
+
+  const checks = ZONAS_LIST.map(z =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13px;">
+      <input type="checkbox" value="${z}" ${zonasActuales.includes(z)?'checked':''} style="width:15px;height:15px;">
+      <span>${ZONA_CODES[z]} — ${z}</span>
+    </label>`
+  ).join('');
+
+  document.getElementById('modalDetalleTitle').textContent = `Zonas del ${fecha}`;
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div class="field-label">Técnico</div>
+      <select class="field-select" id="zona-tecnico" style="width:100%;">
+        ${tecnicos.map(t=>`<option value="${t}"${t===tecnico?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:8px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;">Zonas asignadas</div>
+    <div id="zona-checks">${checks}</div>`;
+
+  document.getElementById('modalDetalleFooter').innerHTML = `
+    <button class="btn btn-gray" onclick="closeModal('modalDetalle')">Cancelar</button>
+    <button class="btn btn-red" onclick="confirmarZona('${fecha}')">Guardar</button>`;
+
+  openModal('modalDetalle');
+}
+
+function confirmarZona(fecha) {
+  const tecnico = document.getElementById('zona-tecnico').value;
+  const zonas = [...document.querySelectorAll('#zona-checks input:checked')].map(i=>i.value);
+  guardarZonaDia(fecha, tecnico, zonas);
+  closeModal('modalDetalle');
+  toast('Zona guardada ✓','ok');
+}
+
+async function cargarSolicitantes() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/solicitantes?select=nombre&order=nombre.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    const data = await res.json();
+    const dl = document.getElementById('solicitantesList');
+    if(dl && Array.isArray(data)) {
+      dl.innerHTML = data.map(s=>`<option value="${s.nombre}">`).join('');
+    }
+  } catch(e) { console.warn('cargarSolicitantes:', e.message); }
 }
 
 async function cargarTecnicos() {
@@ -744,8 +843,15 @@ function renderCalendario() {
             return p.fecha === dateStr;
           });
           const dayClass = 'cal-day' + (other?' other-month':'') + (isToday?' today':'') + (inActiveWeek&&!isToday?' active-week':'') + (inActiveWeek&&other?' active-week-other':'');
+          const todasZonas = getTodasZonasDia(dateStr);
+          const zonasUniq = [...new Set(todasZonas)];
+          const zonaBadges = zonasUniq.map(z=>'<span style="font-size:9px;font-weight:700;background:#e0e0e0;color:#444;border-radius:2px;padding:1px 4px;margin-left:2px;">'+( ZONA_CODES[z]||z)+'</span>').join('');
           return '<div class="' + dayClass + '" onclick="selectWeek(\'' + dateStr + '\')">' +
-            '<div class="cal-day-num">' + date.getDate() + '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">' +
+            '<div class="cal-day-num" style="margin-bottom:0;">' + date.getDate() + '</div>' +
+            '<div style="display:flex;gap:2px;align-items:center;">' + zonaBadges +
+            (other?'':'<span style="font-size:14px;color:#bbbbbb;cursor:pointer;line-height:1;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\'' + dateStr + '\')" title="Asignar zona">+</span>') +
+            '</div></div>' +
             eventos.map(p => {
               const col = getColor(p);
               return '<div class="cal-event ' + colorClass(col) + '" onclick="event.stopPropagation();verDetalle(\'' + p.id + '\')" title="' + (p.centro||'') + '">' +
@@ -1025,7 +1131,19 @@ async function guardarManual() {
   const centro = document.getElementById('n-centro').value.trim().toUpperCase();
   const fecha = document.getElementById('n-fecha').value;
   const solicitante = document.getElementById('n-solicitante').value.trim().toUpperCase();
+  const tecnico = document.getElementById('n-tecnico').value;
+  const zona = document.getElementById('n-zona')?.value?.toUpperCase() || '';
   if(!centro||!fecha||!solicitante) { toast('Centro, fecha y solicitante son obligatorios','err'); return; }
+
+  // Comprobar zona asignada al día
+  if(tecnico && zona) {
+    const zonasAsignadas = getZonasDia(fecha, tecnico);
+    if(zonasAsignadas.length > 0 && !zonasAsignadas.includes(zona)) {
+      const ok = confirm(`⚠️ AVISO: El trabajo es de zona ${zona} pero el técnico ${tecnico} tiene asignado ${zonasAsignadas.join(', ')} para ese día.\n\n¿Añadir de todas formas?`);
+      if(!ok) return;
+    }
+  }
+
   const id = 'VYP-'+Date.now();
   await sb.from('planificacion').insert({
     id, centro, fecha,
@@ -1035,7 +1153,8 @@ async function guardarManual() {
     telefono: document.getElementById('n-tel').value,
     trabajo: document.getElementById('n-trabajo').value.toUpperCase(),
     solicitante,
-    tecnico_asignado: document.getElementById('n-tecnico').value,
+    zona,
+    tecnico_asignado: tecnico,
     estado: 'PENDIENTE',
   });
   await cargarPlanificacion();
@@ -1170,6 +1289,16 @@ async function añadirVyPImportado(i, filename) {
   const id = 'VYP-' + (vyp || Date.now());
   // Check duplicate
   if(planificacion.find(p=>p.id===id||p.vyp===vyp)) { toast('VyP ya existe en planificación','warn'); return; }
+
+  const tecnicoImp = document.getElementById(`imp-tecnico-${i}`)?.value||'';
+  const zonaImp = (document.getElementById(`imp-zona-${i}`)?.value||'').toUpperCase();
+  if(tecnicoImp && zonaImp) {
+    const zonasAsignadas = getZonasDia(fecha, tecnicoImp);
+    if(zonasAsignadas.length > 0 && !zonasAsignadas.includes(zonaImp)) {
+      const ok = confirm(`⚠️ AVISO: El trabajo es de zona ${zonaImp} pero ${tecnicoImp} tiene asignado ${zonasAsignadas.join(', ')} para el ${fecha}.\n\n¿Añadir de todas formas?`);
+      if(!ok) return;
+    }
+  }
   await sb.from('planificacion').insert({
     id, centro, fecha,
     hora: document.getElementById(`imp-hora-${i}`)?.value||'',
