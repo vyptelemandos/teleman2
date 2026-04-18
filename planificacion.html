@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.31</title>
+<title>Teleman2 — Planificación v1.33</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -406,7 +406,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.31</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.33</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1904,6 +1904,7 @@ function renderImportar() {
 
 let _importQueue = [];
 let _importIdx = 0;
+let _importResultados = []; // all parsed results
 
 function logImport(msg, type) {
   const log = document.getElementById('importLog');
@@ -1920,12 +1921,13 @@ async function handleFiles(files) {
 
   _importQueue = arr;
   _importIdx = 0;
+  _importResultados = [];
 
   const res = document.getElementById('importResults');
   res.innerHTML = `
     <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:16px;">
       <div style="font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
-        📋 Procesando ${arr.length} archivo(s) — por favor espera
+        📋 Analizando ${arr.length} archivo(s) con IA — por favor espera...
       </div>
       <div id="importLog" style="font-family:'Roboto Mono',monospace;max-height:180px;overflow-y:auto;"></div>
     </div>
@@ -1933,155 +1935,87 @@ async function handleFiles(files) {
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
-  await procesarSiguienteVyP();
+  // Phase 1: scan ALL pdfs first
+  for(let i=0; i<arr.length; i++) {
+    const file = arr[i];
+    logImport(`[${i+1}/${arr.length}] Leyendo: ${file.name}`, null);
+    try {
+      const texto = await extraerTextoPDF(file);
+      logImport(`[${i+1}/${arr.length}] Analizando con IA...`, null);
+      const datos = await parsearVyPGemini(texto);
+      logImport(`[${i+1}/${arr.length}] VyP ${datos.vyp||'?'} — ${datos.centro||'?'} ✓`, 'ok');
+      _importResultados.push({file: file.name, datos, ok: true});
+    } catch(e) {
+      logImport(`[${i+1}/${arr.length}] Error: ${e.message}`, 'err');
+      _importResultados.push({file: file.name, ok: false, error: e.message});
+    }
+  }
+
+  logImport('Análisis completado. Revisa y confirma cada trabajo:', 'ok');
+
+  // Phase 2: show all results for one-by-one confirmation
+  mostrarSiguienteImport();
 }
 
-async function procesarSiguienteVyP() {
-  if(_importIdx >= _importQueue.length) {
-    logImport('Todos los archivos procesados ✓', 'ok');
+function mostrarSiguienteImport() {
+  // Find next pending result
+  const idx = _importResultados.findIndex(r=>r.ok && !r.done && !r.skipped);
+  if(idx === -1) {
+    const cur = document.getElementById('importCurrent');
+    if(cur) cur.innerHTML = '<div style="padding:20px;text-align:center;color:#16a34a;font-weight:600;">✓ Todos los trabajos procesados</div>';
+    renderCurrentView();
     return;
   }
 
-  const file = _importQueue[_importIdx];
-  const i = _importIdx;
+  const r = _importResultados[idx];
+  const d = r.datos;
+  const tecOpts = '<option value="">-- Sin asignar --</option>' +
+    tecnicos.map(t=>'<option value="'+t+'"'+(t===tecnicos[0]?' selected':'')+'>'+t+'</option>').join('');
 
-  logImport(`[${i+1}/${_importQueue.length}] Leyendo PDF: ${file.name}`, null);
+  const pendientes = _importResultados.filter(r=>r.ok&&!r.done&&!r.skipped).length;
+  const cur = document.getElementById('importCurrent');
+  if(!cur) return;
 
-  try {
-    const texto = await extraerTextoPDF(file);
-    logImport(`[${i+1}/${_importQueue.length}] Analizando con IA...`, null);
-    const datos = await parsearVyPGemini(texto);
-    logImport(`[${i+1}/${_importQueue.length}] VyP ${datos.vyp||'?'} — ${datos.centro||'?'} detectado`, 'ok');
-
-    const cur = document.getElementById('importCurrent');
-    const tecOpts = '<option value="">-- Sin asignar --</option>' +
-      tecnicos.map(t=>'<option value="'+t+'"'+(t===tecnicos[0]?' selected':'')+'>'+t+'</option>').join('');
-
-    cur.innerHTML = `
-      <div class="import-preview" style="border:2px solid #cc0000;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div class="import-vyp-num" style="margin:0;">📄 ${file.name}</div>
-          <div style="font-size:11px;color:#888;">${i+1} de ${_importQueue.length}</div>
-        </div>
-        <div class="fr2" style="gap:8px;margin-bottom:10px;">
-          <div><div class="field-label">VyP</div><input class="field-input" id="imp-vyp-${i}" value="${datos.vyp||''}"></div>
-          <div><div class="field-label">Centro</div><input class="field-input" id="imp-centro-${i}" value="${datos.centro||''}" style="text-transform:uppercase;"></div>
-          <div><div class="field-label">Fecha</div><input class="field-input" id="imp-fecha-${i}" type="date" value="${datos.fecha||''}"></div>
-          <div><div class="field-label">Hora</div><input class="field-input" id="imp-hora-${i}" value="${datos.hora||''}"></div>
-          <div><div class="field-label">TDC</div><input class="field-input" id="imp-tdc-${i}" value="${datos.tdc||''}"></div>
-          <div><div class="field-label">Zona</div><input class="field-input" id="imp-zona-${i}" value="${datos.zona||''}" style="text-transform:uppercase;"></div>
-        </div>
-        <div style="margin-bottom:8px;"><div class="field-label">Solicitante</div><input class="field-input" id="imp-sol-${i}" value="${datos.solicitante||''}" style="text-transform:uppercase;"></div>
-        <div style="margin-bottom:8px;"><div class="field-label">Trabajo</div><textarea class="field-textarea" id="imp-trabajo-${i}" style="text-transform:uppercase;min-height:50px;">${datos.trabajo||''}</textarea></div>
-        <div style="margin-bottom:14px;"><div class="field-label">Técnico asignado</div>
-          <select class="field-select" id="imp-tecnico-${i}">${tecOpts}</select>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-red" style="flex:2;" onclick="confirmarVyPImportado(${i},'${file.name}')">✓ Confirmar y añadir</button>
-          <button class="btn btn-gray" style="flex:1;" onclick="saltarVyPImportado(${i},'${file.name}')">Saltar</button>
-        </div>
-      </div>`;
-  } catch(e) {
-    logImport(`[${i+1}/${_importQueue.length}] Error: ${e.message}`, 'err');
-    _importIdx++;
-    await procesarSiguienteVyP();
-  }
+  cur.innerHTML = `
+    <div class="import-preview" style="border:2px solid #cc0000;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="import-vyp-num" style="margin:0;">📄 ${r.file}</div>
+        <div style="font-size:11px;color:#888;">${pendientes} pendiente(s)</div>
+      </div>
+      <div class="fr2" style="gap:8px;margin-bottom:10px;">
+        <div><div class="field-label">VyP</div><input class="field-input" id="imp-vyp-${idx}" value="${d.vyp||''}"></div>
+        <div><div class="field-label">Centro</div><input class="field-input" id="imp-centro-${idx}" value="${d.centro||''}" style="text-transform:uppercase;"></div>
+        <div><div class="field-label">Fecha</div><input class="field-input" id="imp-fecha-${idx}" type="date" value="${d.fecha||''}"></div>
+        <div><div class="field-label">Hora</div><input class="field-input" id="imp-hora-${idx}" value="${d.hora||''}"></div>
+        <div><div class="field-label">TDC</div><input class="field-input" id="imp-tdc-${idx}" value="${d.tdc||''}"></div>
+        <div><div class="field-label">Zona</div><input class="field-input" id="imp-zona-${idx}" value="${d.zona||''}" style="text-transform:uppercase;"></div>
+      </div>
+      <div style="margin-bottom:8px;"><div class="field-label">Solicitante</div><input class="field-input" id="imp-sol-${idx}" value="${d.solicitante||''}" style="text-transform:uppercase;"></div>
+      <div style="margin-bottom:8px;"><div class="field-label">Trabajo</div><textarea class="field-textarea" id="imp-trabajo-${idx}" style="text-transform:uppercase;min-height:50px;">${d.trabajo||''}</textarea></div>
+      <div style="margin-bottom:14px;"><div class="field-label">Técnico asignado</div>
+        <select class="field-select" id="imp-tecnico-${idx}">${tecOpts}</select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-red" style="flex:2;" onclick="confirmarVyPImportado(${idx},'${r.file}')">✓ Confirmar y añadir</button>
+        <button class="btn btn-gray" style="flex:1;" onclick="saltarVyPImportado(${idx})">Saltar</button>
+      </div>
+    </div>`;
 }
 
-async function confirmarVyPImportado(i, filename) {
-  await añadirVyPImportado(i, filename);
-  logImport(`[${i+1}/${_importQueue.length}] Añadido a planificación ✓`, 'ok');
-  _importIdx++;
-  const ic1 = document.getElementById('importCurrent'); if(ic1) ic1.innerHTML = '';
-  await new Promise(r => setTimeout(r, 400));
-  await procesarSiguienteVyP();
+async function confirmarVyPImportado(idx, filename) {
+  await añadirVyPImportado(idx, filename);
+  logImport(`${filename} añadido ✓`, 'ok');
+  _importResultados[idx].done = true;
+  mostrarSiguienteImport();
 }
 
-async function saltarVyPImportado(i, filename) {
-  logImport(`[${i+1}/${_importQueue.length}] ${filename} omitido`, 'warn');
-  _importIdx++;
-  const ic2 = document.getElementById('importCurrent'); if(ic2) ic2.innerHTML = '';
-  await new Promise(r => setTimeout(r, 300));
-  await procesarSiguienteVyP();
+function saltarVyPImportado(idx) {
+  logImport(`${_importResultados[idx].file} omitido`, 'warn');
+  _importResultados[idx].skipped = true;
+  mostrarSiguienteImport();
 }
 
-async function extraerTextoPDF(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async e => {
-      try {
-        const pdf = await pdfjsLib.getDocument({data: new Uint8Array(e.target.result)}).promise;
-        const page = await pdf.getPage(1);
-        const content = await page.getTextContent();
-        resolve(content.items.map(i=>i.str).join(' '));
-      } catch(err) { reject(err); }
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-async function parsearVyPGemini(texto) {
-  try {
-    const res = await fetch(`${SB_URL}/functions/v1/gemini-vyp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SB_KEY
-      },
-      body: JSON.stringify({ texto })
-    });
-    const data = await res.json();
-    console.log('Gemini respuesta:', data?.ok, data?.data?.trabajo?.slice(0,50));
-    if(!data?.ok) throw new Error('Gemini error');
-    return data.data;
-  } catch(e) {
-    console.warn('Gemini falló:', e.message, '— usando regex');
-    return parsearVyPRegex(texto);
-  }
-}
-
-function parsearVyPRegex(texto) {
-  const get = (p,g=1) => { const m=texto.match(p); return m?m[g].trim():''; };
-  let vyp = get(/(\d{8})\s+Ref\.\s*Trabajo\s*Programado/);
-  if(!vyp) vyp = get(/Ref\.\s*Trabajo\s*Programado[:\s]+(\d{8})/);
-  let fecha='', hora='';
-  const fm = texto.match(/Aprobado\s+(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2}).*?(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/s);
-  if(fm){const[d,m,y]=fm[3].split('-');fecha=`${y}-${m}-${d}`;hora=fm[4];}
-  if(!fecha){const idx=texto.indexOf('Fecha Inicio');if(idx>=0){const ms=[...texto.slice(idx).matchAll(/(\d{2}-\d{2}-\d{4})\s+(\d{2}:\d{2})/g)];const mm=ms.length>=2?ms[1]:ms[0];if(mm){const[d,m,y]=mm[1].split('-');fecha=`${y}-${m}-${d}`;hora=mm[2];}}}
-  const zm=texto.match(/ARA-([A-Za-záéíóúÁÉÍÓÚñÑ]+)/i);
-  let zona=zm?zm[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''):'';
-  if(zona==='ALCANIZ')zona='ALCAÑIZ';
-  const tm=texto.match(/Origen\s*Actividad\s+T?[-\s]?(\d+)/);
-  const tdc=tm?tm[1]:'';
-  const sm=texto.match(/Nombre\s+([A-ZÁÉÍÓÚÑ ,]+?)\s+\d{9}/);
-  const solicitante=sm?sm[1].replace(/,/g,'').replace(/\s+/g,' ').trim():'';
-  const cm=texto.match(/En\s+(?:CD|DM|CT|MT)\s+[^\/\n]+?\/((?:CA|FR|HU|TA|Z|M|S)?\d{4,6})/i);
-  const centro=cm?cm[1].toUpperCase():'';
-  return {vyp,fecha,hora,tdc,zona,solicitante,trabajo:'',centro};
-}
-
-async function getAlias(centro) {
-  if(!centro) return '';
-  try {
-    const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
-    if(!res.ok) { console.warn('getAlias error:', res.status, centro); return ''; }
-    const data = await res.json();
-    return data?.[0]?.alias || '';
-  } catch(e) { return ''; }
-}
-
-async function getTelefonoZona(zona) {
-  if(!zona) return '';
-  try {
-    const res = await fetch(`${SB_URL}/rest/v1/zonas_cc?zona=eq.${encodeURIComponent(zona)}&select=telefono&limit=1`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
-    const data = await res.json();
-    return data?.[0]?.telefono || '';
-  } catch(e) { return ''; }
-}
+async function procesarSiguienteVyP() { mostrarSiguienteImport(); } // legacy compat
 
 async function añadirVyPImportado(i, filename) {
   const centro = (document.getElementById(`imp-centro-${i}`)?.value||'').toUpperCase().trim();
