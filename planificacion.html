@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.30</title>
+<title>Teleman2 — Planificación v1.31</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -406,7 +406,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.30</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.31</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -2063,11 +2063,12 @@ function parsearVyPRegex(texto) {
 async function getAlias(centro) {
   if(!centro) return '';
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias,Alias&limit=1`, {
+    const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(centro)}&select=alias&limit=1`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
+    if(!res.ok) { console.warn('getAlias error:', res.status, centro); return ''; }
     const data = await res.json();
-    return data?.[0]?.alias || data?.[0]?.Alias || '';
+    return data?.[0]?.alias || '';
   } catch(e) { return ''; }
 }
 
