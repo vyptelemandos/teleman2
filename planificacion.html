@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.15</title>
+<title>Teleman2 — Planificación v1.16</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -405,7 +405,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.15</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.16</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -571,6 +571,7 @@ const ZONA_COLORS = {
 };
 let planificacionZonas = []; // [{fecha, tecnico, zonas:[]}]
 let _scrollToToday = true; // scroll to today on first load
+const _zonaClickMap = {}; // key -> {fecha,zona,tecnico}
 
 // Festivos fijos perpetuos (MM-DD) — se aplican a cualquier año
 const FESTIVOS_FIJOS = [
@@ -959,6 +960,11 @@ function abrirModalZona(fecha) {
     <button class="btn btn-red" onclick="confirmarZona('${fecha}')">Guardar</button>`;
 
   openModal('modalDetalle');
+}
+
+function _clickZona(key) {
+  const d = _zonaClickMap[key];
+  if(d) editarZonaDia(d.fecha, d.zona, d.tecnico);
 }
 
 function editarZonaDia(fecha, zona, tecnico) {
@@ -1404,7 +1410,9 @@ function renderCalendario() {
         return zs.map(z=>{
           const col = ZONA_COLORS[z]||{bg:'#888',text:'#fff'};
           const code = (ZONA_CODES[z]||z.slice(0,2))+'-'+ini;
-          return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();editarZonaDia(\"'+dateStr+'\",\"'+z+'\",\"'+(zt.tecnico||'')+'\")" title="Click para editar/borrar">'+code+'</span>';
+          const zKey = 'z_'+dateStr+'_'+z+'_'+(zt.tecnico||'no');
+          _zonaClickMap[zKey] = {fecha:dateStr, zona:z, tecnico:zt.tecnico||''};
+          return '<span style="display:inline-block;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.text+';border-radius:3px;padding:2px 5px;margin-left:2px;cursor:pointer;" onclick="event.stopPropagation();_clickZona(\'' + zKey + '\')" title="Click para editar/borrar">'+code+'</span>';
         });
       }).join('');
 
