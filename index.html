@@ -1260,7 +1260,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Inter',sans-serif;d
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v3.99';
+const APP_VERSION = 'v3.99a';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4891,7 +4891,13 @@ async function escribirPlanifSupabase(p) {
 async function actualizarEstadoPlanifSupabase(id, estado) {
   try {
     const sb = getSB();
-    const { error } = await sb.from('planificacion').update({ estado }).eq('id', id);
+    // Al completar, guardar también el técnico que lo realizó
+    const updateData = { estado };
+    if(estado === 'COMPLETADO') {
+      const tec1 = S.miNombre || getLS('t2-cfg')?.nombre || '';
+      if(tec1) updateData.tecnico_asignado = tec1;
+    }
+    const { error } = await sb.from('planificacion').update(updateData).eq('id', id);
     if(error) console.warn('Supabase planif estado warn:', error.message);
     else console.log('Supabase planif estado ✓', id, estado);
   } catch(e) { console.warn('Supabase planif estado error (no crítico):', e.message); }
