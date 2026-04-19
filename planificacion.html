@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.42</title>
+<title>Teleman2 — Planificación v1.43</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -406,7 +406,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.42</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.05em;">TELEMAN2 v1.43</div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:9px;color:var(--text3);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1969,7 +1969,7 @@ function _mostrarFormulario() {
 
   if(_importIdx >= _importResultados.length) {
     fc.innerHTML = '<div style="text-align:center;padding:30px;color:#16a34a;font-size:14px;font-weight:700;">✓ Todos los trabajos procesados</div>' +
-      '<button class="btn btn-red" onclick="setView("calendario")" style="width:100%;">Ver calendario</button>';
+      '<button class="btn btn-red" onclick="setView(\'calendario\')" style="width:100%;">Ver calendario</button>';
     cargarPlanificacion().then(()=>renderCurrentView());
     return;
   }
@@ -2015,38 +2015,52 @@ async function _confirmarImport() {
   const tecnico = document.getElementById('f-tecnico')?.value||'';
 
   if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
-  if(planificacion.find(p=>p.vyp && p.vyp===vyp)) { toast('VyP ya existe','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
+  if(planificacion.find(p=>p.vyp && p.vyp===vyp)) { toast('VyP ya existe, saltando','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
 
-  const alias = await getAlias(centro);
-  const telefono = await getTelefonoZona(zona);
-  const body = {
-    id: 'VYP-'+Date.now(),
-    centro, fecha, alias,
-    hora: document.getElementById('f-hora')?.value||null,
-    vyp: vyp||null,
-    tdc: document.getElementById('f-tdc')?.value||null,
-    trabajo: (document.getElementById('f-trabajo')?.value||'').toUpperCase()||null,
-    solicitante: document.getElementById('f-sol')?.value?.toUpperCase()||null,
-    zona: zona||null, tecnico_asignado: tecnico||null,
-    telefono, estado: 'PENDIENTE'
-  };
+  // Disable buttons to prevent double submit
+  document.querySelectorAll('#formContainer button').forEach(b=>b.disabled=true);
 
-  const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body: JSON.stringify(body)
-  });
+  try {
+    const alias = await getAlias(centro);
+    const telefono = await getTelefonoZona(zona);
+    const body = {
+      id: 'VYP-'+Date.now(),
+      centro, fecha, alias,
+      hora: document.getElementById('f-hora')?.value||null,
+      vyp: vyp||null,
+      tdc: document.getElementById('f-tdc')?.value||null,
+      trabajo: (document.getElementById('f-trabajo')?.value||'').toUpperCase()||null,
+      solicitante: document.getElementById('f-sol')?.value?.toUpperCase()||null,
+      zona: zona||null, tecnico_asignado: tecnico||null,
+      telefono, estado: 'PENDIENTE'
+    };
 
-  if(!res.ok) {
-    const e = await res.text();
-    toast('Error: '+e.slice(0,60),'err');
-    return;
+    const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify(body)
+    });
+
+    if(!res.ok) {
+      const e = await res.text();
+      toast('Error guardando: '+e.slice(0,80),'err');
+      document.querySelectorAll('#formContainer button').forEach(b=>b.disabled=false);
+      return;
+    }
+
+    logImport(`VyP ${vyp||'?'} añadido ✓`, 'ok');
+    r.done = true;
+
+    // Non-blocking: reload data in background, don't await to avoid freezing
+    cargarPlanificacion().catch(()=>{});
+    if(zona) autoAsignarZona(fecha, zona, tecnico, true).catch(()=>{});
+
+  } catch(err) {
+    logImport(`Error inesperado: ${err.message}`, 'err');
+    toast('Error inesperado, saltando al siguiente','err');
+    r.skipped = true;
   }
 
-  await cargarPlanificacion();
-  await autoAsignarZona(fecha, zona, tecnico, true);
-  logImport(`VyP ${vyp||'?'} añadido ✓`, 'ok');
-  r.done = true;
   _importIdx++;
   _mostrarFormulario();
 }
