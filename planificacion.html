@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.58</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Teleman2 — Planificación v1.62</title>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
@@ -31,8 +31,8 @@
   --yellow-light:#fefce8;
   --yellow-border:#fef08a;
   --blue:   #2563eb;
-  --mono:   'Roboto Mono', monospace;
-  --sans:   'Roboto Mono', monospace;
+  --mono:   'Ubuntu', sans-serif;
+  --sans:   'Ubuntu', sans-serif;
   /* Font scale */
   --fs-xs:  10px;
   --fs-sm:  12px;
@@ -44,7 +44,9 @@
 @keyframes chipParp { 0%,100%{opacity:1} 50%{opacity:0.1} }
 @keyframes chipInv  { 0%,100%{background:#cc0000;color:#fff;border-color:#cc0000} 50%{background:#fff;color:#cc0000;border-color:#cc0000} }
 
-* { box-sizing:border-box; margin:0; padding:0; font-family:var(--mono) !important; text-transform:uppercase; }
+* { box-sizing:border-box; margin:0; padding:0; text-transform:uppercase; font-family:inherit; font-size:inherit; font-weight:inherit; }
+
+html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); font-size:var(--fs-sm); font-weight:400; overflow:hidden; }
 
 .estado-chip      { display:flex;align-items:center;gap:0;border-radius:8px;overflow:hidden;font-size:var(--fs-sm);font-weight:700;width:100%;border:2px solid;cursor:default; }
 .estado-chip-icon { width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-md);font-weight:900;flex-shrink:0; }
@@ -52,7 +54,7 @@
 .chip-parp { animation:chipParp 1.8s ease-in-out infinite; }
 .chip-inv  { animation:chipInv  1.8s ease-in-out infinite; }
 
-html, body { height:100%; background:var(--bg); color:var(--text); overflow:hidden; }
+
 
 /* LOGIN */
 #loginScreen { position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:100; }
@@ -260,7 +262,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); overflow:hidd
       <button class="cal-nav" onclick="calNext()" style="flex-shrink:0;">›</button>
     </div>
     <div style="padding:4px 12px 8px;">
-      <button class="btn btn-red" onclick="calHoy()" style="width:100%;font-size:12px;font-weight:700;padding:8px;">Hoy</button>
+      <button class="btn btn-red" onclick="calHoy()" style="width:100%;font-size:12px;font-weight:700;padding:8px;justify-content:center;">Hoy</button>
     </div>
     <div class="sb-section">Técnico</div>
     <div style="padding:2px 12px 8px;">
@@ -292,7 +294,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); overflow:hidd
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.58</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.62</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1661,7 +1663,7 @@ function renderAgenda() {
     ${items.length ? items.map(a=>`
       <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 14px;background:#fff;border:1px solid #e0e0e0;border-left:4px solid #00cccc;border-radius:6px;margin-bottom:8px;cursor:pointer;" onclick="verDetalleAgenda('${a.id}')">
         <div style="flex-shrink:0;text-align:center;min-width:50px;">
-          <div style="font-family:'Roboto Mono',monospace;font-size:11px;color:#888;">${a.fecha}</div>
+          <div style="font-family:'Roboto',sans-serif;font-size:11px;color:#888;">${a.fecha}</div>
           ${a.hora_ini?'<div style="font-size:12px;font-weight:600;color:#333;">'+a.hora_ini+(a.hora_fin?' — '+a.hora_fin:'')+'</div>':''}
         </div>
         <div style="flex:1;">
@@ -1902,7 +1904,7 @@ async function handleFiles(files) {
     <div style="max-width:700px;margin:0 auto;padding-top:20px;">
       <div id="scanBox" style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:16px;">
         <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px;">📋 Analizando ${arr.length} archivo(s) con IA...</div>
-        <div id="importLog" style="font-family:'Roboto Mono',monospace;font-size:11px;max-height:200px;overflow-y:auto;"></div>
+        <div id="importLog" style="font-family:'Roboto',sans-serif;font-size:11px;max-height:200px;overflow-y:auto;"></div>
       </div>
       <div id="formContainer"></div>
     </div>`;
