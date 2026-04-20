@@ -252,9 +252,15 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 
 <header class="hdr">
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
-  <div class="sync-pill" id="procesoPill" style="display:none;">
-    <div class="sync-dot" id="procesoDot"></div>
-    <span class="sync-label" id="procesoLabel">...</span>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="sync-pill" id="drivePill" onclick="checkDriveStatus()" style="cursor:pointer;">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="sync-label" id="syncLabel">Drive</span>
+    </div>
+    <div class="sync-pill" id="procesoPill" style="display:none;">
+      <div class="sync-dot" id="procesoDot"></div>
+      <span class="sync-label" id="procesoLabel">...</span>
+    </div>
   </div>
 </header>
 
@@ -1261,7 +1267,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.00';
+const APP_VERSION = 'v4.01';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1323,6 +1329,35 @@ async function getGoogleRefreshToken() {
   } catch(e) {}
   return null;
 }
+
+async function checkDriveStatus() {
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if(!dot || !label) return;
+  const token = await getGoogleRefreshToken();
+  if(token) {
+    dot.className = 'sync-dot ok';
+    label.textContent = 'Drive ✓';
+  } else {
+    dot.className = 'sync-dot';
+    label.textContent = 'Sin Drive';
+    // If tapped manually, offer to connect
+    if(window._driveCheckManual) {
+      window._driveCheckManual = false;
+      pedirConexionGoogle(() => checkDriveStatus());
+    }
+  }
+}
+
+// Allow manual tap to connect
+document.addEventListener('DOMContentLoaded', () => {
+  const pill = document.getElementById('drivePill');
+  if(pill) pill.addEventListener('click', () => {
+    window._driveCheckManual = true;
+    checkDriveStatus();
+  });
+});
+
 
 
 function pedirConexionGoogle(onSuccess) {
@@ -1405,9 +1440,7 @@ async function procesarOAuthCode(code, redirectUri) {
 }
 
 async function saveGoogleRefreshToken(refreshToken) {
-  // Guardar en localStorage siempre
   localStorage.setItem('t2-google-refresh', refreshToken);
-  // Guardar en config_app de Supabase (no requiere sesión)
   try {
     const sb = getSB();
     await sb.from('config_app').upsert({
@@ -1416,6 +1449,8 @@ async function saveGoogleRefreshToken(refreshToken) {
       updated_at: new Date().toISOString()
     }, { onConflict: 'clave' });
   } catch(e) { console.warn('Error guardando refresh_token en Supabase:', e.message); }
+  // Update Drive indicator
+  checkDriveStatus();
 }
 
 async function manejarOAuthCallback() {
@@ -2037,6 +2072,8 @@ window.onload = () => {
   renderFrasesConfig();
   nuevoInforme();
   checkAlertasInicio();
+  // Check Drive connection status
+  setTimeout(() => checkDriveStatus(), 800);
 
   document.getElementById('mv-fecha').value = hoy();
   document.getElementById('v-fecha').value = hoy();
@@ -2447,6 +2484,7 @@ function recogerFormulario() {
     baterias: document.getElementById('f-baterias')?.checked||false,
     vale: document.getElementById('f-vale')?.checked||false,
     nBaterias: parseInt(document.getElementById('f-nbaterias')?.value)||1,
+    fotos: _fotosActuales.map(f => ({name: f.name, dataUrl: f.dataUrl})),
     ts: Date.now(),
   };
 }
@@ -2474,6 +2512,15 @@ function cargarBorrador(id) {
   S.baremosActuales = d.baremos||[];
   S.materialesActuales = d.materiales||[];
   renderBaremosAdded(); renderMaterialesAdded();
+  // Restore fotos if saved in borrador
+  _fotosActuales = [];
+  if(d.fotos && d.fotos.length) {
+    d.fotos.forEach(f => _fotosActuales.push({name: f.name, dataUrl: f.dataUrl, file: null}));
+    renderFotosPreview();
+    toast(`${d.fotos.length} FOTO(S) RESTAURADAS`, 'ok');
+  } else {
+    resetFotos();
+  }
   closeModal('modalInterv');
 }
 
@@ -2869,6 +2916,19 @@ async function generarInforme() {
     const isEdit = !!d._esEdicion;
     // Asegurar token SA
     if(!S.auth) { const t = await getSAToken(); if(t) S.auth = t; }
+
+    // Comprobar Drive antes de continuar si hay fotos o vale A1
+    const necesitaDrive = (_fotosActuales.length > 0 || d.vale);
+    if(necesitaDrive) {
+      const refreshToken = await getGoogleRefreshToken();
+      if(!refreshToken) {
+        window._generando = false;
+        setGenBtn(false);
+        toast('CONECTA GOOGLE DRIVE PRIMERO','err');
+        pedirConexionGoogle(() => { checkDriveStatus(); });
+        return;
+      }
+    }
     if(isEdit) {
       actualizarEnSupabase(d).catch(()=>{});
       if(S.auth) await actualizarEnSheets(d);
