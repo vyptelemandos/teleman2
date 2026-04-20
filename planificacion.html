@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.71</title>
+<title>Teleman2 — Planificación v1.72</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -278,9 +278,9 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     <div class="sb-section">Leyenda — Estado</div>
     <div style="padding:4px 14px 8px;">
       <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#aaaaaa;"></span>Pendiente</div>
-      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#f97316;"></span>Caducado</div>
-      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#1a8a55;"></span>Realizado</div>
-      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#e63946;"></span>Cancelado</div>
+      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#f59f00;"></span>Caducado</div>
+      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#16a34a;"></span>Realizado</div>
+      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#e00000;"></span>Cancelado</div>
       <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#00bcd4;"></span>Agenda</div>
     </div>
     <div class="sb-section">Leyenda — Zonas</div>
@@ -295,7 +295,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.71</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.72</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1603,9 +1603,9 @@ function statsBar(items, label, highlight) {
     '<div style="font-size:10px;color:#444;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:8px 10px 5px;">'+label+'</div>' +
     '<div style="display:flex;">' +
     pill('#aaaaaa', pending,  'Pendientes') +
-    pill('#f97316', late,     'Caducados') +
-    pill('#1a8a55', done,     'Realizados') +
-    pill('#e63946', cancelled,'Cancelados') +
+    pill('#f59f00', late,     'Caducados') +
+    pill('#16a34a', done,     'Realizados') +
+    pill('#e00000', cancelled,'Cancelados') +
     pill('#2563eb', total,    'Total') +
     '</div></div>';
 }
