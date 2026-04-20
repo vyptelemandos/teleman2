@@ -23,7 +23,7 @@
   --gris5:#e0e0e0; --gris6:#f0f0f0; --gris7:#f7f7f7;
   --blanco:#ffffff;
   --verde:#16a34a; --verde-light:#f0fdf4; --verde-border:#bbf7d0;
-  --naranja:#d97706; --naranja-light:#fffbeb; --naranja-border:#fde68a;
+  --naranja:#f59f00; --naranja-light:#fffbeb; --naranja-border:#fde68a;
   --azul:#2563eb; --azul-light:#eff6ff; --azul-border:#bfdbfe;
   --r:10px; --rs:6px;
   --sombra:0 1px 4px rgba(0,0,0,0.12);
@@ -37,12 +37,14 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .hdr{background:var(--negro2);padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
 .logo{color:var(--blanco);font-weight:700;font-size:19px;letter-spacing:0;display:flex;align-items:center;gap:0;cursor:default;user-select:none;}
 .logo-red{color:var(--rojo);}
-.sync-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 11px;cursor:pointer;transition:background .2s;}
+.sync-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 10px;width:80px;justify-content:center;transition:background .2s;}
 .sync-pill:active{background:rgba(255,255,255,0.15);}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#ff6666;flex-shrink:0;}
 .sync-dot.ok{background:#4ade80;box-shadow:0 0 6px #4ade80;}
-.sync-dot.warn{background:#fbbf24;}
-.sync-label{color:rgba(255,255,255,0.8);font-size:11px;font-weight:500;}
+.sync-dot.warn{background:#f59f00;}
+.sync-dot.working{background:#f59f00;animation:pulseDot 0.9s ease-in-out infinite;}
+.sync-dot.err{background:#ff5555;box-shadow:0 0 6px #ff5555;}
+.sync-label{font-size:11px;font-weight:700;letter-spacing:0.05em;}
 .proceso-dot-working{background:#ff9800;box-shadow:0 0 6px #ff9800;animation:pulseDot 1s ease-in-out infinite;}
 .proceso-dot-ok{background:#4ade80;box-shadow:0 0 8px #4ade80;}
 .proceso-dot-err{background:#f44336;box-shadow:0 0 6px #f44336;}
@@ -69,7 +71,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .pg-sub{font-size:12px;color:var(--gris3);margin-bottom:12px;}
 
 /* CARD */
-.card{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);margin-bottom:10px;overflow:hidden;}
+.card{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra2);margin-bottom:10px;overflow:hidden;border-left:3px solid var(--gris4);}
 .card-head{padding:11px 14px 0;display:flex;align-items:center;justify-content:space-between;}
 .card-title{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--gris2);display:flex;align-items:center;gap:6px;}
 .card-title-accent{color:var(--rojo);}
@@ -111,7 +113,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .stat-l{font-size:11px;color:var(--gris3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
 
 /* LIST ITEM */
-.li{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;border-left:3px solid transparent;}
+.li{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra2);padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s;border-left:3px solid var(--gris2);}
 .li:active{box-shadow:var(--sombra2);}
 .li.rojo{border-left-color:var(--rojo);}
 .li.verde{border-left-color:var(--verde);}
@@ -211,7 +213,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .pwd-input:focus{border-color:var(--rojo);}
 
 /* PLANIF */
-.planif-item{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);margin-bottom:8px;overflow:hidden;border-left:3px solid var(--rojo);}
+.planif-item{background:var(--blanco);border-radius:var(--r);box-shadow:var(--sombra);margin-bottom:8px;overflow:hidden;border-left:3px solid var(--gris2);}
 .planif-head{padding:12px 13px;display:flex;justify-content:space-between;align-items:flex-start;}
 .planif-info{flex:1;}
 .planif-fecha-hora{font-size:11px;font-weight:700;color:var(--rojo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
@@ -222,7 +224,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 
 /* ZONA GROUP */
 .zona-group{margin-bottom:12px;}
-.zona-header{background:var(--negro2);color:var(--blanco);border-radius:var(--r) var(--r) 0 0;padding:8px 13px;display:flex;justify-content:space-between;align-items:center;}
+.zona-header{background:var(--gris2);color:var(--blanco);border-radius:var(--r);padding:8px 13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .zona-header-name{font-weight:700;font-size:13px;letter-spacing:0.5px;}
 .zona-header-count{font-size:11px;color:var(--gris4);}
 
@@ -254,13 +256,9 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 <header class="hdr">
   <div class="logo" id="logoBtn" oncontextmenu="return false;">TELE<span class="logo-red">MAN</span>2</div>
   <div style="display:flex;align-items:center;gap:8px;">
-    <div class="sync-pill" id="drivePill" onclick="checkDriveStatus()" style="cursor:pointer;">
-      <div class="sync-dot" id="syncDot"></div>
-      <span class="sync-label" id="syncLabel">Drive</span>
-    </div>
-    <div class="sync-pill" id="procesoPill" style="display:none;">
-      <div class="sync-dot" id="procesoDot"></div>
-      <span class="sync-label" id="procesoLabel">...</span>
+    <div class="sync-pill" id="statusPill" onclick="onPillClick()" style="cursor:pointer;width:80px;justify-content:center;">
+      <div class="sync-dot" id="statusDot"></div>
+      <span class="sync-label" id="statusLabel">DRIVE</span>
     </div>
   </div>
 </header>
@@ -309,7 +307,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 
     <!-- Tabs -->
     <div style="display:flex;background:var(--gris6);border-radius:var(--rs);padding:3px;margin-bottom:10px;gap:3px;">
-      <button id="tab-planif-mis" onclick="switchPlanifTab('mis')" style="flex:1;padding:8px;border:none;border-radius:var(--rs);background:var(--rojo);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Mis trabajos</button>
+      <button id="tab-planif-mis" onclick="switchPlanifTab('mis')" style="flex:1;padding:8px;border:none;border-radius:var(--rs);background:var(--gris2);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Mis trabajos</button>
       <button id="tab-planif-global" onclick="switchPlanifTab('global')" style="flex:1;padding:8px;border:none;border-radius:var(--rs);background:transparent;color:var(--gris3);font-size:12px;font-weight:600;cursor:pointer;">Global <span id="globalPendienteBadge"></span></button>
     </div>
 
@@ -1255,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.12';
+const APP_VERSION = 'v4.21';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1319,8 +1317,8 @@ async function getGoogleRefreshToken() {
 }
 
 async function checkDriveStatus() {
-  const dot = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
   if(!dot || !label) return;
   const token = await getGoogleRefreshToken();
   if(token) {
@@ -1339,7 +1337,7 @@ async function checkDriveStatus() {
 
 // Allow manual tap to connect
 document.addEventListener('DOMContentLoaded', () => {
-  const pill = document.getElementById('drivePill');
+  const pill = document.getElementById('statusPill');
   if(pill) pill.addEventListener('click', () => {
     window._driveCheckManual = true;
     checkDriveStatus();
@@ -2325,15 +2323,15 @@ async function cargarEmailsEnvio() {
 
 async function enviarPendientesAhora() {
   if(!confirm('¿Enviar todos los informes pendientes ahora?')) return;
-  setStatusBar('⏳ ENVIANDO INFORMES...', 'working');
+  setStatusBar('ENVIADO', 'working');
   try {
     const sb = getSB();
     const { data, error } = await sb.functions.invoke('envio-dominical', { body: {} });
     if(error || !data?.ok) throw new Error(error?.message || data?.error || 'Error desconocido');
-    setStatusBar(`✓ ${data.enviados} INFORMES ENVIADOS`, 'ok');
+    setStatusBar('ENVIADO', 'ok');
     toast(`✓ ${data.enviados} INFORMES ENVIADOS`, 'ok');
   } catch(e) {
-    setStatusBar('⚠️ ERROR AL ENVIAR', 'err');
+    setStatusBar('ENVIADO', 'err');
     toast('ERROR AL ENVIAR: ' + e.message.slice(0,50), 'err');
   }
 }
@@ -2892,7 +2890,7 @@ async function generarInforme() {
     renderStats(); renderRecent(); renderBorradoresInicio(); updateBorradorBadge();
     if(!navigator.onLine) {
       setSyncStatus('err');
-      document.getElementById('syncLabel').textContent = 'Sin cobertura';
+      document.getElementById('statusLabel').textContent = 'DRIVE';
       if(!S.borradoresActual) S.borradoresActual = 'BOR-'+Date.now();
       S.borradores[S.borradoresActual] = d;
       setLS('t2-bo', S.borradores);
@@ -2925,41 +2923,41 @@ async function generarInforme() {
       else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
       await escribirEnSupabase(d);
-      setStatusBar('⏳ GENERANDO PDF...', 'working');
+      setStatusBar('PDF', 'working');
       const pdfOk = await generarPDFviaEdge(d);
       if(pdfOk) {
-        setStatusBar('✓ PDF GENERADO', 'ok');
+        setStatusBar('PDF', 'ok');
         // Certificación
-        setStatusBar('⏳ GUARDANDO CERTIFICACIÓN...', 'working');
+        setStatusBar('CERT', 'working');
         const certOk = await añadirFilaCertificacion(d);
         if(certOk === false) {
-          setStatusBar('⚠️ CERTIFICACIÓN NO GUARDADA — REVISAR EXCEL', 'err');
+          setStatusBar('CERT', 'err');
         } else {
-          setStatusBar('✓ CERTIFICACIÓN GUARDADA', 'ok');
+          setStatusBar('CERT', 'ok');
         }
         // Fotos
         const fotosGuardadas = [..._fotosActuales];
         let fotosOk = true;
         if(fotosGuardadas.length > 0) {
-          setStatusBar(`⏳ SUBIENDO ${fotosGuardadas.length} FOTO(S)...`, 'working');
+          setStatusBar('FOTOS', 'working');
           fotosOk = await subirFotosDrive(d, fotosGuardadas);
           if(fotosOk === false) {
-            setStatusBar('⚠️ FOTOS NO SUBIDAS', 'err');
+            setStatusBar('FOTOS', 'err');
           } else {
-            setStatusBar(`✓ ${fotosGuardadas.length} FOTO(S) SUBIDAS`, 'ok');
+            setStatusBar('FOTOS', 'ok');
           }
         }
         // Vale A1
         if(d.vale) {
-          setStatusBar('⏳ GENERANDO VALE A1...', 'working');
+          setStatusBar('VALE', 'working');
           const valeOk = await generarValeA1viaEdge(d);
           if(valeOk === false) {
-            setStatusBar('⚠️ VALE A1 NO GENERADO', 'err');
+            setStatusBar('VALE', 'err');
           } else {
-            setStatusBar('✓ TODO COMPLETADO ✓', 'ok');
+            setStatusBar('ENVIADO', 'ok');
           }
         } else {
-          setStatusBar('✓ TODO COMPLETADO ✓', 'ok');
+          setStatusBar('ENVIADO', 'ok');
         }
         // Notificar Telegram
         const zonaCode2 = getZonaCode(d.zona);
@@ -2974,7 +2972,7 @@ async function generarInforme() {
         notificarTelegram(msgTg);
         toast('INFORME GENERADO ✓','ok');
       } else {
-        setStatusBar('⚠️ ERROR AL GENERAR PDF', 'err');
+        setStatusBar('PDF', 'err');
         toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
     }
@@ -3082,14 +3080,14 @@ function switchPlanifTab(tab) {
   const miNombre = getLS('t2-cfg')?.nombre || '';
 
   if(tab === 'mis') {
-    miBtn.style.background = 'var(--rojo)'; miBtn.style.color = '#fff';
+    miBtn.style.background = 'var(--gris2)'; miBtn.style.color = '#fff';
     glBtn.style.background = 'transparent'; glBtn.style.color = 'var(--gris3)';
     miList.style.display = ''; glList.style.display = 'none';
     title.textContent = 'Planificación';
     sub.textContent = miNombre ? 'Trabajos de ' + miNombre : 'Trabajos programados';
     renderPlanif();
   } else {
-    glBtn.style.background = 'var(--rojo)'; glBtn.style.color = '#fff';
+    glBtn.style.background = 'var(--gris2)'; glBtn.style.color = '#fff';
     miBtn.style.background = 'transparent'; miBtn.style.color = 'var(--gris3)';
     miList.style.display = 'none'; glList.style.display = '';
     title.textContent = 'Global';
@@ -3176,12 +3174,13 @@ function renderPlanif() {
   const el = document.getElementById('planifList');
   const miNombre = getLS('t2-cfg')?.nombre || '';
 
-  // Update title with technician name
   const sub = document.getElementById('planifSub');
   if(sub && _planifTab === 'mis') sub.textContent = miNombre ? 'Trabajos de ' + miNombre : 'Trabajos programados';
 
-  // Update global badge
   const hoy = new Date().toISOString().slice(0,10);
+  const anteayer = new Date(); anteayer.setDate(anteayer.getDate()-2);
+  const anteayerStr = anteayer.toISOString().slice(0,10);
+
   const atrasados = S.planificacion.filter(p => p.estado === 'PENDIENTE' && p.fecha && p.fecha < hoy);
   const badge = document.getElementById('globalPendienteBadge');
   if(badge) {
@@ -3189,51 +3188,90 @@ function renderPlanif() {
       ? `<span style="background:var(--rojo);color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:4px;">${atrasados.length}</span>`
       : '';
   }
-  // Mostrar solo los asignados al técnico actual (o sin asignar)
+
   const pendientes = S.planificacion.filter(p=>{
     if(p.estado!=='PENDIENTE' && p.estado) return false;
-    if(!miNombre) return true; // sin configurar, ver todos
-    if(!p.tecnico_asignado) return true; // sin asignar, ver todos
+    if(!miNombre) return true;
+    if(!p.tecnico_asignado) return true;
     return p.tecnico_asignado === miNombre;
   });
+
   if(!pendientes.length) {
     el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Sin trabajos planificados</div><div class="empty-s">Sincroniza los VyP desde Drive<br>o añade uno manualmente</div></div>`;
     return;
   }
-  const toSortable = (p) => {
+
+  const toSortable = p => {
     const f = p.fecha || '';
     const iso = f.includes('/') ? f.split('/').reverse().join('-') : f;
-    const hora = p.hora || '00:00';
-    return iso + 'T' + hora;
+    return iso + 'T' + (p.hora || '00:00');
   };
-  const sorted = [...pendientes].sort((a,b)=>toSortable(a).localeCompare(toSortable(b)));
-  el.innerHTML = sorted.map(p=>{
-    const c = findCentro(p.centro);
-    const batDate = c ? parseFecha(c.Fechasus) : null;
-    const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>5;
-    const tieneBat = detectarBaterias(p.trabajo);
-    const coord = c?.Coord || p.coord || '';
-    return `<div class="planif-item">
-      <div class="planif-head" onclick="showPlanifDetalle('${p.id}')" style="cursor:pointer;">
-        <div class="planif-info">
-          <div class="planif-fecha-hora">${fmtFecha(p.fecha)} ${p.hora||''}</div>
-          <div class="planif-centro">${p.centro}</div>
-          <div class="planif-alias">${p.alias||c?.Alias||''}</div>
-          <div class="planif-trabajo">${(p.trabajo||'').slice(0,80)}</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
-            ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
-            ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
-          </div>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
+  const sorted = [...pendientes].sort((a,b) => toSortable(a).localeCompare(toSortable(b)));
+
+  // Group by date
+  const groups = {};
+  sorted.forEach(p => {
+    const k = p.fecha || '?';
+    if(!groups[k]) groups[k] = [];
+    groups[k].push(p);
+  });
+
+  const DIAS = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  let html = '';
+  Object.keys(groups).sort().forEach(fecha => {
+    const items = groups[fecha];
+    const d = new Date(fecha + 'T12:00:00');
+    const dow = DIAS[d.getDay()];
+    const day = d.getDate();
+    const mes = MESES[d.getMonth()];
+    const isAtrasado2d = fecha <= anteayerStr;
+    const isAtrasadoAyer = fecha < hoy && !isAtrasado2d;
+    const dotColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris2)';
+
+    html += `<div style="display:flex;gap:0;margin-bottom:4px;">
+      <div style="width:52px;flex-shrink:0;text-align:right;padding-right:10px;padding-top:8px;">
+        <div style="font-size:20px;font-weight:700;color:${isAtrasado2d?'var(--rojo)':isAtrasadoAyer?'var(--naranja)':'var(--negro)'};line-height:1;">${day}</div>
+        <div style="font-size:9px;color:var(--gris3);margin-top:1px;">${dow} ${mes}</div>
       </div>
-      <div class="planif-actions">
-        <button class="btn btn-red btn-sm" style="flex:1;" onclick="closeAllModals();iniciarDesde('${p.id}')">📝 Iniciar informe</button>
-        ${coord?`<a href="https://maps.google.com/?q=${coord}" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>`:''}
-        <button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="cancelarVyP('${p.id}')">✕</button>
+      <div style="width:2px;background:var(--gris5);flex-shrink:0;margin-top:12px;position:relative;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};position:absolute;left:-4px;top:0;"></div>
+      </div>
+      <div style="flex:1;padding:4px 0 12px 12px;">
+        ${items.map(p => {
+          const c = findCentro(p.centro);
+          const batDate = c ? parseFecha(c.Fechasus) : null;
+          const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>5;
+          const tieneBat = detectarBaterias(p.trabajo);
+          const coord = c?.Coord || p.coord || '';
+          const borderColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris2)';
+          return `<div class="planif-item" style="border-left-color:${borderColor};">
+            <div class="planif-head" onclick="showPlanifDetalle('${p.id}')" style="cursor:pointer;">
+              <div class="planif-info">
+                <div class="planif-fecha-hora">${p.hora||''}</div>
+                <div class="planif-centro">${p.centro}</div>
+                <div class="planif-alias">${p.alias||c?.Alias||''}</div>
+                <div class="planif-trabajo">${(p.trabajo||'').slice(0,80)}</div>
+                <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
+                  ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
+                  ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
+                </div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+            <div class="planif-actions">
+              <button class="btn btn-gray btn-sm" style="flex:1;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${p.id}')">📝 Iniciar informe</button>
+              ${coord?`<a href="https://maps.google.com/?q=${coord}" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>`:''}
+              <button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="cancelarVyP('${p.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
-  }).join('');
+  });
+
+  el.innerHTML = html;
 }
 
 function cancelarDesdePlanif() {
@@ -3408,7 +3446,7 @@ function showPlanifDetalle(id) {
   html+=`<div class="div"></div>`;
   html+=`<div class="btn-row">`;
   html+=`<button class="btn btn-gray" style="flex:1;" onclick="closeAllModals();editarPlanif('${id}')">✏️ Editar</button>`;
-  html+=`<button class="btn btn-red" style="flex:2;" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`<button class="btn btn-gray" style="flex:2;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
   html+=`</div>`;
 
   // Reuse modalInterv for this
@@ -4190,7 +4228,7 @@ function centroHtml(c,esNorte=false) {
   const muni=c.Municipio||c.municipio||'';
   const batDate=parseFecha(c.Fechasus);
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
-  return `<div class="li rojo" onclick="showCentro('${nombre.replace(/'/g,"\\'")}')">
+  return `<div class="li" onclick="showCentro('${nombre.replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${nombre}</span><div style="display:flex;gap:4px;">${batViej?'<span class="badge badge-orange">🔋</span>':''}${esNorte?'<span class="badge badge-blue">NORTE</span>':''}</div></div>
     <div class="li-alias">${alias}</div>
     <div class="li-meta"><span>${c.Area||''}</span><span>${muni}</span><span style="font-size:10px;">${c.RTU_marca||''} ${c.RTU_Mod||''}</span></div>
@@ -4860,8 +4898,8 @@ function startAuth(clientId) {
       callback:resp=>{
         if(resp.error){toast('ERROR DE AUTENTICACIÓN','err');return;}
         S.auth=resp.access_token;
-        document.getElementById('syncDot').className='sync-dot ok';
-        document.getElementById('syncLabel').textContent='Drive ✓';
+        document.getElementById('statusDot').className='sync-dot ok';
+        document.getElementById('statusLabel').textContent='DRIVE';
         toast('CONECTADO A GOOGLE DRIVE ✓','ok');
         initSheet();
       }
@@ -6295,32 +6333,67 @@ function fmtDateExcel(f) {
   return f;
 }
 
-function setSyncStatus(status) {
-  // Drive button removed — SA token handles connection silently
+// ─── PILL UNIFICADO ───────────────────────────────
+let _statusTimer = null;
+let _pillBusy = false;
+
+function setPill(texto, estado) {
+  // estado: 'ok' | 'working' | 'err'
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusLabel');
+  if(!dot || !lbl) return;
+  lbl.textContent = texto;
+  if(estado === 'ok') {
+    dot.className = 'sync-dot ok';
+    lbl.style.color = '#4ade80';
+  } else if(estado === 'working') {
+    dot.className = 'sync-dot working';
+    lbl.style.color = '#f59f00';
+  } else {
+    dot.className = 'sync-dot err';
+    lbl.style.color = '#ff5555';
+  }
 }
 
-// ─── BARRA DE ESTADO DE PROCESO ───────────────────
-let _statusTimer = null;
 function setStatusBar(msg, tipo) {
-  const pill = document.getElementById('procesoPill');
-  const dot  = document.getElementById('procesoDot');
-  const lbl  = document.getElementById('procesoLabel');
-  if(!pill||!dot||!lbl) return;
   if(_statusTimer) { clearTimeout(_statusTimer); _statusTimer = null; }
-  if(!msg) { pill.style.display='none'; return; }
-  pill.style.display = 'flex';
-  lbl.textContent = msg;
-  if(tipo==='ok') {
-    dot.className = 'sync-dot proceso-dot-ok';
-    lbl.style.color = '#4ade80';
-    _statusTimer = setTimeout(() => setStatusBar(null), 5000);
-  } else if(tipo==='err') {
-    dot.className = 'sync-dot proceso-dot-err';
-    lbl.style.color = '#f44336';
-  } else {
-    dot.className = 'sync-dot proceso-dot-working';
-    lbl.style.color = '#ff9800';
+  if(!msg) {
+    _pillBusy = false;
+    checkDriveStatus();
+    return;
   }
+  _pillBusy = true;
+  if(tipo === 'ok') {
+    setPill(msg, 'ok');
+  } else if(tipo === 'err') {
+    setPill(msg, 'err');
+    _statusTimer = setTimeout(() => { _pillBusy = false; checkDriveStatus(); }, 3000);
+  } else {
+    setPill(msg, 'working');
+  }
+}
+
+async function checkDriveStatus() {
+  if(_pillBusy) return;
+  const token = await getGoogleRefreshToken();
+  if(token) {
+    setPill('DRIVE', 'ok');
+  } else {
+    setPill('DRIVE', 'err');
+  }
+}
+
+function onPillClick() {
+  if(_pillBusy) return;
+  const token = localStorage.getItem('t2-google-refresh');
+  if(!token) {
+    window._driveCheckManual = true;
+    pedirConexionGoogle(() => checkDriveStatus());
+  }
+}
+
+function setSyncStatus(status) {
+  // kept for compatibility
 }
 
 async function reconectarDrive() {
