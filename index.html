@@ -311,6 +311,34 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
         </div>
       </div>
     </div>
+    <div class="stat-card" id="globalPlanifCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title">Planificación global</div>
+        <div id="globalPlanifTrend" style="font-size:11px;font-weight:600;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;">
+        <div>
+          <div class="stat-n" style="font-size:22px;color:var(--gris3);" id="gpPendientes">0</div>
+          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">PEND.</div>
+        </div>
+        <div>
+          <div class="stat-n" style="font-size:22px;color:var(--naranja);" id="gpAtrasados">0</div>
+          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">ATRAS.</div>
+        </div>
+        <div>
+          <div class="stat-n" style="font-size:22px;color:var(--verde);" id="gpCompletados">0</div>
+          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">REALIZ.</div>
+        </div>
+        <div>
+          <div class="stat-n" style="font-size:22px;color:var(--rojo);" id="gpCancelados">0</div>
+          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">CANCEL.</div>
+        </div>
+        <div>
+          <div class="stat-n" style="font-size:22px;color:var(--azul);" id="gpTotal">0</div>
+          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">TOTAL</div>
+        </div>
+      </div>
+    </div>
     <div id="alertasInicio"></div>
     <div class="card" id="borradoresCard" style="border-left:3px solid var(--verde);">
       <div class="card-head"><div class="card-title">Borradores</div></div>
@@ -324,8 +352,15 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 
   <!-- ══ PLANIFICACIÓN ══ -->
   <div class="page" id="p-planif">
-    <p class="pg-title">Planificación</p>
-    <p class="pg-sub">Trabajos programados</p>
+    <p class="pg-title" id="planifTitle">Planificación</p>
+    <p class="pg-sub" id="planifSub">Trabajos programados</p>
+
+    <!-- Tabs -->
+    <div style="display:flex;background:var(--gris6);border-radius:var(--rs);padding:3px;margin-bottom:10px;gap:3px;">
+      <button id="tab-planif-mis" onclick="switchPlanifTab('mis')" style="flex:1;padding:8px;border:none;border-radius:var(--rs);background:var(--rojo);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Mis trabajos</button>
+      <button id="tab-planif-global" onclick="switchPlanifTab('global')" style="flex:1;padding:8px;border:none;border-radius:var(--rs);background:transparent;color:var(--gris3);font-size:12px;font-weight:600;cursor:pointer;">Global <span id="globalPendienteBadge"></span></button>
+    </div>
+
     <div class="btn-row" style="margin-bottom:10px;">
       <button class="btn btn-red" style="flex:1;" onclick="document.getElementById('inputVyPPDF').click()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -335,6 +370,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
     </div>
     <input type="file" id="inputVyPPDF" accept="application/pdf" multiple style="display:none;" onchange="importarVyPs(this.files)">
     <div id="planifList"></div>
+    <div id="planifGlobalList" style="display:none;"></div>
   </div>
 
   <!-- ══ INFORME ══ -->
@@ -1267,7 +1303,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.01';
+const APP_VERSION = 'v4.03';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3081,9 +3117,126 @@ function detectarBaterias(trabajo) {
 // ═══════════════════════════════════════════════════
 //  PLANIFICACIÓN
 // ═══════════════════════════════════════════════════
+let _planifTab = 'mis';
+
+function switchPlanifTab(tab) {
+  _planifTab = tab;
+  const miBtn = document.getElementById('tab-planif-mis');
+  const glBtn = document.getElementById('tab-planif-global');
+  const miList = document.getElementById('planifList');
+  const glList = document.getElementById('planifGlobalList');
+  const title = document.getElementById('planifTitle');
+  const sub = document.getElementById('planifSub');
+  const miNombre = getLS('t2-cfg')?.nombre || '';
+
+  if(tab === 'mis') {
+    miBtn.style.background = 'var(--rojo)'; miBtn.style.color = '#fff';
+    glBtn.style.background = 'transparent'; glBtn.style.color = 'var(--gris3)';
+    miList.style.display = ''; glList.style.display = 'none';
+    title.textContent = 'Planificación';
+    sub.textContent = miNombre ? 'Trabajos de ' + miNombre : 'Trabajos programados';
+    renderPlanif();
+  } else {
+    glBtn.style.background = 'var(--rojo)'; glBtn.style.color = '#fff';
+    miBtn.style.background = 'transparent'; miBtn.style.color = 'var(--gris3)';
+    miList.style.display = 'none'; glList.style.display = '';
+    title.textContent = 'Global';
+    sub.textContent = 'Todos los técnicos · Toda la planificación';
+    renderPlanifGlobal();
+  }
+}
+
+function renderPlanifGlobal() {
+  const el = document.getElementById('planifGlobalList');
+  if(!el) return;
+
+  const todos = [...S.planificacion].sort((a,b) => {
+    const fa = (a.fecha||'') + 'T' + (a.hora||'00:00');
+    const fb = (b.fecha||'') + 'T' + (b.hora||'00:00');
+    return fb.localeCompare(fa); // más recientes primero
+  });
+
+  const hoy = new Date().toISOString().slice(0,10);
+  const pendientesAtrasados = todos.filter(p => p.estado === 'PENDIENTE' && p.fecha && p.fecha < hoy);
+
+  // Update badge
+  const badge = document.getElementById('globalPendienteBadge');
+  if(badge) {
+    if(pendientesAtrasados.length > 0) {
+      badge.innerHTML = `<span style="background:var(--rojo);color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:4px;">${pendientesAtrasados.length}</span>`;
+    } else {
+      badge.innerHTML = '';
+    }
+  }
+
+  if(!todos.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-t">Sin planificación</div></div>';
+    return;
+  }
+
+  // Group by estado
+  const pendientes = todos.filter(p => p.estado === 'PENDIENTE' || !p.estado);
+  const completados = todos.filter(p => p.estado === 'COMPLETADO');
+  const cancelados = todos.filter(p => p.estado === 'CANCELADO');
+
+  const renderItem = (p, color) => {
+    const atrasado = p.estado === 'PENDIENTE' && p.fecha && p.fecha < hoy;
+    return `<div style="padding:10px 12px;border-left:3px solid ${color};background:#fff;border-radius:0 var(--rs) var(--rs) 0;margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:var(--gris3);">${p.fecha||'?'} ${p.hora||''} ${p.tecnico_asignado?'· '+p.tecnico_asignado.split(' ')[0]:''}</div>
+          <div style="font-weight:700;font-size:14px;">${p.centro}</div>
+          <div style="font-size:12px;color:var(--gris2);">${p.alias||''}</div>
+          ${p.trabajo?`<div style="font-size:11px;color:var(--gris3);margin-top:2px;">${(p.trabajo).slice(0,60)}</div>`:''}
+        </div>
+        ${atrasado?`<span class="badge badge-orange" style="flex-shrink:0;">ATRASADO</span>`:''}
+      </div>
+    </div>`;
+  };
+
+  let html = '';
+
+  if(pendientesAtrasados.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--rojo);padding:8px 0 4px;">⚠ ${pendientesAtrasados.length} PENDIENTE(S) ATRASADO(S)</div>`;
+    html += pendientesAtrasados.map(p => renderItem(p, 'var(--naranja)')).join('');
+  }
+
+  const pendientesOk = pendientes.filter(p => !p.fecha || p.fecha >= hoy);
+  if(pendientesOk.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--gris2);padding:8px 0 4px;">PENDIENTES (${pendientesOk.length})</div>`;
+    html += pendientesOk.map(p => renderItem(p, 'var(--gris4)')).join('');
+  }
+
+  if(completados.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--verde);padding:8px 0 4px;">COMPLETADOS (${completados.length})</div>`;
+    html += completados.map(p => renderItem(p, 'var(--verde)')).join('');
+  }
+
+  if(cancelados.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--gris3);padding:8px 0 4px;">CANCELADOS (${cancelados.length})</div>`;
+    html += cancelados.map(p => renderItem(p, 'var(--gris4)')).join('');
+  }
+
+  el.innerHTML = html;
+}
+
 function renderPlanif() {
   const el = document.getElementById('planifList');
   const miNombre = getLS('t2-cfg')?.nombre || '';
+
+  // Update title with technician name
+  const sub = document.getElementById('planifSub');
+  if(sub && _planifTab === 'mis') sub.textContent = miNombre ? 'Trabajos de ' + miNombre : 'Trabajos programados';
+
+  // Update global badge
+  const hoy = new Date().toISOString().slice(0,10);
+  const atrasados = S.planificacion.filter(p => p.estado === 'PENDIENTE' && p.fecha && p.fecha < hoy);
+  const badge = document.getElementById('globalPendienteBadge');
+  if(badge) {
+    badge.innerHTML = atrasados.length > 0
+      ? `<span style="background:var(--rojo);color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;margin-left:4px;">${atrasados.length}</span>`
+      : '';
+  }
   // Mostrar solo los asignados al técnico actual (o sin asignar)
   const pendientes = S.planificacion.filter(p=>{
     if(p.estado!=='PENDIENTE' && p.estado) return false;
@@ -6532,6 +6685,39 @@ function renderStats() {
       card2.style.borderLeft = '3px solid var(--naranja)';
     } else {
       card2.style.borderLeft = '3px solid var(--rojo)';
+    }
+  }
+
+  // Planificación global — todos los técnicos
+  const hoyStr = now.toISOString().slice(0,10);
+  const gpTotal = S.planificacion.length;
+  const gpCompletados = S.planificacion.filter(p => p.estado === 'COMPLETADO').length;
+  const gpCancelados = S.planificacion.filter(p => p.estado === 'CANCELADO').length;
+  const gpAtrasados = S.planificacion.filter(p => {
+    const f = parseFechaSort(p.fecha);
+    return p.estado === 'PENDIENTE' && f && f.toISOString().slice(0,10) < hoyStr;
+  }).length;
+  const gpPendientes = S.planificacion.filter(p => p.estado === 'PENDIENTE').length - gpAtrasados;
+
+  const setEl = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  setEl('gpTotal', gpTotal);
+  setEl('gpCompletados', gpCompletados);
+  setEl('gpCancelados', gpCancelados);
+  setEl('gpAtrasados', gpAtrasados);
+  setEl('gpPendientes', gpPendientes);
+
+  const gpCard = document.getElementById('globalPlanifCard');
+  const gpTrend = document.getElementById('globalPlanifTrend');
+  if(gpCard) {
+    if(gpAtrasados > 0) {
+      gpCard.style.borderLeft = '3px solid var(--rojo)';
+      if(gpTrend) { gpTrend.textContent = `⚠ ${gpAtrasados} ATRASADO${gpAtrasados>1?'S':''}`; gpTrend.style.color='var(--rojo)'; }
+    } else if(gpPendientes > 0) {
+      gpCard.style.borderLeft = '3px solid var(--naranja)';
+      if(gpTrend) { gpTrend.textContent = ''; }
+    } else {
+      gpCard.style.borderLeft = '3px solid var(--verde)';
+      if(gpTrend) { gpTrend.textContent = '✓ AL DÍA'; gpTrend.style.color='var(--verde)'; }
     }
   }
 }
