@@ -1303,7 +1303,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.04';
+const APP_VERSION = 'v4.05';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1351,16 +1351,16 @@ async function getSAToken() {
 //  GOOGLE REFRESH TOKEN — Una vez para siempre
 // ═══════════════════════════════════════════════════
 async function getGoogleRefreshToken() {
-  // Primero localStorage (más rápido y no requiere auth)
+  // Primero localStorage (más rápido)
   const local = localStorage.getItem('t2-google-refresh');
   if(local) return local;
-  // Luego Supabase si hay sesión
+  // Luego config_app en Supabase
   try {
     const sb = getSB();
-    const { data, error } = await sb.from('user_tokens').select('google_refresh_token').single();
-    if(data?.google_refresh_token) {
-      localStorage.setItem('t2-google-refresh', data.google_refresh_token);
-      return data.google_refresh_token;
+    const { data } = await sb.from('config_app').select('valor').eq('clave','google_refresh_token').single();
+    if(data?.valor) {
+      localStorage.setItem('t2-google-refresh', data.valor);
+      return data.valor;
     }
   } catch(e) {}
   return null;
