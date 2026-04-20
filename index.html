@@ -1303,7 +1303,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.06';
+const APP_VERSION = 'v4.07';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -6670,17 +6670,11 @@ function renderStats() {
     const f = parseFechaSort(p.fecha);
     return f && f >= start && f < end;
   });
-  const completadosSemana = S.intervenciones.filter(iv => {
-    const f = parseFechaSort(iv.fecha);
-    return f && f >= start && f < end;
-  });
-  const canceladosSemana = S.planificacion.filter(p => {
-    const f = parseFechaSort(p.fecha);
-    return f && f >= start && f < end && p.estado === 'CANCELADO';
-  }).length;
-  const completados = completadosSemana.length;
+  const completadosSemana = planifSemana.filter(p => p.estado === 'COMPLETADO').length;
+  const canceladosSemana = planifSemana.filter(p => p.estado === 'CANCELADO').length;
+  const pendientesPlanif = planifSemana.filter(p => p.estado === 'PENDIENTE').length;
+  const completados = completadosSemana;
   const cancelados = canceladosSemana;
-  const pendientesPlanif = planifSemana.filter(p=>p.estado==='PENDIENTE').length;
   const planif = completados + cancelados + pendientesPlanif;
 
   document.getElementById('semPlanif').textContent = planif;
