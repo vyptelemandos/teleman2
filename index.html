@@ -47,6 +47,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .proceso-dot-ok{background:#4ade80;box-shadow:0 0 8px #4ade80;}
 .proceso-dot-err{background:#f44336;box-shadow:0 0 6px #f44336;}
 @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.7);}}
+@keyframes semBlink{0%,100%{background:#fff;color:#7a0000;}50%{background:#e00000;color:#fff;}}
 
 /* SCROLL */
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
@@ -270,28 +271,6 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
   <div class="page on" id="p-inicio">
     <p class="pg-title">Hola, <span id="nombreUsuario">Técnico</span></p>
     <p class="pg-sub" id="fechaHoy"></p>
-    <div class="stats-grid" style="grid-template-columns:1fr;">
-      <div class="stat-card" id="statMesCard" style="border-left-color:var(--rojo);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div class="card-title">Intervenciones</div>
-          <div id="statMesTrend" style="font-size:11px;font-weight:600;font-family:'Roboto Mono',monospace;"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-          <div>
-            <div class="stat-n" id="statMes" style="color:var(--gris2);">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">ESTE MES</div>
-          </div>
-          <div>
-            <div class="stat-n" id="statMesPasado" style="color:var(--gris2);">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MES PASADO</div>
-          </div>
-          <div>
-            <div class="stat-n" id="statMedia" style="color:var(--gris2);">0</div>
-            <div style="font-size:11px;color:var(--gris4);margin-top:4px;">MEDIA 12M</div>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="stat-card" id="semanaCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div class="card-title">Semana en curso</div>
@@ -311,34 +290,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
         </div>
       </div>
     </div>
-    <div class="stat-card" id="globalPlanifCard" style="margin-bottom:10px;border-left:3px solid var(--gris4);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div class="card-title">Planificación global</div>
-        <div id="globalPlanifTrend" style="font-size:11px;font-weight:600;"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:4px;text-align:center;">
-        <div>
-          <div class="stat-n" style="font-size:22px;color:var(--gris3);" id="gpPendientes">0</div>
-          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">PEND.</div>
-        </div>
-        <div>
-          <div class="stat-n" style="font-size:22px;color:var(--naranja);" id="gpAtrasados">0</div>
-          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">ATRAS.</div>
-        </div>
-        <div>
-          <div class="stat-n" style="font-size:22px;color:var(--verde);" id="gpCompletados">0</div>
-          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">REALIZ.</div>
-        </div>
-        <div>
-          <div class="stat-n" style="font-size:22px;color:var(--rojo);" id="gpCancelados">0</div>
-          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">CANCEL.</div>
-        </div>
-        <div>
-          <div class="stat-n" style="font-size:22px;color:var(--azul);" id="gpTotal">0</div>
-          <div style="font-size:10px;color:var(--gris4);margin-top:4px;">TOTAL</div>
-        </div>
-      </div>
-    </div>
+    <div id="semanaStatusCard" style="margin-bottom:10px;"></div>
     <div id="alertasInicio"></div>
     <div class="card" id="borradoresCard" style="border-left:3px solid var(--verde);">
       <div class="card-head"><div class="card-title">Borradores</div></div>
@@ -1303,7 +1255,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.07';
+const APP_VERSION = 'v4.12';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -6578,6 +6530,56 @@ function drawSparkline(canvasId, data, color, dotColors) {
   });
 }
 
+function renderSemanaStatus(planifSemana) {
+  const el = document.getElementById('semanaStatusCard');
+  if(!el) return;
+  const ahora = new Date();
+  const hoyStr = ahora.toISOString().slice(0,10);
+  const ayer = new Date(ahora); ayer.setDate(ahora.getDate()-1);
+  const ayerStr = ayer.toISOString().slice(0,10);
+  const anteayer = new Date(ahora); anteayer.setDate(ahora.getDate()-2);
+  const anteayerStr = anteayer.toISOString().slice(0,10);
+  const esSab = ahora.getDay() === 6;
+  const pendientes = planifSemana.filter(p => p.estado === 'PENDIENTE');
+  const atrasados2d = pendientes.filter(p => p.fecha && p.fecha <= anteayerStr).length;
+  const atrasadosAyer = pendientes.filter(p => p.fecha && p.fecha <= ayerStr).length;
+  const total = planifSemana.length;
+  const completados = planifSemana.filter(p => p.estado === 'COMPLETADO').length;
+
+  let borderColor, iconSvg, msg, sub, extraStyle = '';
+
+  if(esSab && pendientes.length > 0) {
+    borderColor = '#e00000';
+    extraStyle = 'animation:semBlink 1.8s ease-in-out infinite;';
+    iconSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    msg = '¡SÁBADO! ' + pendientes.length + ' SIN CERRAR';
+    sub = 'El informe dominical se envía esta noche';
+  } else if(atrasados2d > 0) {
+    borderColor = '#e00000';
+    iconSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e00000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+    msg = atrasados2d + ' TRABAJO' + (atrasados2d>1?'S':'') + ' ATRASADO' + (atrasados2d>1?'S':'');
+    sub = 'Llevan más de 2 días sin completar';
+  } else if(atrasadosAyer > 0) {
+    borderColor = '#f59f00';
+    iconSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f59f00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    msg = atrasadosAyer + ' TRABAJO' + (atrasadosAyer>1?'S':'') + ' PENDIENTE' + (atrasadosAyer>1?'S':'') + ' DE AYER';
+    sub = 'Complétalos antes de continuar';
+  } else {
+    borderColor = '#16a34a';
+    iconSvg = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+    msg = 'SEMANA AL DÍA';
+    sub = completados + ' de ' + total + ' completados';
+  }
+
+  el.innerHTML = `<div style="background:#fff;border-radius:var(--r);box-shadow:var(--sombra);border-left:3px solid ${borderColor};display:flex;align-items:center;gap:14px;padding:14px 16px;${extraStyle}">
+    <div style="width:44px;height:44px;border-radius:50%;background:${borderColor}18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${iconSvg}</div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:${borderColor==='#16a34a'?'#14532d':borderColor==='#f59f00'?'#7c4a00':'#7a0000'};">${msg}</div>
+      <div style="font-size:11px;color:var(--gris3);margin-top:3px;">${sub}</div>
+    </div>
+  </div>`;
+}
+
 function renderStats() {
   const now = new Date();
   const parseFechaSort = (f) => {
@@ -6640,30 +6642,6 @@ function renderStats() {
   const mediaPorDia = mesesConDatos > 0 ? totalRatio / mesesConDatos : 0;
   const media = Math.round(mediaPorDia * nDiasTrabajados);
 
-  document.getElementById('statMes').textContent = ivMesActual.length;
-  document.getElementById('statMesPasado').textContent = ivMesPasado.length;
-  document.getElementById('statMedia').textContent = media;
-
-  // Color borde mes — comparar este mes vs media 12m
-  const diff = ivMesActual.length - media;
-  const card = document.getElementById('statMesCard');
-  const trend = document.getElementById('statMesTrend');
-  if(card && media > 0) {
-    if(diff >= 5) {
-      card.style.borderLeftColor = 'var(--azul)';
-      if(trend) { trend.textContent = `▲ +${diff}`; trend.style.color='var(--azul)'; }
-    } else if(diff <= -5) {
-      card.style.borderLeftColor = 'var(--rojo)';
-      if(trend) { trend.textContent = `▼ ${diff}`; trend.style.color='var(--rojo)'; }
-    } else {
-      card.style.borderLeftColor = 'var(--naranja)';
-      if(trend) { trend.textContent = `${diff>=0?'▲ +':'▼ '}${diff}`; trend.style.color='var(--naranja)'; }
-    }
-  } else {
-    if(card) card.style.borderLeftColor = 'var(--rojo)';
-    if(trend) { trend.textContent = ''; }
-  }
-
   // Semana en curso
   const { start, end } = getSemanaActual();
   const planifSemana = S.planificacion.filter(p => {
@@ -6677,55 +6655,24 @@ function renderStats() {
   const cancelados = canceladosSemana;
   const planif = completados + cancelados + pendientesPlanif;
 
-  document.getElementById('semPlanif').textContent = planif;
-  document.getElementById('semCompletados').textContent = completados;
-  document.getElementById('semCancelados').textContent = cancelados;
+  const setTxt = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  setTxt('semPlanif', planif);
+  setTxt('semCompletados', completados);
+  setTxt('semCancelados', cancelados);
+
+  renderSemanaStatus(planifSemana);
 
   const card2 = document.getElementById('semanaCard');
   if(card2) {
-    if(planif === 0 || completados + cancelados === planif) {
-      card2.style.borderLeft = '3px solid var(--verde)';
-    } else if(completados + cancelados >= planif * 0.5) {
-      card2.style.borderLeft = '3px solid var(--naranja)';
-    } else {
-      card2.style.borderLeft = '3px solid var(--rojo)';
-    }
-  }
-
-  // Planificación global — todos los técnicos, histórico completo
-  const ahora = new Date();
-  const totalPlanif = S.planificacionTotal.length ? S.planificacionTotal : S.planificacion;
-  const gpTotal = totalPlanif.length;
-  const gpCompletados = totalPlanif.filter(p => p.estado === 'COMPLETADO').length;
-  const gpCancelados = totalPlanif.filter(p => p.estado === 'CANCELADO').length;
-  const gpAtrasados = totalPlanif.filter(p => {
-    if(p.estado !== 'PENDIENTE') return false;
-    const fecha = p.fecha || '';
-    const hora = p.hora || '00:00';
-    const fechaHora = new Date(fecha + 'T' + hora);
-    return (ahora - fechaHora) > 60 * 60 * 1000;
-  }).length;
-  const gpPendientes = totalPlanif.filter(p => p.estado === 'PENDIENTE').length - gpAtrasados;
-  const setEl = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
-  setEl('gpTotal', gpTotal);
-  setEl('gpCompletados', gpCompletados);
-  setEl('gpCancelados', gpCancelados);
-  setEl('gpAtrasados', gpAtrasados);
-  setEl('gpPendientes', gpPendientes >= 0 ? gpPendientes : 0);
-
-  const gpCard = document.getElementById('globalPlanifCard');
-  const gpTrend = document.getElementById('globalPlanifTrend');
-  if(gpCard) {
-    if(gpAtrasados > 0) {
-      gpCard.style.borderLeft = '3px solid var(--rojo)';
-      if(gpTrend) { gpTrend.textContent = `⚠ ${gpAtrasados} ATRASADO${gpAtrasados>1?'S':''}`; gpTrend.style.color='var(--rojo)'; }
-    } else if(gpPendientes > 0) {
-      gpCard.style.borderLeft = '3px solid var(--naranja)';
-      if(gpTrend) { gpTrend.textContent = ''; }
-    } else {
-      gpCard.style.borderLeft = '3px solid var(--verde)';
-      if(gpTrend) { gpTrend.textContent = '✓ AL DÍA'; gpTrend.style.color='var(--verde)'; }
-    }
+    const ayerStr2 = new Date(); ayerStr2.setDate(ayerStr2.getDate()-1);
+    const anteayerStr2 = new Date(); anteayerStr2.setDate(anteayerStr2.getDate()-2);
+    const ay = ayerStr2.toISOString().slice(0,10);
+    const aa = anteayerStr2.toISOString().slice(0,10);
+    const at2d = planifSemana.filter(p => p.estado==='PENDIENTE' && p.fecha && p.fecha<=aa).length;
+    const atAy = planifSemana.filter(p => p.estado==='PENDIENTE' && p.fecha && p.fecha<=ay).length;
+    if(planif===0 || at2d===0 && atAy===0) card2.style.borderLeft='3px solid var(--verde)';
+    else if(at2d===0) card2.style.borderLeft='3px solid var(--naranja)';
+    else card2.style.borderLeft='3px solid var(--rojo)';
   }
 }
 
