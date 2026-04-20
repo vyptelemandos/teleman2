@@ -1303,7 +1303,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.05';
+const APP_VERSION = 'v4.06';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -6184,7 +6184,10 @@ async function leerPlanificacionDrive() {
       const { data: allData } = await sb.from('planificacion')
         .select('id,centro,alias,fecha,hora,estado,tecnico_asignado,zona,vyp')
         .order('fecha', {ascending:false});
-      if(allData) S.planificacionTotal = allData;
+      if(allData) {
+        S.planificacionTotal = allData;
+        renderStats(); // Update global stats now that we have full history
+      }
 
       return true;
     }
