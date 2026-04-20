@@ -1303,7 +1303,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.03';
+const APP_VERSION = 'v4.04';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1594,7 +1594,7 @@ const MATERIALES_DEFAULT = []; // Loaded from Drive
 // ═══════════════════════════════════════════════════
 const S = {
   auth: null, sheetId: null,
-  intervenciones: [], centros: [], planificacion: [],
+  intervenciones: [], centros: [], planificacion: [], planificacionTotal: [],
   borradores: {}, borradoresActual: null,
   baremos: [], frases: [], materiales: [],
   baremosActuales: [], materialesActuales: [],
@@ -6179,6 +6179,13 @@ async function leerPlanificacionDrive() {
         calEventId:      r.cal_event_id||null,
       }));
       setLS('t2-pl', S.planificacion);
+
+      // Load full history for global stats (all completed/cancelled)
+      const { data: allData } = await sb.from('planificacion')
+        .select('id,centro,alias,fecha,hora,estado,tecnico_asignado,zona,vyp')
+        .order('fecha', {ascending:false});
+      if(allData) S.planificacionTotal = allData;
+
       return true;
     }
   } catch(e) {
@@ -6688,23 +6695,26 @@ function renderStats() {
     }
   }
 
-  // Planificación global — todos los técnicos
-  const hoyStr = now.toISOString().slice(0,10);
-  const gpTotal = S.planificacion.length;
-  const gpCompletados = S.planificacion.filter(p => p.estado === 'COMPLETADO').length;
-  const gpCancelados = S.planificacion.filter(p => p.estado === 'CANCELADO').length;
-  const gpAtrasados = S.planificacion.filter(p => {
-    const f = parseFechaSort(p.fecha);
-    return p.estado === 'PENDIENTE' && f && f.toISOString().slice(0,10) < hoyStr;
+  // Planificación global — todos los técnicos, histórico completo
+  const ahora = new Date();
+  const totalPlanif = S.planificacionTotal.length ? S.planificacionTotal : S.planificacion;
+  const gpTotal = totalPlanif.length;
+  const gpCompletados = totalPlanif.filter(p => p.estado === 'COMPLETADO').length;
+  const gpCancelados = totalPlanif.filter(p => p.estado === 'CANCELADO').length;
+  const gpAtrasados = totalPlanif.filter(p => {
+    if(p.estado !== 'PENDIENTE') return false;
+    const fecha = p.fecha || '';
+    const hora = p.hora || '00:00';
+    const fechaHora = new Date(fecha + 'T' + hora);
+    return (ahora - fechaHora) > 60 * 60 * 1000;
   }).length;
-  const gpPendientes = S.planificacion.filter(p => p.estado === 'PENDIENTE').length - gpAtrasados;
-
+  const gpPendientes = totalPlanif.filter(p => p.estado === 'PENDIENTE').length - gpAtrasados;
   const setEl = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
   setEl('gpTotal', gpTotal);
   setEl('gpCompletados', gpCompletados);
   setEl('gpCancelados', gpCancelados);
   setEl('gpAtrasados', gpAtrasados);
-  setEl('gpPendientes', gpPendientes);
+  setEl('gpPendientes', gpPendientes >= 0 ? gpPendientes : 0);
 
   const gpCard = document.getElementById('globalPlanifCard');
   const gpTrend = document.getElementById('globalPlanifTrend');
