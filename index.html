@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.21';
+const APP_VERSION = 'v4.24';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -1307,7 +1307,7 @@ async function getGoogleRefreshToken() {
   // Luego config_app en Supabase
   try {
     const sb = getSB();
-    const { data } = await sb.from('config_app').select('valor').eq('clave','google_refresh_token').single();
+    const { data } = await sb.from('config_app').select('valor').eq('clave','google_refresh_token').maybeSingle();
     if(data?.valor) {
       localStorage.setItem('t2-google-refresh', data.valor);
       return data.valor;
@@ -3230,15 +3230,16 @@ function renderPlanif() {
     const isAtrasadoAyer = fecha < hoy && !isAtrasado2d;
     const dotColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris2)';
 
-    html += `<div style="display:flex;gap:0;margin-bottom:4px;">
-      <div style="width:52px;flex-shrink:0;text-align:right;padding-right:10px;padding-top:8px;">
-        <div style="font-size:20px;font-weight:700;color:${isAtrasado2d?'var(--rojo)':isAtrasadoAyer?'var(--naranja)':'var(--negro)'};line-height:1;">${day}</div>
-        <div style="font-size:9px;color:var(--gris3);margin-top:1px;">${dow} ${mes}</div>
+    const lineColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris4)';
+    const textColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris3)';
+
+    html += `<div style="display:flex;gap:0;margin-bottom:24px;">
+      <div style="width:28px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:3px;height:8px;background:${lineColor};border-radius:2px 2px 0 0;"></div>
+        <div style="font-size:9px;font-weight:700;color:${textColor};writing-mode:vertical-lr;transform:rotate(180deg);letter-spacing:1px;padding:3px 0;">${day} ${dow} ${mes}</div>
+        <div style="width:3px;flex:1;min-height:16px;background:${lineColor};border-radius:0 0 2px 2px;"></div>
       </div>
-      <div style="width:2px;background:var(--gris5);flex-shrink:0;margin-top:12px;position:relative;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};position:absolute;left:-4px;top:0;"></div>
-      </div>
-      <div style="flex:1;padding:4px 0 12px 12px;">
+      <div style="flex:1;padding:0 0 0 10px;">
         ${items.map(p => {
           const c = findCentro(p.centro);
           const batDate = c ? parseFecha(c.Fechasus) : null;
@@ -3792,6 +3793,7 @@ async function importarVyPs(files) {
       }
 
       datos.telefono = zonas[datos.zona] || '';
+      datos._file = file; // keep original PDF for Drive upload
       _importVyPQueue.push(datos);
     } catch(e) {
       console.error('Error procesando PDF:', file.name, e);
@@ -3944,6 +3946,24 @@ function saltarVyP() {
   mostrarVyPUno();
 }
 
+async function subirVyPDrive(file, datos) {
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const filename = `VyP-${datos.vyp||'?'}-${datos.centro||'?'}.pdf`;
+    const sb = getSB();
+    await sb.functions.invoke('subir-vyp', {
+      body: { fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64 }
+    });
+  } catch(e) {
+    console.warn('subirVyPDrive error:', e.message);
+  }
+}
+
 async function añadirVyPActual() {
   const d = _importVyPQueue[_importVyPIdx];
 
@@ -3992,8 +4012,9 @@ async function añadirVyPActual() {
       S.planificacion.push(planifEntry);
       setLS('t2-pl', S.planificacion);
       _importVyPStats.ok++;
-      // Crear evento en calendario si hay auth
       if(S.auth) crearEventoCalendario(planifEntry);
+      // Upload PDF to Drive in background
+      if(d._file) subirVyPDrive(d._file, d).catch(()=>{});
     } else {
       _importVyPStats.err++;
     }
