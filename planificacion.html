@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.75</title>
+<title>Teleman2 — Planificación v1.83</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -151,6 +151,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 .ev-late      { background:#fff8e1;color:#7c4a00;border-left:5px solid #f59f00;font-weight:500; }
 .ev-done      { background:#edfaf3;color:#0f5c30;border-left:5px solid #16a34a;font-weight:500; }
 .ev-cancelled { background:#fff0f0;color:#7a0000;border-left:5px solid #e00000;font-weight:500; }
+.ev-vacation  { background:#fff0f5;color:#880044;border-left:5px solid #FF00AA;font-weight:500;font-style:italic; }
 
 /* LIST VIEW */
 .planif-table { width:100%;border-collapse:collapse; }
@@ -256,6 +257,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     <button class="sb-btn" id="sb-importar" onclick="setView('importar')"><span style="font-family:sans-serif;font-style:normal;">📄</span> Importar VyP</button>
     <button class="sb-btn" id="sb-manual" onclick="openNuevoManual()"><span style="font-family:sans-serif;font-style:normal;">✏️</span> VyP manual</button>
     <button class="sb-btn" id="sb-agenda" onclick="openNuevoAgenda()"><span style="font-family:sans-serif;font-style:normal;">📆</span> Añadir agenda</button>
+    <button class="sb-btn" id="sb-vacaciones" onclick="abrirGestionVacaciones()"><span style="font-family:sans-serif;font-style:normal;">🏖</span> Vacaciones</button>
     <div class="sb-section">Mes</div>
     <div style="padding:4px 12px;display:flex;align-items:center;gap:6px;">
       <button class="cal-nav" onclick="calPrev()" style="flex-shrink:0;">‹</button>
@@ -282,6 +284,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
       <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#16a34a;"></span>Realizado</div>
       <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#e00000;"></span>Cancelado</div>
       <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#00bcd4;"></span>Agenda</div>
+      <div class="sb-legend-item"><span class="sb-legend-dot" style="background:#FF00AA;"></span>Vacaciones</div>
     </div>
     <div class="sb-section">Leyenda — Zonas</div>
     <div style="padding:4px 14px 8px;">
@@ -295,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.75</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.83</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -482,6 +485,7 @@ function getFestivosFijos(year) {
 }
 let festivos = []; // [{fecha, descripcion}]
 let agendaItems = []; // [{id, fecha, hora_ini, hora_fin, descripcion, tecnico}]
+let vacaciones = []; // [{id, tecnico, fecha_inicio, fecha_fin, descripcion}]
 
 const { createClient } = supabase;
 const sb = createClient(SB_URL, SB_KEY);
@@ -660,7 +664,7 @@ async function initApp() {
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
-  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda()]);
+  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda(), cargarVacaciones()]);
   setView('calendario');
   iniciarRealtime();
   // Check Drive token
@@ -996,6 +1000,96 @@ async function cargarAgenda() {
   } catch(e) { agendaItems = []; }
 }
 
+async function cargarVacaciones() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/vacaciones?select=*&order=fecha_inicio.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const data = await res.json();
+    vacaciones = Array.isArray(data) ? data : [];
+  } catch(e) { vacaciones = []; }
+}
+
+function getVacacionesDia(fechaStr) {
+  return vacaciones.filter(v => fechaStr >= v.fecha_inicio && fechaStr <= v.fecha_fin);
+}
+
+async function guardarVacaciones(tecnico, fechaInicio, fechaFin, descripcion) {
+  await fetch(`${SB_URL}/rest/v1/vacaciones`, {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ tecnico, fecha_inicio: fechaInicio, fecha_fin: fechaFin, descripcion: descripcion || 'Vacaciones' })
+  });
+  await cargarVacaciones();
+  renderCurrentView();
+}
+
+async function borrarVacaciones(id) {
+  await fetch(`${SB_URL}/rest/v1/vacaciones?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  });
+  await cargarVacaciones();
+  renderCurrentView();
+}
+
+function abrirGestionVacaciones() {
+  const tecnicosList = [...new Set(vacaciones.map(v=>v.tecnico))];
+  const todasOrdenadas = [...vacaciones].sort((a,b)=>a.fecha_inicio.localeCompare(b.fecha_inicio));
+  document.getElementById('modalDetalleTitle').textContent = 'Gestión de vacaciones';
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div class="field-label" style="margin-bottom:6px;">Añadir periodo de vacaciones</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div class="field-label">Técnico</div>
+          <select class="field-input" id="vac-tecnico">
+            <option value="">— Selecciona técnico —</option>
+            ${tecnicos.map(t=>'<option value="'+t+'">'+t+'</option>').join('')}
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Descripción (opcional)</div>
+          <input class="field-input" id="vac-desc" placeholder="Vacaciones">
+        </div>
+        <div>
+          <div class="field-label">Desde</div>
+          <input class="field-input" id="vac-ini" type="date">
+        </div>
+        <div>
+          <div class="field-label">Hasta</div>
+          <input class="field-input" id="vac-fin" type="date">
+        </div>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="addVacaciones()">Añadir</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Periodos registrados</div>
+    <div>
+      ${todasOrdenadas.length ? todasOrdenadas.map(v=>
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">' +
+        '<div><span style="font-weight:600;">' + v.tecnico + '</span> · ' + v.fecha_inicio + ' — ' + v.fecha_fin +
+        '<div style="font-size:11px;color:var(--text3);">' + (v.descripcion||'Vacaciones') + '</div></div>' +
+        '<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;" onclick="borrarVacaciones(\''+v.id+'\').then(()=>abrirGestionVacaciones())">×</button>' +
+        '</div>'
+      ).join('') : '<div style="color:var(--text3);font-size:12px;">Sin periodos registrados</div>'}
+    </div>`;
+  document.getElementById('modalDetalleFooter').innerHTML =
+    '<button class="btn btn-gray" onclick="closeModal(\'modalDetalle\')">Cerrar</button>';
+  openModal('modalDetalle');
+}
+
+async function addVacaciones() {
+  const tecnico = document.getElementById('vac-tecnico')?.value?.trim();
+  const ini = document.getElementById('vac-ini')?.value;
+  const fin = document.getElementById('vac-fin')?.value;
+  const desc = document.getElementById('vac-desc')?.value?.trim() || 'Vacaciones';
+  if(!tecnico||!ini||!fin) { toast('Técnico, fecha inicio y fin son obligatorios','err'); return; }
+  if(fin < ini) { toast('La fecha fin debe ser posterior al inicio','err'); return; }
+  await guardarVacaciones(tecnico, ini, fin, desc);
+  abrirGestionVacaciones();
+  toast('Vacaciones añadidas ✓','ok');
+}
+
 async function guardarFestivo(fecha, descripcion) {
   await fetch(`${SB_URL}/rest/v1/festivos`, {
     method: 'POST',
@@ -1094,6 +1188,8 @@ function verDetalleAgenda(id) {
 
 function abrirGestionFestivos() {
   const manuales = festivos.filter(f=>f.tipo==='manual'||f.id);
+  // All festivos sorted by date for display
+  const todosOrdenados = [...festivos].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
   document.getElementById('modalDetalleTitle').textContent = 'Gestión de festivos';
   document.getElementById('modalDetalleBody').innerHTML = `
     <div style="margin-bottom:14px;">
@@ -1104,14 +1200,14 @@ function abrirGestionFestivos() {
       </div>
       <button class="btn btn-red btn-sm" style="margin-top:8px;" onclick="addFestivoManual()">Añadir</button>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Festivos añadidos manualmente</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Todos los festivos</div>
     <div id="festivosList">
-      ${manuales.length ? manuales.map(f=>
+      ${todosOrdenados.length ? todosOrdenados.map(f=>
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">' +
         '<span>'+f.fecha+' — '+f.descripcion+'</span>' +
         (f.id ? '<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;" onclick="borrarFestivo(\''+f.id+'\');abrirGestionFestivos()">×</button>' : '<span style="font-size:10px;color:var(--text3)">fijo</span>') +
         '</div>'
-      ).join('') : '<div style="color:var(--text3);font-size:12px;">Sin festivos manuales añadidos</div>'}
+      ).join('') : '<div style="color:var(--text3);font-size:12px;">Sin festivos</div>'}
     </div>`;
   document.getElementById('modalDetalleFooter').innerHTML =
     '<button class="btn btn-gray" onclick="closeModal(\'modalDetalle\')">Cerrar</button>';
@@ -1171,7 +1267,7 @@ function iniciarRealtime() {
 // ─── VIEWS ───────────────────────────────────────────
 function setView(v) {
   currentView = v;
-  ['calendario','lista','importar','agenda'].forEach(id => {
+  ['calendario','lista','importar','agenda','manual'].forEach(id => {
     const btn = document.getElementById('sb-'+id);
     if(btn) btn.classList.toggle('active', id===v);
   });
@@ -1315,17 +1411,29 @@ function renderCalendario() {
         }).join('');
       }).join('');
 
+      // Vacation events for this day
+      const filtroTec = document.getElementById('filtroTecnico')?.value || '';
+      const vacsDia = getVacacionesDia(dateStr).filter(v => !filtroTec || v.tecnico === filtroTec);
+      const vacsHtml = vacsDia.map(v =>
+        '<div class="cal-event ev-vacation">🏖 VA · ' + v.tecnico.split(' ')[0] + '</div>'
+      ).join('');
+
       // Month label on 1st of month
       const monthLabel = date.getDate()===1 ? '<div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">'+meses[date.getMonth()].slice(0,3)+' '+date.getFullYear()+'</div>' : '';
+
+      // Day number — link to Drive folder if exists
+      const folderUrl = `https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS`;
+      const dayNum = '<span class="cal-day-num" style="margin-bottom:0;'+numColor+';cursor:pointer;" onclick="event.stopPropagation();abrirCarpetaDrive(\''+dateStr+'\')" title="Ver VyPs en Drive">'+date.getDate()+'</span>';
 
       rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
         monthLabel+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">'+
-          '<div class="cal-day-num" style="margin-bottom:0;'+numColor+'">'+date.getDate()+'</div>'+
+          dayNum+
           '<div style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;">'+agBadges+zonaBadges+
             '<span style="font-size:14px;color:#b0b0b0;cursor:pointer;padding:0 2px;" onclick="event.stopPropagation();abrirModalZona(\''+dateStr+'\')\"" title="Asignar zona">+</span>'+
           '</div>'+
         '</div>'+
+        vacsHtml+
         agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" ondblclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')\"">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
         eventosHtml+
       '</div>';
@@ -1556,19 +1664,19 @@ function calcEstadoSemana() {
   const hoyStr = hoy.toISOString().slice(0,10);
   const diaSemana = hoy.getDay();
   const esSab = diaSemana === 6;
+  const filtroTec = document.getElementById('filtroTecnico')?.value || '';
 
-  // Pending items with date <= today (should be done by now)
-  const atrasados = planificacion.filter(p => p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= hoyStr);
-  const atrasadosAyer = planificacion.filter(p => {
+  const filtrar = arr => filtroTec ? arr.filter(p => p.tecnico_asignado === filtroTec) : arr;
+
+  const atrasados = filtrar(planificacion.filter(p => p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= hoyStr));
+  const atrasadosAyer = filtrar(planificacion.filter(p => {
     const ayer = new Date(hoy); ayer.setDate(hoy.getDate()-1);
-    const ayerStr = ayer.toISOString().slice(0,10);
-    return p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= ayerStr;
-  });
-  const atrasadosAnteayer = planificacion.filter(p => {
+    return p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= ayer.toISOString().slice(0,10);
+  }));
+  const atrasadosAnteayer = filtrar(planificacion.filter(p => {
     const anteayer = new Date(hoy); anteayer.setDate(hoy.getDate()-2);
-    const anteayerStr = anteayer.toISOString().slice(0,10);
-    return p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= anteayerStr;
-  });
+    return p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha <= anteayer.toISOString().slice(0,10);
+  }));
 
   if(esSab && atrasados.length > 0) {
     return {color:'#fff', bg:'#cc0000', msg:'⚠ '+atrasados.length+' pendiente'+(atrasados.length>1?'s':'')+' sin cerrar esta semana', parpadea:true};
@@ -1583,11 +1691,16 @@ function calcEstadoSemana() {
 }
 
 function calcAvisoHistorico() {
-  // Check if there are pending items from last week
   const hoy = new Date();
   const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - (hoy.getDay()+6)%7);
   const lunesStr = lunes.toISOString().slice(0,10);
-  const pendientesAnteriores = planificacion.filter(p => p.estado !== 'COMPLETADO' && p.estado !== 'CANCELADO' && p.fecha < lunesStr);
+  const filtroTec = document.getElementById('filtroTecnico')?.value || '';
+  const pendientesAnteriores = planificacion.filter(p => {
+    if(p.estado === 'COMPLETADO' || p.estado === 'CANCELADO') return false;
+    if(p.fecha >= lunesStr) return false;
+    if(filtroTec && p.tecnico_asignado !== filtroTec) return false;
+    return true;
+  });
   return pendientesAnteriores.length;
 }
 
@@ -1620,10 +1733,12 @@ function renderDualStats() {
   const wr = getWeekRange(selectedWeekDate);
   const semWeekNum = getWeekNumber(selectedWeekDate);
   const semLabel = 'Semana ' + semWeekNum + ' · ' + wr.label;
-  const semItems = planificacion.filter(p=>p.fecha>=wr.ini && p.fecha<=wr.fin);
+  const filtroTec = document.getElementById('filtroTecnico')?.value || '';
+  const planifFiltrada = filtroTec ? planificacion.filter(p=>p.tecnico_asignado===filtroTec) : planificacion;
+  const semItems = planifFiltrada.filter(p=>p.fecha>=wr.ini && p.fecha<=wr.fin);
   renderEstadoChip();
   return '<div style="display:flex;gap:10px;margin-bottom:12px;">' +
-    statsBar(planificacion, 'Histórico total', false) +
+    statsBar(planifFiltrada, 'Histórico total', false) +
     statsBar(semItems, semLabel, true) +
     '</div>';
 }
@@ -1642,7 +1757,8 @@ function renderAgenda() {
   if(filtroTec) items = items.filter(a=>!a.tecnico||a.tecnico===filtroTec);
 
   content.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-gray" onclick="abrirGestionVacaciones()" style="flex-shrink:0;">🏖 Vacaciones</button>
       <button class="btn btn-red" onclick="abrirModalAgenda(new Date().toISOString().slice(0,10))">+ Nuevo evento</button>
     </div>
     ${items.length ? items.map(a=>`
@@ -2010,6 +2126,31 @@ async function procesarOAuthCode(code, redirectUri) {
   } catch(e) {
     alert('Error conectando Google: ' + e.message);
     return false;
+  }
+}
+
+async function abrirCarpetaDrive(fechaStr) {
+  // Build folder name AAMMDD
+  const parts = fechaStr.split('-');
+  const folderName = parts[0].slice(2) + parts[1] + parts[2];
+  const token = await getGoogleRefreshToken();
+  if(!token) { toast('Sin conexión a Drive','err'); return; }
+  try {
+    // Get access token
+    const res = await fetch(`${SB_URL}/functions/v1/subir-vyp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+      body: JSON.stringify({ _soloFolder: true, fecha: fechaStr, _refreshToken: token })
+    });
+    const data = await res.json();
+    if(data?.folderId) {
+      window.open('https://drive.google.com/drive/folders/' + data.folderId, '_blank');
+    } else {
+      // No folder yet — open parent VyP folder
+      window.open('https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS', '_blank');
+    }
+  } catch(e) {
+    window.open('https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS', '_blank');
   }
 }
 
