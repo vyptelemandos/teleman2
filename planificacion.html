@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.73</title>
+<title>Teleman2 — Planificación v1.74</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -295,10 +295,11 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.73</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.74</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
+      <div id="driveConnectBtn" onclick="iniciarOAuthGoogle()" style="cursor:pointer;margin-top:8px;font-size:var(--fs-xs);color:var(--text2);opacity:0.6;display:none;">🔗 Conectar Google Drive</div>
     </div>
   </div>
 
@@ -662,6 +663,10 @@ async function initApp() {
   await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda()]);
   setView('calendario');
   iniciarRealtime();
+  // Check Drive token
+  const token = await getGoogleRefreshToken();
+  const btn = document.getElementById('driveConnectBtn');
+  if(btn) btn.style.display = token ? 'none' : 'block';
 }
 
 async function cargarPlanificacion() {
@@ -1963,8 +1968,79 @@ function _mostrarFormulario() {
     </div>`;
 }
 
+const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
+
+async function getGoogleRefreshToken() {
+  // Try Supabase config_app first (shared token for all users)
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/config_app?clave=eq.google_refresh_token&select=valor`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const data = await res.json();
+    if(data?.[0]?.valor) return data[0].valor;
+  } catch(e) {}
+  return null;
+}
+
+async function saveGoogleRefreshToken(refreshToken) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/config_app`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ clave: 'google_refresh_token', valor: refreshToken })
+    });
+  } catch(e) { console.warn('Error guardando refresh_token:', e.message); }
+}
+
+async function procesarOAuthCode(code, redirectUri) {
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/google-oauth-exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+      body: JSON.stringify({ code, redirect_uri: redirectUri, client_id: CLIENT_ID })
+    });
+    const data = await res.json();
+    if(!data?.refresh_token) throw new Error('Sin refresh_token');
+    await saveGoogleRefreshToken(data.refresh_token);
+    alert('✓ Google Drive conectado para todos los usuarios');
+    return true;
+  } catch(e) {
+    alert('Error conectando Google: ' + e.message);
+    return false;
+  }
+}
+
+function iniciarOAuthGoogle() {
+  const redirectUri = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/drive',
+    access_type: 'offline',
+    prompt: 'consent',
+    state: 'google_oauth_vyp'
+  });
+  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  const popup = window.open(authUrl, 'google_oauth', 'width=500,height=600,left=200,top=100');
+  const timer = setInterval(async () => {
+    try {
+      if(!popup || popup.closed) { clearInterval(timer); return; }
+      const popupUrl = popup.location.href;
+      if(popupUrl.includes('code=') && popupUrl.includes('google_oauth_vyp')) {
+        clearInterval(timer);
+        const code = new URLSearchParams(popup.location.search).get('code');
+        popup.close();
+        if(code) await procesarOAuthCode(code, redirectUri);
+      }
+    } catch(e) {}
+  }, 500);
+}
+
 async function subirVyPDrive(fileObj, datos) {
   try {
+    const refreshToken = await getGoogleRefreshToken();
+    if(!refreshToken) { console.warn('subirVyPDrive: sin refresh token'); return; }
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result.split(',')[1]);
@@ -1975,7 +2051,7 @@ async function subirVyPDrive(fileObj, datos) {
     await fetch(`${SB_URL}/functions/v1/subir-vyp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
-      body: JSON.stringify({ fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64 })
+      body: JSON.stringify({ fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64, _refreshToken: refreshToken })
     });
   } catch(e) {
     console.warn('subirVyPDrive error:', e.message);
