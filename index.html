@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.24';
+const APP_VERSION = 'v4.26';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3446,6 +3446,10 @@ function showPlanifDetalle(id) {
   }
   html+=`<div class="div"></div>`;
   html+=`<div class="btn-row">`;
+  if(p.vyp_drive_id || p.vypDriveId) {
+    const driveId = p.vyp_drive_id || p.vypDriveId;
+    html+=`<a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-gray btn-sm" style="flex:1;text-decoration:none;">📄 VyP</a>`;
+  }
   html+=`<button class="btn btn-gray" style="flex:1;" onclick="closeAllModals();editarPlanif('${id}')">✏️ Editar</button>`;
   html+=`<button class="btn btn-gray" style="flex:2;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
   html+=`</div>`;
@@ -3948,6 +3952,8 @@ function saltarVyP() {
 
 async function subirVyPDrive(file, datos) {
   try {
+    const refreshToken = await getGoogleRefreshToken();
+    if(!refreshToken) { console.warn('subirVyPDrive: sin refresh token'); return; }
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => resolve(e.target.result.split(',')[1]);
@@ -3957,7 +3963,7 @@ async function subirVyPDrive(file, datos) {
     const filename = `VyP-${datos.vyp||'?'}-${datos.centro||'?'}.pdf`;
     const sb = getSB();
     await sb.functions.invoke('subir-vyp', {
-      body: { fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64 }
+      body: { fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64, _refreshToken: refreshToken }
     });
   } catch(e) {
     console.warn('subirVyPDrive error:', e.message);
@@ -6188,6 +6194,7 @@ async function leerPlanificacionDrive() {
         zona:            r.zona||'',
         tecnico_asignado:r.tecnico_asignado||'',
         calEventId:      r.cal_event_id||null,
+        vyp_drive_id:    r.vyp_drive_id||null,
       }));
       setLS('t2-pl', S.planificacion);
 
