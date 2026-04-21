@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.87</title>
+<title>Teleman2 — Planificación v1.88</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -144,14 +144,14 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
 .cal-day.domingo .cal-day-num { color:var(--red); }
 .cal-day-num  { font-size:17px;color:var(--text3);margin-bottom:4px;font-weight:600;cursor:pointer;user-select:none; }
 .cal-day.today .cal-day-num { color:var(--text);font-weight:800; }
-.cal-event    { padding:3px 6px;border-radius:3px;font-size:12px;margin-bottom:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;transition:opacity 0.15s; }
+.cal-event    { padding:3px 6px;border-radius:3px;font-size:12px;margin-bottom:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;font-style:italic;transition:opacity 0.15s;background:#f0f0f0;color:#333; }
 .cal-event:hover { opacity:0.8; }
-.ev-agenda    { background:#e0fffe;color:#007a7a;border-left:5px solid #00bcd4;font-weight:500;font-style:italic; }
-.ev-pending   { background:#f0f0f0;color:#444;border-left:5px solid #888;font-weight:500; }
-.ev-late      { background:#fff8e1;color:#7c4a00;border-left:5px solid #f59f00;font-weight:500; }
-.ev-done      { background:#edfaf3;color:#0f5c30;border-left:5px solid #16a34a;font-weight:500; }
-.ev-cancelled { background:#fff0f0;color:#7a0000;border-left:5px solid #e00000;font-weight:500; }
-.ev-vacation  { background:#fff0f5;color:#880044;border-left:5px solid #FF00AA;font-weight:500; }
+.ev-agenda    { border-left:5px solid #00bcd4; }
+.ev-pending   { border-left:5px solid #888; }
+.ev-late      { border-left:5px solid #f59f00; }
+.ev-done      { border-left:5px solid #16a34a; }
+.ev-cancelled { border-left:5px solid #e00000; }
+.ev-vacation  { border-left:5px solid #FF00AA; }
 
 /* LIST VIEW */
 .planif-table { width:100%;border-collapse:collapse; }
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.87</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.88</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
