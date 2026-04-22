@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.26';
+const APP_VERSION = 'v4.27';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2471,6 +2471,7 @@ function recogerFormulario() {
     vale: document.getElementById('f-vale')?.checked||false,
     nBaterias: parseInt(document.getElementById('f-nbaterias')?.value)||1,
     fotos: _fotosActuales.map(f => ({name: f.name, dataUrl: f.dataUrl})),
+    _planifId: S._planifId || null,
     ts: Date.now(),
   };
 }
@@ -2508,6 +2509,12 @@ function cargarBorrador(id) {
     resetFotos();
   }
   closeModal('modalInterv');
+  // Restore planif link
+  if(d._planifId) {
+    S._planifId = d._planifId;
+    const banner = document.getElementById('cancelarPlanifBanner');
+    if(banner) banner.style.display = 'flex';
+  }
 }
 
 function nuevoInforme() {

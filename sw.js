@@ -1,4 +1,4 @@
-const CACHE = 'teleman2-v426';
+const CACHE = 'teleman2-v427';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
