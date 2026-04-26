@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.27';
+const APP_VERSION = 'v4.28';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2329,7 +2329,7 @@ async function enviarPendientesAhora() {
     const { data, error } = await sb.functions.invoke('envio-dominical', { body: {} });
     if(error || !data?.ok) throw new Error(error?.message || data?.error || 'Error desconocido');
     setStatusBar('ENVIADO', 'ok');
-    toast(`✓ ${data.enviados} INFORMES ENVIADOS`, 'ok');
+    setTimeout(() => setStatusBar(null, null), 3000);
   } catch(e) {
     setStatusBar('ENVIADO', 'err');
     toast('ERROR AL ENVIAR: ' + e.message.slice(0,50), 'err');
@@ -2934,13 +2934,16 @@ async function generarInforme() {
       const pdfOk = await generarPDFviaEdge(d);
       if(pdfOk) {
         setStatusBar('PDF', 'ok');
+        await new Promise(r => setTimeout(r, 1000));
         // Certificación
         setStatusBar('CERT', 'working');
         const certOk = await añadirFilaCertificacion(d);
         if(certOk === false) {
           setStatusBar('CERT', 'err');
+          await new Promise(r => setTimeout(r, 2000));
         } else {
           setStatusBar('CERT', 'ok');
+          await new Promise(r => setTimeout(r, 1000));
         }
         // Fotos
         const fotosGuardadas = [..._fotosActuales];
@@ -2950,8 +2953,10 @@ async function generarInforme() {
           fotosOk = await subirFotosDrive(d, fotosGuardadas);
           if(fotosOk === false) {
             setStatusBar('FOTOS', 'err');
+            await new Promise(r => setTimeout(r, 2000));
           } else {
             setStatusBar('FOTOS', 'ok');
+            await new Promise(r => setTimeout(r, 1000));
           }
         }
         // Vale A1
@@ -2960,12 +2965,14 @@ async function generarInforme() {
           const valeOk = await generarValeA1viaEdge(d);
           if(valeOk === false) {
             setStatusBar('VALE', 'err');
+            await new Promise(r => setTimeout(r, 2000));
           } else {
-            setStatusBar('ENVIADO', 'ok');
+            setStatusBar('VALE', 'ok');
+            await new Promise(r => setTimeout(r, 1000));
           }
-        } else {
-          setStatusBar('ENVIADO', 'ok');
         }
+        setStatusBar('ENVIADO', 'ok');
+        setTimeout(() => setStatusBar(null, null), 3000);
         // Notificar Telegram
         const zonaCode2 = getZonaCode(d.zona);
         const msgTg = `📋 <b>Informe generado</b>\n` +
@@ -2977,10 +2984,8 @@ async function generarInforme() {
           (fotosGuardadas.length ? ` | Fotos: ${fotosOk!==false?'✅':'❌'}` : '') +
           (d.vale ? ` | Vale A1: ✅` : '');
         notificarTelegram(msgTg);
-        toast('INFORME GENERADO ✓','ok');
       } else {
         setStatusBar('PDF', 'err');
-        toast('GUARDADO EN SUPABASE. ERROR AL GENERAR PDF','warn');
       }
     }
     if(S._planifId) {
