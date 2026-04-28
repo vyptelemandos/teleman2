@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.93</title>
+<title>Teleman2 — Planificación v1.94</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.93</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.94</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -2188,19 +2188,6 @@ function iniciarOAuthGoogle() {
 
 async function notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, anterior) {
   try {
-    const token = await getGoogleRefreshToken();
-    if(!token) return;
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({
-        refresh_token: token,
-        client_id: CLIENT_ID,
-        client_secret: Deno?.env?.get?.('GOOGLE_CLIENT_SECRET') || '',
-        grant_type: 'refresh_token'
-      })
-    });
-    // Use Edge Function instead
     const emails = await fetch(`${SB_URL}/rest/v1/config_app?clave=in.(email_destino_1,email_destino_2)&select=clave,valor`, {
       headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
     }).then(r=>r.json()).then(rows => rows.map(r=>r.valor).filter(e=>e&&e.includes('@')));
