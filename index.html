@@ -992,6 +992,16 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 </nav>
 
 <!-- MODALES -->
+<div class="overlay" id="modalMapa">
+  <div class="card" style="max-width:600px;width:95%;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="card-header">
+      <span class="modal-title" id="modalMapaTitle">Ruta del día</span>
+      <button class="modal-close" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="modal-body" id="modalMapaBody" style="flex:1;overflow:auto;padding:0;"></div>
+  </div>
+</div>
+
 <div class="overlay" id="modalInterv">
   <div class="modal"><div class="modal-handle"></div>
     <div class="modal-head"><div class="modal-title" id="mIntervTitle">Intervención</div><button class="modal-close" onclick="closeModal('modalInterv')">×</button></div>
@@ -1253,7 +1263,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.34';
+const APP_VERSION = 'v4.35';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3243,9 +3253,14 @@ function renderPlanif() {
     const textColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris3)';
 
     html += `<div style="display:flex;gap:0;margin-bottom:24px;">
-      <div style="width:28px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
+      <div style="width:36px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;">
         <div style="width:3px;height:8px;background:${lineColor};border-radius:2px 2px 0 0;"></div>
-        <div style="font-size:9px;font-weight:700;color:${textColor};writing-mode:vertical-lr;transform:rotate(180deg);letter-spacing:1px;padding:3px 0;cursor:pointer;" onclick="abrirMapaDia('${fecha}')">${day} ${dow} ${mes} 🗺</div>
+        <div style="font-size:11px;font-weight:700;color:${textColor};writing-mode:vertical-lr;transform:rotate(180deg);letter-spacing:1px;padding:3px 0;cursor:pointer;display:flex;align-items:center;gap:4px;" onclick="abrirMapaDia('${fecha}')">
+          ${day} ${dow} ${mes}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${textColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+            <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 000-7H11a3.5 3.5 0 010-7H18"/><circle cx="18" cy="5" r="3"/>
+          </svg>
+        </div>
         <div style="width:3px;flex:1;min-height:16px;background:${lineColor};border-radius:0 0 2px 2px;"></div>
       </div>
       <div style="flex:1;padding:0 0 0 10px;">
@@ -3330,7 +3345,7 @@ async function getCoordConFallback(centro) {
 async function abrirMapaDia(fecha) {
   const miNombre = getLS('t2-cfg')?.nombre || '';
   const items = S.planificacion.filter(p =>
-    p.fecha === fecha && p.estado === 'PENDIENTE' &&
+    p.fecha === fecha && (!p.estado || p.estado === 'PENDIENTE') &&
     (!miNombre || !p.tecnico_asignado || p.tecnico_asignado === miNombre)
   ).sort((a,b) => (a.hora||'00:00').localeCompare(b.hora||'00:00'));
 
@@ -3351,25 +3366,18 @@ async function abrirMapaDia(fecha) {
   const sinDatos = puntos.filter(p=>p.tipo==='sin_datos');
   const avisoSinDatos = sinDatos.length ? `<div style="background:#fff3cd;border:1px solid #f59f00;border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:8px;">⚠ Sin GPS: ${sinDatos.map(p=>`${p.n}. ${p.centro}`).join(', ')}</div>` : '';
 
-  document.getElementById('modalTitle') && (document.getElementById('modalTitle').textContent = `Ruta ${titulo}`);
-
-  const mapHtml = `
+  document.getElementById('modalMapaTitle').textContent = `Ruta ${titulo}`;
+  document.getElementById('modalMapaBody').innerHTML = `
     <div style="padding:8px;">
       ${avisoSinDatos}
-      <div id="leafletMap" style="height:60vh;border-radius:8px;overflow:hidden;"></div>
-      <div style="margin-top:8px;display:flex;gap:8px;font-size:11px;">
-        <span>🔵 Exacto</span><span>🟡 Aprox. por población</span><span>❌ Sin datos</span>
+      <div id="leafletMap" style="height:55vh;border-radius:8px;overflow:hidden;"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;font-size:11px;color:var(--gris3);">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;border-radius:50%;background:#2196F3;display:inline-block;"></span>Exacto</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;border-radius:50%;background:#f59f00;display:inline-block;"></span>Aprox.</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:12px;border-radius:50%;background:#e00000;display:inline-block;"></span>Sin GPS</span>
       </div>
     </div>`;
-
-  // Use a generic modal
-  const modal = document.getElementById('modalPlanifDetalle') || document.getElementById('modalAlerta');
-  if(!modal) { toast('Error abriendo mapa','err'); return; }
-  const body = modal.querySelector('.modal-body') || modal.querySelector('.card');
-  if(body) body.innerHTML = mapHtml;
-  const title = modal.querySelector('.modal-title');
-  if(title) title.textContent = `🗺 Ruta ${titulo}`;
-  openModal(modal.id);
+  openModal('modalMapa');
 
   // Load Leaflet and render map
   if(!window.L) {
