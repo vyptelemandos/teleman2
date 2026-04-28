@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.28';
+const APP_VERSION = 'v4.30';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2926,8 +2926,6 @@ async function generarInforme() {
       actualizarEnSupabase(d).catch(()=>{});
       if(S.auth) await actualizarEnSheets(d);
       const pdfOk = await generarPDFviaEdge(d, true);
-      if(pdfOk) toast('INFORME MODIFICADO Y GUARDADO ✓','ok');
-      else toast('SUPABASE ACTUALIZADO. ERROR AL GENERAR PDF','warn');
     } else {
       await escribirEnSupabase(d);
       setStatusBar('PDF', 'working');
@@ -3047,7 +3045,6 @@ function generarValeA1() {
   // Mark vale A1 in current informe
   document.getElementById('f-vale').checked=true;
   autosave();
-  toast('VALE A1 GENERADO ✓','ok');
   // TODO: generate PDF with template
 }
 
@@ -3259,6 +3256,7 @@ function renderPlanif() {
           const tieneBat = detectarBaterias(p.trabajo);
           const coord = c?.Coord || p.coord || '';
           const borderColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris2)';
+          const tdcDupBadge = p.tdc_duplicado ? `<span class="badge badge-red" style="font-size:10px;">⚠ TDC DUPLICADO</span>` : '';
           return `<div class="planif-item" style="border-left-color:${borderColor};">
             <div class="planif-head" onclick="showPlanifDetalle('${p.id}')" style="cursor:pointer;">
               <div class="planif-info">
@@ -3267,6 +3265,7 @@ function renderPlanif() {
                 <div class="planif-alias">${p.alias||c?.Alias||''}</div>
                 <div class="planif-trabajo">${(p.trabajo||'').slice(0,80)}</div>
                 <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
+                  ${tdcDupBadge}
                   ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
                   ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
                 </div>
@@ -3514,17 +3513,20 @@ async function guardarEdicionPlanif(id) {
 
   const idx = S.planificacion.findIndex(x=>x.id===id);
   if(idx<0) return;
+  const nuevoTdc = v('mv-tdc');
+  const tdcCambio = nuevoTdc !== (S.planificacion[idx].tdc||'');
 
   S.planificacion[idx] = {
     ...S.planificacion[idx],
     centro, fecha,
     hora: v('mv-hora'),
     vyp: v('mv-vyp'),
-    tdc: v('mv-tdc'),
+    tdc: nuevoTdc,
     telefono: v('mv-telefono'),
     coord: v('mv-coord'),
     trabajo: vu('mv-trabajo'),
     solicitante: solicitanteVal,
+    ...(tdcCambio ? {tdc_duplicado: false} : {})
   };
   setLS('t2-pl', S.planificacion);
 
@@ -3534,11 +3536,12 @@ async function guardarEdicionPlanif(id) {
     centro, fecha,
     hora: v('mv-hora'),
     vyp: v('mv-vyp'),
-    tdc: v('mv-tdc'),
+    tdc: nuevoTdc,
     telefono: v('mv-telefono'),
     coord: v('mv-coord'),
     trabajo: vu('mv-trabajo'),
     solicitante: solicitanteVal,
+    ...(tdcCambio ? {tdc_duplicado: false} : {})
   }).eq('id', id);
 
   closeModal('modalNuevoVyP');
@@ -3982,6 +3985,78 @@ async function subirVyPDrive(file, datos) {
   }
 }
 
+async function comprobarTDCDuplicado(tdc, vyp, centro, fecha) {
+  // Solo tickets (8 dígitos), no LCL (10 dígitos)
+  if(!tdc || !/^\d{8}$/.test(tdc.toString())) return null;
+  try {
+    const sb = getSB();
+    const { data } = await sb.from('planificacion')
+      .select('vyp,centro,alias,fecha')
+      .eq('tdc', tdc)
+      .neq('vyp', vyp)
+      .limit(1);
+    if(data && data.length > 0) return data[0];
+  } catch(e) {}
+  return null;
+}
+
+async function notificarTDCDuplicado(tdc, vyp, centro, fecha, anterior) {
+  try {
+    const sb = getSB();
+    const { data: config } = await sb.from('config_app').select('clave,valor').in('clave',['email_destino_1','email_destino_2','google_refresh_token']);
+    const cfg = {};
+    (config||[]).forEach(r => cfg[r.clave] = r.valor);
+    if(!cfg.google_refresh_token) return;
+
+    // Get access token
+    const tokenRes = await sb.functions.invoke('google-oauth-exchange', {
+      body: { _accion: 'refresh', _refreshToken: cfg.google_refresh_token }
+    });
+    const accessToken = tokenRes?.data?.access_token;
+    if(!accessToken) return;
+
+    const emails = [cfg.email_destino_1, cfg.email_destino_2].filter(e => e && e.includes('@'));
+    if(!emails.length) return;
+
+    const subject = `⚠️ TDC duplicado — Ticket ${tdc}`;
+    const body = [
+      `Se ha detectado un TDC duplicado al importar un VyP.`,
+      ``,
+      `TDC: ${tdc}`,
+      `Centro nuevo: ${centro}`,
+      `VyP nuevo: ${vyp}`,
+      `Fecha: ${fecha}`,
+      ``,
+      `Este TDC ya estaba asignado a:`,
+      `Centro anterior: ${anterior.centro}${anterior.alias ? ' — ' + anterior.alias : ''}`,
+      `VyP anterior: ${anterior.vyp}`,
+      `Fecha anterior: ${anterior.fecha}`,
+      ``,
+      `Por favor, solicitar un nuevo Ticket para uno de los trabajos.`,
+      ``,
+      `Enviado automáticamente por Telemandos.`,
+    ].join('\n');
+
+    const emailParts = [
+      `From: Telemandos <vyptelemandos@gmail.com>`,
+      `To: ${emails.join(', ')}`,
+      `Subject: ${subject}`,
+      `Content-Type: text/plain; charset=utf-8`,
+      ``,
+      body
+    ].join('\r\n');
+    const raw = btoa(unescape(encodeURIComponent(emailParts))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+
+    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw })
+    });
+  } catch(e) {
+    console.warn('Error notificando TDC duplicado:', e.message);
+  }
+}
+
 async function añadirVyPActual() {
   const d = _importVyPQueue[_importVyPIdx];
 
@@ -4014,6 +4089,15 @@ async function añadirVyPActual() {
   };
 
   try {
+    // Comprobar TDC duplicado (solo tickets 8 dígitos)
+    const tdcDup = await comprobarTDCDuplicado(d.tdc, d.vyp, d.centro, d.fecha);
+    if(tdcDup) {
+      const msg = `⚠️ TDC ${d.tdc} ya asignado a VyP ${tdcDup.vyp} (${tdcDup.centro} · ${tdcDup.fecha})\n¿Continuar igualmente?`;
+      if(!confirm(msg)) return;
+      notificarTDCDuplicado(d.tdc, d.vyp, d.centro, d.fecha, tdcDup).catch(()=>{});
+      payload.tdc_duplicado = true;
+    }
+
     const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
       method: 'POST',
       headers: {
@@ -6207,6 +6291,7 @@ async function leerPlanificacionDrive() {
         tecnico_asignado:r.tecnico_asignado||'',
         calEventId:      r.cal_event_id||null,
         vyp_drive_id:    r.vyp_drive_id||null,
+        tdc_duplicado:   r.tdc_duplicado||false,
       }));
       setLS('t2-pl', S.planificacion);
 

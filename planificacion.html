@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.90</title>
+<title>Teleman2 — Planificación v1.92</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.90</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.92</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1407,7 +1407,7 @@ function renderCalendario() {
         const sep = gi>0?'<div style="margin:6px 0;border-top:3px solid #bbb;"></div>':'';
         return sep+todoEventos.filter(p=>(p.tecnico_asignado||'')===t).map(p=>{
           const col=getColor(p);
-          return '<div class="cal-event '+colorClass(col)+'" ondblclick="event.stopPropagation();verDetalle(\''+p.id+'\')\"">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+' </div>';
+          return '<div class="cal-event '+colorClass(col)+'" ondblclick="event.stopPropagation();verDetalle(\''+p.id+'\')\"">'+( p.hora||'')+' '+(p.centro||'')+(p.tecnico_asignado?' · '+p.tecnico_asignado.split(' ')[0]:'')+(p.tdc_duplicado?' ⚠':'')+'</div>';
         }).join('');
       }).join('');
 
@@ -1875,16 +1875,21 @@ function editarPlanif(id) {
 async function guardarEdicion(id) {
   const centro = document.getElementById('n-centro').value.trim().toUpperCase();
   const fecha = document.getElementById('n-fecha').value;
+  const nuevoTdc = document.getElementById('n-tdc').value;
   if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
+  // Find original TDC to check if changed
+  const original = planificacion.find(p=>p.id===id);
+  const tdcCambio = nuevoTdc !== (original?.tdc||'');
   await sb.from('planificacion').update({
     centro, fecha,
     hora: document.getElementById('n-hora').value,
     vyp: document.getElementById('n-vyp').value,
-    tdc: document.getElementById('n-tdc').value,
+    tdc: nuevoTdc,
     telefono: document.getElementById('n-tel').value,
     trabajo: document.getElementById('n-trabajo').value.toUpperCase(),
     solicitante: document.getElementById('n-solicitante').value.toUpperCase(),
     tecnico_asignado: document.getElementById('n-tecnico').value,
+    ...(tdcCambio ? {tdc_duplicado: false} : {})
   }).eq('id',id);
   await cargarPlanificacion();
   closeModal('modalNuevo');
@@ -2181,6 +2186,36 @@ function iniciarOAuthGoogle() {
   }, 500);
 }
 
+async function notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, anterior) {
+  try {
+    const token = await getGoogleRefreshToken();
+    if(!token) return;
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({
+        refresh_token: token,
+        client_id: CLIENT_ID,
+        client_secret: Deno?.env?.get?.('GOOGLE_CLIENT_SECRET') || '',
+        grant_type: 'refresh_token'
+      })
+    });
+    // Use Edge Function instead
+    const emails = await fetch(`${SB_URL}/rest/v1/config_app?clave=in.(email_destino_1,email_destino_2)&select=clave,valor`, {
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    }).then(r=>r.json()).then(rows => rows.map(r=>r.valor).filter(e=>e&&e.includes('@')));
+    if(!emails.length) return;
+    await fetch(`${SB_URL}/functions/v1/envio-dominical`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY},
+      body: JSON.stringify({
+        _accion: 'tdc_duplicado',
+        tdc, vyp, centro, fecha, anterior, emails
+      })
+    });
+  } catch(e) { console.warn('notificarTDCDuplicadoWeb:', e.message); }
+}
+
 async function subirVyPDrive(fileObj, datos) {
   try {
     const refreshToken = await getGoogleRefreshToken();
@@ -2213,6 +2248,22 @@ async function _confirmarImport() {
   if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
   if(planificacion.find(p=>p.vyp && p.vyp===vyp)) { toast('VyP ya existe, saltando','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
 
+  // Comprobar TDC duplicado (solo tickets 8 dígitos)
+  const tdc = document.getElementById('f-tdc')?.value||'';
+  if(/^\d{8}$/.test(tdc)) {
+    const dupRes = await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&select=vyp,centro,alias,fecha&limit=1`, {
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    });
+    const dupData = await dupRes.json();
+    if(dupData && dupData.length > 0) {
+      const ant = dupData[0];
+      const msg = `⚠️ TDC ${tdc} ya asignado a VyP ${ant.vyp}\n${ant.centro}${ant.alias?' — '+ant.alias:''} · ${ant.fecha}\n\n¿Continuar igualmente?`;
+      if(!confirm(msg)) { document.querySelectorAll('#formContainer button').forEach(b=>b.disabled=false); return; }
+      // Notificar por email en background
+      notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, ant).catch(()=>{});
+    }
+  }
+
   // Disable buttons to prevent double submit
   document.querySelectorAll('#formContainer button').forEach(b=>b.disabled=true);
 
@@ -2228,7 +2279,8 @@ async function _confirmarImport() {
       trabajo: (document.getElementById('f-trabajo')?.value||'').toUpperCase()||null,
       solicitante: document.getElementById('f-sol')?.value?.toUpperCase()||null,
       zona: zona||null, tecnico_asignado: tecnico||null,
-      telefono, estado: 'PENDIENTE'
+      telefono, estado: 'PENDIENTE',
+      tdc_duplicado: /^\d{8}$/.test(tdc) && (await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&select=id&limit=1`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()).then(d=>d.length>0).catch(()=>false))
     };
 
     const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
