@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.32';
+const APP_VERSION = 'v4.33';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3273,9 +3273,9 @@ function renderPlanif() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
             </div>
             <div class="planif-actions">
+              ${p.vyp_drive_id ? `<a href="https://drive.google.com/file/d/${p.vyp_drive_id}/view" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;">📄 VyP</a>` : ''}
               <button class="btn btn-gray btn-sm" style="flex:1;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${p.id}')">📝 Iniciar informe</button>
               ${coord?`<a href="https://maps.google.com/?q=${coord}" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>`:''}
-              <button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="cancelarVyP('${p.id}')">✕</button>
             </div>
           </div>`;
         }).join('')}
@@ -3315,17 +3315,42 @@ function iniciarDesde(id) {
   goPage('p-informe');
 }
 
-async function cancelarVyP(id) {
-  // Use custom confirm via toast + second tap instead of confirm()
-  if(!window._cancelPending) {
-    window._cancelPending=id;
-    toast('TOCA OTRA VEZ PARA CONFIRMAR','warn');
-    setTimeout(()=>window._cancelPending=null,3000);
-    return;
+function pedirMotivoCancelacion(id) {
+  const p = S.planificacion.find(x=>x.id===id);
+  if(!p) return;
+  // Reutilizar modal de alerta con input
+  const html = `
+    <div style="padding:16px;">
+      <p style="font-size:14px;color:var(--gris2);margin-bottom:12px;">Motivo de cancelación de <b>${p.centro}</b></p>
+      <textarea id="motivoCancelInput" class="field-input" placeholder="Escribe el motivo..." style="width:100%;height:80px;resize:none;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-gray" style="flex:1;" onclick="closeAllModals()">Cancelar</button>
+        <button class="btn" style="flex:2;background:var(--rojo);color:#fff;" onclick="confirmarCancelacionConMotivo('${id}')">Confirmar cancelación</button>
+      </div>
+    </div>`;
+  const modal = document.getElementById('modalAlerta') || document.getElementById('modalPlanifDetalle');
+  if(modal) {
+    modal.querySelector('.modal-body, .card-body') && (modal.querySelector('.modal-body, .card-body').innerHTML = html);
+    openModal(modal.id);
+  } else {
+    // Fallback: usar prompt del navegador
+    const motivo = prompt(`Motivo de cancelación de ${p.centro}:`);
+    if(motivo === null) return;
+    if(!motivo.trim()) { toast('Escribe un motivo','err'); return; }
+    cancelarVyP(id, motivo.trim());
   }
-  if(window._cancelPending===id) {
-    window._cancelPending=null;
-    const cancelP = S.planificacion.find(x=>x.id===id);
+}
+
+async function confirmarCancelacionConMotivo(id) {
+  const motivo = document.getElementById('motivoCancelInput')?.value?.trim();
+  if(!motivo) { toast('ESCRIBE UN MOTIVO','err'); return; }
+  closeAllModals();
+  await cancelarVyP(id, motivo);
+}
+
+async function cancelarVyP(id, motivo = '') {
+  if(!motivo) { pedirMotivoCancelacion(id); return; }
+  const cancelP = S.planificacion.find(x=>x.id===id);
     // Guardar fecha de cancelación para stats de semana
     if(cancelP?.fecha) {
       if(!S.canceladosSemana) S.canceladosSemana = [];
@@ -3347,9 +3372,8 @@ async function cancelarVyP(id) {
     }
     S.planificacion=S.planificacion.filter(x=>x.id!==id);
     setLS('t2-pl',S.planificacion); renderPlanif(); renderStats();
-    actualizarEstadoPlanifSupabase(id, 'CANCELADO').catch(()=>{});
+    actualizarEstadoPlanifSupabase(id, 'CANCELADO', motivo).catch(()=>{});
     toast('TRABAJO CANCELADO');
-  }
 }
 
 function onZonaChange(sel) {
@@ -3463,6 +3487,7 @@ function showPlanifDetalle(id) {
   }
   html+=`<button class="btn btn-gray" style="flex:1;" onclick="closeAllModals();editarPlanif('${id}')">✏️ Editar</button>`;
   html+=`<button class="btn btn-gray" style="flex:2;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${id}')">📝 Iniciar informe</button>`;
+  html+=`<button class="btn btn-gray btn-sm" style="color:var(--rojo);" onclick="closeAllModals();pedirMotivoCancelacion('${id}')">✕</button>`;
   html+=`</div>`;
 
   // Reuse modalInterv for this
@@ -5165,18 +5190,19 @@ async function escribirPlanifSupabase(p) {
   } catch(e) { console.warn('Supabase planif error (no crítico):', e.message); }
 }
 
-async function actualizarEstadoPlanifSupabase(id, estado) {
+async function actualizarEstadoPlanifSupabase(id, estado, motivo = '') {
   try {
     const sb = getSB();
-    // Al completar, guardar también el técnico que lo realizó
     const updateData = { estado };
     if(estado === 'COMPLETADO') {
       const tec1 = S.miNombre || getLS('t2-cfg')?.nombre || '';
       if(tec1) updateData.tecnico_asignado = tec1;
     }
+    if(estado === 'CANCELADO' && motivo) {
+      updateData.motivo_cancelacion = motivo;
+    }
     const { error } = await sb.from('planificacion').update(updateData).eq('id', id);
     if(error) console.warn('Supabase planif estado warn:', error.message);
-    
   } catch(e) { console.warn('Supabase planif estado error (no crítico):', e.message); }
 }
 
