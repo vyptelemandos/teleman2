@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.31';
+const APP_VERSION = 'v4.32';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4003,54 +4003,12 @@ async function comprobarTDCDuplicado(tdc, vyp, centro, fecha) {
 async function notificarTDCDuplicado(tdc, vyp, centro, fecha, anterior) {
   try {
     const sb = getSB();
-    const { data: config } = await sb.from('config_app').select('clave,valor').in('clave',['email_destino_1','email_destino_2','google_refresh_token']);
+    const { data: config } = await sb.from('config_app').select('clave,valor').in('clave',['email_destino_1','email_destino_2']);
     const cfg = {};
     (config||[]).forEach(r => cfg[r.clave] = r.valor);
-    if(!cfg.google_refresh_token) return;
-
-    // Get access token
-    const tokenRes = await sb.functions.invoke('google-oauth-exchange', {
-      body: { _accion: 'refresh', _refreshToken: cfg.google_refresh_token }
-    });
-    const accessToken = tokenRes?.data?.access_token;
-    if(!accessToken) return;
-
     const emails = [cfg.email_destino_1, cfg.email_destino_2].filter(e => e && e.includes('@'));
-    if(!emails.length) return;
-
-    const subject = `⚠️ TDC duplicado — Ticket ${tdc}`;
-    const body = [
-      `Se ha detectado un TDC duplicado al importar un VyP.`,
-      ``,
-      `TDC: ${tdc}`,
-      `Centro nuevo: ${centro}`,
-      `VyP nuevo: ${vyp}`,
-      `Fecha: ${fecha}`,
-      ``,
-      `Este TDC ya estaba asignado a:`,
-      `Centro anterior: ${anterior.centro}${anterior.alias ? ' — ' + anterior.alias : ''}`,
-      `VyP anterior: ${anterior.vyp}`,
-      `Fecha anterior: ${anterior.fecha}`,
-      ``,
-      `Por favor, solicitar un nuevo Ticket para uno de los trabajos.`,
-      ``,
-      `Enviado automáticamente por Telemandos.`,
-    ].join('\n');
-
-    const emailParts = [
-      `From: Telemandos <vyptelemandos@gmail.com>`,
-      `To: ${emails.join(', ')}`,
-      `Subject: ${subject}`,
-      `Content-Type: text/plain; charset=utf-8`,
-      ``,
-      body
-    ].join('\r\n');
-    const raw = btoa(unescape(encodeURIComponent(emailParts))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-
-    await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ raw })
+    await sb.functions.invoke('envio-dominical', {
+      body: { _accion: 'tdc_duplicado', tdc, vyp, centro, fecha, anterior, emails }
     });
   } catch(e) {
     console.warn('Error notificando TDC duplicado:', e.message);
