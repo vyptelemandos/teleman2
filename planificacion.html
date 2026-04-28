@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.98</title>
+<title>Teleman2 — Planificación v1.95</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.98</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.95</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -1423,7 +1423,7 @@ function renderCalendario() {
 
       // Day number — link to Drive folder if exists
       const folderUrl = `https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS`;
-      const dayNum = '<span class="cal-day-num" style="margin-bottom:0;'+numColor+';">'+date.getDate()+'</span><svg onclick="event.stopPropagation();abrirMapaDiaWeb(\''+dateStr+'\')" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;margin-left:3px;vertical-align:middle;" title="Ver ruta del día"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 000-7H11a3.5 3.5 0 010-7H18"/><circle cx="18" cy="5" r="3"/></svg>';
+      const dayNum = '<span class="cal-day-num" style="margin-bottom:0;'+numColor+';cursor:pointer;" onclick="event.stopPropagation();abrirCarpetaDrive(\''+dateStr+'\')" title="Ver VyPs en Drive">'+date.getDate()+'</span>';
 
       rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
         monthLabel+
@@ -2134,92 +2134,6 @@ async function procesarOAuthCode(code, redirectUri) {
     alert('Error conectando Google: ' + e.message);
     return false;
   }
-}
-
-async function abrirMapaDiaWeb(fecha) {
-  const tecnicoFiltro = document.getElementById('filtroTecnico')?.value || '';
-  let items = planificacion.filter(p =>
-    p.fecha === fecha && p.estado === 'PENDIENTE' &&
-    (!tecnicoFiltro || tecnicoFiltro === 'TODOS LOS TÉCNICOS' || p.tecnico_asignado === tecnicoFiltro)
-  ).sort((a,b) => (a.hora||'00:00').localeCompare(b.hora||'00:00'));
-
-  if(!items.length) { toast('Sin trabajos este día','warn'); return; }
-
-  // Build points with coords
-  const puntos = await Promise.all(items.map(async (p, i) => {
-    let coord = p.coord || '';
-    let tipo = coord ? 'exacto' : 'sin_datos';
-    if(!coord) {
-      try {
-        const res = await fetch(`${SB_URL}/rest/v1/centros_coords?centro=ilike.${encodeURIComponent(p.centro)}&select=coord&limit=1`, {
-          headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-        });
-        const data = await res.json();
-        if(data && data.length > 0) { coord = data[0].coord; tipo = 'exacto'; }
-      } catch(e) {}
-    }
-    return { n: i+1, centro: p.centro, alias: p.alias||'', hora: p.hora||'', coord, tipo };
-  }));
-
-  const sinDatos = puntos.filter(p=>p.tipo==='sin_datos');
-  const avisoSinDatos = sinDatos.length ? `<div style="background:#fff3cd;border:1px solid #f59f00;border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:8px;">⚠ Sin GPS: ${sinDatos.map(p=>`${p.n}. ${p.centro}`).join(', ')}</div>` : '';
-
-  const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const d = new Date(fecha+'T12:00:00');
-  const titulo = `${d.getDate()} ${DIAS[d.getDay()]} ${MESES[d.getMonth()]}`;
-
-  document.getElementById('modalDetalleTitle').textContent = `🗺 Ruta ${titulo}`;
-  document.getElementById('modalDetalleBody').innerHTML = `
-    ${avisoSinDatos}
-    <div id="leafletMapWeb" style="height:500px;border-radius:8px;overflow:hidden;"></div>
-    <div style="margin-top:8px;display:flex;gap:12px;font-size:12px;color:#666;">
-      <span>🔵 Exacto</span><span>🟡 Aprox. por población</span>
-    </div>`;
-  openModal('modalDetalle');
-
-  if(!window.L) {
-    await new Promise(resolve => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-      document.head.appendChild(link);
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-      script.onload = resolve;
-      document.head.appendChild(script);
-    });
-  }
-
-  await new Promise(r => setTimeout(r, 100));
-  const mapEl = document.getElementById('leafletMapWeb');
-  if(!mapEl) return;
-
-  const map = L.map('leafletMapWeb').setView([41.5, -0.5], 8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
-
-  const bounds = [];
-  for(const p of puntos) {
-    if(!p.coord || !p.coord.includes(',')) continue;
-    const parts = p.coord.split(',');
-    const lat = parseFloat(parts[0]);
-    const lon = parseFloat(parts[1]);
-    if(isNaN(lat)||isNaN(lon)) continue;
-    const color = p.tipo === 'exacto' ? '#2196F3' : '#f59f00';
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="background:${color};color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${p.n}</div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14]
-    });
-    L.marker([lat, lon], {icon}).addTo(map)
-      .bindPopup(`<b>${p.n}. ${p.centro}</b>${p.alias?' — '+p.alias:''}<br>${p.hora}`);
-    bounds.push([lat, lon]);
-  }
-
-  if(bounds.length > 0) map.fitBounds(bounds, {padding: [40, 40]});
-  if(bounds.length === 1) map.setZoom(14);
 }
 
 async function abrirCarpetaDrive(fechaStr) {
