@@ -1253,7 +1253,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.30';
+const APP_VERSION = 'v4.31';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3987,7 +3987,7 @@ async function subirVyPDrive(file, datos) {
 
 async function comprobarTDCDuplicado(tdc, vyp, centro, fecha) {
   // Solo tickets (8 dígitos), no LCL (10 dígitos)
-  if(!tdc || !/^\d{8}$/.test(tdc.toString())) return null;
+  if(!tdc || !/^\d{7,8}$/.test(tdc.toString())) return null;
   try {
     const sb = getSB();
     const { data } = await sb.from('planificacion')
