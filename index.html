@@ -621,7 +621,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
     </div>
     <div class="btn-row" style="margin-bottom:10px;">
       <button class="btn btn-red btn-sm" onclick="abrirNuevoCentro()">+ Nueva instalación</button>
-      <button class="btn btn-gray btn-sm" onclick="sincronizarCentros()">↻ Actualizar desde Drive</button>
+      
     </div>
     <div id="centroList"></div>
   </div>
@@ -1263,7 +1263,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.43';
+const APP_VERSION = 'v4.44';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -7195,27 +7195,21 @@ function closeModal(id){document.getElementById(id)?.classList.remove('on');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 
 // Interceptar gesto atrás en Android
-window.addEventListener('popstate', (e) => {
-  // Si hay algún modal abierto, cerrarlo
+history.replaceState({page: 'p-inicio'}, '');
+window.addEventListener('popstate', () => {
   const modalAbierto = document.querySelector('.overlay.on');
   if(modalAbierto) {
     modalAbierto.classList.remove('on');
+    history.pushState({}, '');
     return;
   }
-  // Si estamos en una página que no es inicio, volver a inicio
   const paginaActual = document.querySelector('.page.on');
   if(paginaActual && paginaActual.id !== 'p-inicio') {
     goPage('p-inicio');
-    history.pushState({page: 'p-inicio'}, '');
+    history.pushState({}, '');
     return;
   }
-  // Si estamos en inicio, no hacer nada (no salir de la app)
-  history.pushState({page: 'p-inicio'}, '');
-});
-
-// Inicializar estado del historial al arrancar
-window.addEventListener('DOMContentLoaded', () => {
-  history.replaceState({page: 'p-inicio'}, '');
+  history.pushState({}, '');
 });
 
 function toast(msg,type='') {
