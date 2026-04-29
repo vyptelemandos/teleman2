@@ -1263,7 +1263,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.35';
+const APP_VERSION = 'v4.37';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3335,7 +3335,7 @@ async function getCoordConFallback(centro) {
   if(c?.Coord) return { coord: c.Coord, tipo: 'exacto' };
   try {
     const sb = getSB();
-    const { data } = await sb.from('centros_coords').select('coord').ilike('centro', centro).limit(1);
+    const { data } = await sb.from('centros_coords').select('coord').ilike('centro', `%${centro}%`).limit(1);
     if(data && data.length > 0) return { coord: data[0].coord, tipo: 'exacto' };
   } catch(e) {}
   if(c?.Municipio) return { coord: c.Municipio + ', España', tipo: 'aproximado' };
@@ -4150,6 +4150,7 @@ async function comprobarTDCDuplicado(tdc, vyp, centro, fecha) {
       .select('vyp,centro,alias,fecha')
       .eq('tdc', tdc)
       .neq('vyp', vyp)
+      .neq('estado', 'CANCELADO')
       .limit(1);
     if(data && data.length > 0) return data[0];
   } catch(e) {}
