@@ -1263,7 +1263,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.39';
+const APP_VERSION = 'v4.40';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3561,10 +3561,18 @@ function obtenerGPS(targetId) {
   );
 }
 
-function showPlanifDetalle(id) {
+async function showPlanifDetalle(id) {
   const p=S.planificacion.find(x=>x.id===id); if(!p) return;
   const c=findCentro(p.centro);
-  const coord=c?.Coord||p.coord||'';
+  let coord=c?.Coord||p.coord||'';
+  // Si no hay coord, buscar en centros_coords
+  if(!coord) {
+    try {
+      const sb = getSB();
+      const { data } = await sb.from('centros_coords').select('coord').ilike('centro', `%${p.centro}%`).limit(1);
+      if(data && data.length > 0) coord = data[0].coord;
+    } catch(e) {}
+  }
   const batDate=c?parseFecha(c.Fechasus):null;
   const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
   const tieneBat=detectarBaterias(p.trabajo);
