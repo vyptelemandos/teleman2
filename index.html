@@ -1263,7 +1263,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.40';
+const APP_VERSION = 'v4.41';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -3749,7 +3749,15 @@ async function addVyPManual() {
   const centro=vu('mv-centro'), fecha=v('mv-fecha');
   if(!centro||!fecha){toast('CENTRO Y FECHA SON OBLIGATORIOS','err');return;}
   const c=findCentro(centro);
-  const coordFinal = v('mv-coord') || c?.Coord || '';
+  let coordFinal = v('mv-coord') || c?.Coord || '';
+  // Si no hay coord, buscar en centros_coords
+  if(!coordFinal) {
+    try {
+      const sb = getSB();
+      const { data } = await sb.from('centros_coords').select('coord').ilike('centro', `%${centro}%`).limit(1);
+      if(data && data.length > 0) coordFinal = data[0].coord;
+    } catch(e) {}
+  }
   const solicitanteVal = v('mv-solicitante')==='__nuevo__' ? vu('mv-solicitante-manual') : v('mv-solicitante');
   if(!solicitanteVal) { toast('SOLICITANTE ES OBLIGATORIO','err'); return; }
   // Save new solicitante to history
@@ -4218,6 +4226,16 @@ async function añadirVyPActual() {
     d.tecnico_asignado = document.getElementById('vyp-edit-tecnico')?.value || '';
   }
   const tecnicoAsignado = d.tecnico_asignado || (getLS('t2-cfg')?.nombre || '');
+  // Buscar coordenadas
+  const cDato = findCentro(d.centro);
+  let coordPayload = cDato?.Coord || '';
+  if(!coordPayload) {
+    try {
+      const sb = getSB();
+      const { data } = await sb.from('centros_coords').select('coord').ilike('centro', `%${d.centro}%`).limit(1);
+      if(data && data.length > 0) coordPayload = data[0].coord;
+    } catch(e) {}
+  }
   const payload = {
     id: 'VYP-' + d.vyp,
     centro: d.centro,
@@ -4231,6 +4249,7 @@ async function añadirVyPActual() {
     telefono: d.telefono,
     estado: 'PENDIENTE',
     tecnico_asignado: tecnicoAsignado,
+    coord: coordPayload || null,
   };
 
   try {
