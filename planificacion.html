@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.97</title>
+<title>Teleman2 — Planificación v1.98</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.97</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.98</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -2152,13 +2152,40 @@ async function abrirMapaDiaWeb(fecha, tecnico) {
     let tipo = coord ? 'exacto' : 'sin_datos';
     if(!coord) {
       try {
+        // First try centros table
+        const res1 = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(p.centro)}&select=Coord,Municipio&limit=1`, {
+          headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+        });
+        const data1 = await res1.json();
+        if(data1 && data1.length > 0 && data1[0].Coord) {
+          coord = data1[0].Coord; tipo = 'exacto';
+        } else if(data1 && data1.length > 0 && data1[0].Municipio) {
+          coord = data1[0].Municipio + ', España'; tipo = 'aproximado';
+        }
+      } catch(e) {}
+    }
+    if(!coord) {
+      try {
+        // Then try centros_coords table
         const res = await fetch(`${SB_URL}/rest/v1/centros_coords?centro=ilike.%25${encodeURIComponent(p.centro)}%25&select=coord&limit=1`, {
           headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
         });
         const data = await res.json();
-        console.log(`centros_coords ${p.centro}:`, JSON.stringify(data));
         if(data && data.length > 0) { coord = data[0].coord; tipo = 'exacto'; }
-      } catch(e) { console.warn('centros_coords error:', e); }
+      } catch(e) {}
+    }
+    if(!coord) {
+      try {
+        // Finally try centros table
+        const res = await fetch(`${SB_URL}/rest/v1/centros?nombre=eq.${encodeURIComponent(p.centro)}&select=coord,municipio&limit=1`, {
+          headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+        });
+        const data = await res.json();
+        if(data && data.length > 0) {
+          if(data[0].coord) { coord = data[0].coord; tipo = 'exacto'; }
+          else if(data[0].municipio) { coord = data[0].municipio + ', España'; tipo = 'aproximado'; }
+        }
+      } catch(e) {}
     }
     return { n: i+1, centro: p.centro, alias: p.alias||'', hora: p.hora||'', coord, tipo };
   }));
