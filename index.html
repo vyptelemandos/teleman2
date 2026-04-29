@@ -1264,7 +1264,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.44';
+const APP_VERSION = 'v4.45';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -7197,6 +7197,7 @@ document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{
 
 // Interceptar gesto atrás en Android
 history.replaceState({page: 'p-inicio'}, '');
+history.pushState({page: 'p-inicio'}, '');
 window.addEventListener('popstate', () => {
   const modalAbierto = document.querySelector('.overlay.on');
   if(modalAbierto) {
