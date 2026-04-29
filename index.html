@@ -1264,7 +1264,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.45';
+const APP_VERSION = 'v4.46';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -2098,6 +2098,7 @@ function goPage(id) {
   if(id==='p-centros') renderCentros();
   if(id==='p-planif') renderPlanif();
   if(id==='p-informe') renderBorradoresSelector();
+  if(id !== 'p-inicio') history.pushState({page: id}, '');
 }
 
 // ═══════════════════════════════════════════════════
