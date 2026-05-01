@@ -1264,7 +1264,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 //  CONSTANTES
 // ═══════════════════════════════════════════════════
 const PASS = 'Teleman2';
-const APP_VERSION = 'v4.46';
+const APP_VERSION = 'v4.47';
 
 // ── SUPABASE (escritura doble en paralelo) ──
 const SB_URL  = 'https://ulphecelibnrhmkbetnj.supabase.co';
@@ -4003,7 +4003,7 @@ async function importarVyPs(files) {
         if(existe && existe.length > 0) { _importVyPStats.dup++; continue; }
       } catch(e) {
         // Sin conexión — comprobar solo en local
-        const existe = S.planificacion.find(p => p.vyp === datos.vyp);
+        const existe = S.planificacion.find(p => p.vyp === datos.vyp && p.estado !== 'CANCELADO');
         if(existe) { _importVyPStats.dup++; continue; }
       }
 

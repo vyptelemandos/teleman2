@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.98</title>
+<title>Teleman2 — Planificación v1.99</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,7 +298,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.98</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.99</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
@@ -2352,7 +2352,7 @@ async function _confirmarImport() {
   const tecnico = document.getElementById('f-tecnico')?.value||'';
 
   if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
-  if(planificacion.find(p=>p.vyp && p.vyp===vyp)) { toast('VyP ya existe, saltando','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
+  if(planificacion.find(p=>p.vyp && p.vyp===vyp && p.estado!=='CANCELADO')) { toast('VyP ya existe, saltando','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
 
   // Comprobar TDC duplicado (solo tickets 7-8 dígitos)
   const tdcEl = document.getElementById('f-tdc') || document.querySelector('input[id="f-tdc"]');
@@ -2443,7 +2443,7 @@ async function añadirVyPImportado(i, filename) {
   const vyp = document.getElementById(`imp-vyp-${i}`)?.value||'';
   const id = 'VYP-' + (vyp || Date.now());
   // Check duplicate
-  if(planificacion.find(p=>p.id===id||p.vyp===vyp)) { toast('VyP ya existe en planificación','warn'); return; }
+  if(planificacion.find(p=>(p.id===id||p.vyp===vyp) && p.estado!=='CANCELADO')) { toast('VyP ya existe en planificación','warn'); return; }
 
   const tecnicoImp = document.getElementById(`imp-tecnico-${i}`)?.value||'';
   const zonaImp = (document.getElementById(`imp-zona-${i}`)?.value||'').toUpperCase();
