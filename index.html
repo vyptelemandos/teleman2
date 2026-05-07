@@ -553,7 +553,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
             <div style="font-size:11px;color:var(--gris3);margin-bottom:6px;font-weight:600;">Nº BATERÍAS (VALE A1)</div>
             <div style="display:flex;align-items:center;gap:10px;">
               <button onclick="cambiarNBaterias(-1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-              <input type="number" id="f-nbaterias" value="1" min="1" max="99" style="width:60px;text-align:center;font-size:18px;font-weight:700;background:var(--negro3);color:white;border:none;border-radius:8px;padding:8px;" onchange="autosave()">
+              <input type="number" id="f-nbaterias" value="0" min="0" max="99" style="width:60px;text-align:center;font-size:18px;font-weight:700;background:var(--negro3);color:white;border:none;border-radius:8px;padding:8px;" onchange="autosave()">
               <button onclick="cambiarNBaterias(1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
               <span style="font-size:12px;color:var(--gris3);">unidades</span>
             </div>
@@ -563,7 +563,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
             <div style="font-size:11px;color:var(--gris3);margin-bottom:6px;font-weight:600;">Nº EQUIPOS ELECTRÓNICOS</div>
             <div style="display:flex;align-items:center;gap:10px;">
               <button onclick="cambiarNEquipos(-1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-              <input type="number" id="f-nequipos" value="1" min="1" max="99" style="width:60px;text-align:center;font-size:18px;font-weight:700;background:var(--negro3);color:white;border:none;border-radius:8px;padding:8px;" onchange="autosave()">
+              <input type="number" id="f-nequipos" value="0" min="0" max="99" style="width:60px;text-align:center;font-size:18px;font-weight:700;background:var(--negro3);color:white;border:none;border-radius:8px;padding:8px;" onchange="autosave()">
               <button onclick="cambiarNEquipos(1)" style="background:var(--negro3);color:white;border:none;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
               <span style="font-size:12px;color:var(--gris3);">unidades</span>
             </div>
@@ -2591,9 +2591,9 @@ function recogerFormulario() {
     trace: document.getElementById('f-trace')?.checked||false,
     baterias: document.getElementById('f-baterias')?.checked||false,
     vale: document.getElementById('f-vale')?.checked||false,
-    nBaterias: parseInt(document.getElementById('f-nbaterias')?.value)||1,
+    nBaterias: document.getElementById('f-baterias')?.checked ? (parseInt(document.getElementById('f-nbaterias')?.value)||0) : 0,
     equiposElectronicos: document.getElementById('f-equipos-electronicos')?.checked||false,
-    nEquiposElectronicos: parseInt(document.getElementById('f-nequipos')?.value)||0,
+    nEquiposElectronicos: document.getElementById('f-equipos-electronicos')?.checked ? (parseInt(document.getElementById('f-nequipos')?.value)||0) : 0,
     fotos: _fotosActuales.map(f => ({name: f.name, dataUrl: f.dataUrl})),
     _planifId: S._planifId || null,
     ts: Date.now(),
@@ -2654,7 +2654,7 @@ function nuevoInforme() {
   const fbat=document.getElementById('f-baterias'); if(fbat) fbat.checked=false;
   const ftrace = document.getElementById('f-trace'); if(ftrace) ftrace.checked=false;
   const fvale = document.getElementById('f-vale'); if(fvale) { fvale.checked=false; fvale.disabled=true; }
-  const nbat = document.getElementById('f-nbaterias'); if(nbat) nbat.value=1;
+  const nbat = document.getElementById('f-nbaterias'); if(nbat) nbat.value=0;
   const batWrap = document.getElementById('valeA1BatWrap'); if(batWrap) batWrap.style.display='none';
   resetFotos();
   const mmw = document.getElementById('modeloManualWrap'); if(mmw) mmw.style.display='none';
