@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23cc0000'/><text x='50%25' y='54%25' font-family='Arial' font-weight='700' font-size='13' fill='white' text-anchor='middle' dominant-baseline='middle'>T2</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teleman2 — Planificación v1.99</title>
+<title>Teleman2 — Planificación v2.00</title>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -298,11 +298,10 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     </div>
     <div class="sb-bottom">
       <div id="sb-logo-btn" style="cursor:pointer;user-select:none;padding:6px 0;" title="Mantén pulsado para opciones">
-        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v1.99</div>
+        <div style="font-size:var(--fs-sm);color:var(--text2);font-weight:700;">TELEMAN2 v2.00</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:2px;opacity:0.7;">Designed by Fran Talavera</div>
         <div style="font-size:var(--fs-xs);color:var(--text2);margin-top:1px;opacity:0.5;">© 2026 · Todos los derechos reservados</div>
       </div>
-      <div id="driveConnectBtn" onclick="iniciarOAuthGoogle()" style="cursor:pointer;margin-top:8px;font-size:var(--fs-xs);color:var(--text2);opacity:0.6;display:none;">🔗 Conectar Google Drive</div>
     </div>
   </div>
 
@@ -667,10 +666,6 @@ async function initApp() {
   await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda(), cargarVacaciones()]);
   setView('calendario');
   iniciarRealtime();
-  // Check Drive token
-  const token = await getGoogleRefreshToken();
-  const btn = document.getElementById('driveConnectBtn');
-  if(btn) btn.style.display = token ? 'none' : 'block';
 }
 
 async function cargarPlanificacion() {
@@ -1422,9 +1417,7 @@ function renderCalendario() {
       // Month label on 1st of month
       const monthLabel = date.getDate()===1 ? '<div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">'+meses[date.getMonth()].slice(0,3)+' '+date.getFullYear()+'</div>' : '';
 
-      // Day number — link to Drive folder if exists
-      const folderUrl = `https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS`;
-      const dayNum = '<span class="cal-day-num" style="margin-bottom:0;'+numColor+';cursor:pointer;" onclick="event.stopPropagation();abrirCarpetaDrive(\''+dateStr+'\')" title="Ver VyPs en Drive">'+date.getDate()+'</span>';
+      const dayNum = '<span class="cal-day-num" style="margin-bottom:0;'+numColor+'">'+date.getDate()+'</span>';
 
       rowHtml += '<div class="'+dayClass+'" onclick="selectWeek(\''+dateStr+'\')">'+
         monthLabel+
@@ -1818,9 +1811,6 @@ function verDetalle(id) {
   // Footer buttons
   let footer = '';
   const color = getColor(p);
-  if(p.vyp_drive_id) {
-    footer += `<a href="https://drive.google.com/file/d/${p.vyp_drive_id}/view" target="_blank" class="btn btn-gray" style="text-decoration:none;">📄 Ver VyP</a>`;
-  }
   if(color === 'done') {
     footer += '<div style="font-size:12px;color:var(--green);padding:4px 0;">✓ Trabajo completado — no se puede modificar</div>';
   } else if(p.estado !== 'CANCELADO') {
@@ -2097,45 +2087,51 @@ function _mostrarFormulario() {
     </div>`;
 }
 
-const CLIENT_ID = '71601183396-7evkcpisf25853977lqclevke6c99k86.apps.googleusercontent.com';
-
-async function getGoogleRefreshToken() {
-  // Try Supabase config_app first (shared token for all users)
+async function notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, anterior) {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/config_app?clave=eq.google_refresh_token&select=valor`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    const emails = await fetch(`${SB_URL}/rest/v1/config_app?clave=in.(email_destino_1,email_destino_2)&select=clave,valor`, {
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    }).then(r=>r.json()).then(rows => rows.map(r=>r.valor).filter(e=>e&&e.includes('@')));
+    if(!emails.length) return;
+    await fetch(`${SB_URL}/functions/v1/envio-dominical`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY},
+      body: JSON.stringify({
+        _accion: 'tdc_duplicado',
+        tdc, vyp, centro, fecha, anterior, emails
+      })
     });
-    const data = await res.json();
-    if(data?.[0]?.valor) return data[0].valor;
-  } catch(e) {}
-  return null;
+  } catch(e) { console.warn('notificarTDCDuplicadoWeb:', e.message); }
 }
 
-async function saveGoogleRefreshToken(refreshToken) {
+async function subirVyPSupabase(file, datos) {
   try {
-    await fetch(`${SB_URL}/rest/v1/config_app`, {
-      method: 'POST',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ clave: 'google_refresh_token', valor: refreshToken })
-    });
-  } catch(e) { console.warn('Error guardando refresh_token:', e.message); }
-}
+    const safeCentro = String(datos.centro || 'SIN_CENTRO').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const now = new Date();
+    const yyyy = now.getFullYear().toString();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const filename = `vyp_${datos.vyp || 'sin_vyp'}.pdf`;
+    const path = `${yyyy}/${mm}/${safeCentro}/${filename}`;
 
-async function procesarOAuthCode(code, redirectUri) {
-  try {
-    const res = await fetch(`${SB_URL}/functions/v1/google-oauth-exchange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
-      body: JSON.stringify({ code, redirect_uri: redirectUri, client_id: CLIENT_ID })
-    });
-    const data = await res.json();
-    if(!data?.refresh_token) throw new Error('Sin refresh_token');
-    await saveGoogleRefreshToken(data.refresh_token);
-    alert('✓ Google Drive conectado para todos los usuarios');
-    return true;
+    const { data, error } = await sb.storage
+      .from('photos')
+      .upload(path, file, { contentType: 'application/pdf', upsert: true });
+
+    if (error) {
+      console.warn('[VYP] Error subiendo PDF:', error.message);
+      return null;
+    }
+
+    const { error: updateError } = await sb
+      .from('planificacion')
+      .update({ vyp_storage_path: path })
+      .eq('id', datos.id);
+
+    if (updateError) console.warn('[VYP] Error guardando ruta:', updateError.message);
+    return path;
   } catch(e) {
-    alert('Error conectando Google: ' + e.message);
-    return false;
+    console.warn('[VYP] Error general:', e.message);
+    return null;
   }
 }
 
@@ -2253,96 +2249,6 @@ async function abrirMapaDiaWeb(fecha, tecnico) {
   if(bounds.length === 1) map.setZoom(14);
 }
 
-async function abrirCarpetaDrive(fechaStr) {
-  // Build folder name AAMMDD
-  const parts = fechaStr.split('-');
-  const folderName = parts[0].slice(2) + parts[1] + parts[2];
-  const token = await getGoogleRefreshToken();
-  if(!token) { toast('Sin conexión a Drive','err'); return; }
-  try {
-    // Get access token
-    const res = await fetch(`${SB_URL}/functions/v1/subir-vyp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
-      body: JSON.stringify({ _soloFolder: true, fecha: fechaStr, _refreshToken: token })
-    });
-    const data = await res.json();
-    if(data?.folderId) {
-      window.open('https://drive.google.com/drive/folders/' + data.folderId, '_blank');
-    } else {
-      // No folder yet — open parent VyP folder
-      window.open('https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS', '_blank');
-    }
-  } catch(e) {
-    window.open('https://drive.google.com/drive/folders/1mYL9aynuVCAYZ7PwPnxLoiEqgb8TCdYS', '_blank');
-  }
-}
-
-function iniciarOAuthGoogle() {
-  const redirectUri = window.location.origin + window.location.pathname;
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/gmail.send',
-    access_type: 'offline',
-    prompt: 'consent',
-    state: 'google_oauth_vyp'
-  });
-  const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
-  const popup = window.open(authUrl, 'google_oauth', 'width=500,height=600,left=200,top=100');
-  const timer = setInterval(async () => {
-    try {
-      if(!popup || popup.closed) { clearInterval(timer); return; }
-      const popupUrl = popup.location.href;
-      if(popupUrl.includes('code=') && popupUrl.includes('google_oauth_vyp')) {
-        clearInterval(timer);
-        const code = new URLSearchParams(popup.location.search).get('code');
-        popup.close();
-        if(code) await procesarOAuthCode(code, redirectUri);
-      }
-    } catch(e) {}
-  }, 500);
-}
-
-async function notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, anterior) {
-  try {
-    const emails = await fetch(`${SB_URL}/rest/v1/config_app?clave=in.(email_destino_1,email_destino_2)&select=clave,valor`, {
-      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-    }).then(r=>r.json()).then(rows => rows.map(r=>r.valor).filter(e=>e&&e.includes('@')));
-    if(!emails.length) return;
-    await fetch(`${SB_URL}/functions/v1/envio-dominical`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY},
-      body: JSON.stringify({
-        _accion: 'tdc_duplicado',
-        tdc, vyp, centro, fecha, anterior, emails
-      })
-    });
-  } catch(e) { console.warn('notificarTDCDuplicadoWeb:', e.message); }
-}
-
-async function subirVyPDrive(fileObj, datos) {
-  try {
-    const refreshToken = await getGoogleRefreshToken();
-    if(!refreshToken) { console.warn('subirVyPDrive: sin refresh token'); return; }
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result.split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(fileObj);
-    });
-    const filename = `VyP-${datos.vyp||'?'}-${datos.centro||'?'}.pdf`;
-    await fetch(`${SB_URL}/functions/v1/subir-vyp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
-      body: JSON.stringify({ fecha: datos.fecha, vyp: datos.vyp, centro: datos.centro, filename, base64, _refreshToken: refreshToken })
-    });
-  } catch(e) {
-    console.warn('subirVyPDrive error:', e.message);
-  }
-}
-
 async function _confirmarImport() {
   const r = _importResultados[_importIdx];
   const vyp = document.getElementById('f-vyp')?.value||'';
@@ -2359,7 +2265,7 @@ async function _confirmarImport() {
   const tdc = tdcEl?.value||'';
   console.log('TDC check:', tdc, 'element:', tdcEl);
   if(/^\d{7,8}$/.test(tdc)) {
-    const dupRes = await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&select=vyp,centro,alias,fecha&limit=1`, {
+    const dupRes = await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&estado=neq.CANCELADO&select=vyp,centro,alias,fecha&limit=1`, {
       headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
     });
     const dupData = await dupRes.json();
@@ -2388,7 +2294,7 @@ async function _confirmarImport() {
       solicitante: document.getElementById('f-sol')?.value?.toUpperCase()||null,
       zona: zona||null, tecnico_asignado: tecnico||null,
       telefono, estado: 'PENDIENTE',
-      tdc_duplicado: /^\d{7,8}$/.test(tdc) && (await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&select=id&limit=1`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()).then(d=>d.length>0).catch(()=>false))
+      tdc_duplicado: /^\d{7,8}$/.test(tdc) && (await fetch(`${SB_URL}/rest/v1/planificacion?tdc=eq.${tdc}&vyp=neq.${vyp}&estado=neq.CANCELADO&select=id&limit=1`,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(r=>r.json()).then(d=>d.length>0).catch(()=>false))
     };
 
     const res = await fetch(`${SB_URL}/rest/v1/planificacion`, {
@@ -2406,8 +2312,7 @@ async function _confirmarImport() {
 
     logImport(`VyP ${vyp||'?'} añadido ✓`, 'ok');
     r.done = true;
-    // Upload PDF to Drive in background
-    if(r.fileObj) subirVyPDrive(r.fileObj, {fecha: body.fecha, vyp: body.vyp, centro: body.centro}).catch(()=>{});
+    if(r.fileObj) subirVyPSupabase(r.fileObj, {fecha: body.fecha, vyp: body.vyp, centro: body.centro, id: body.id}).catch(()=>{});
 
     // Non-blocking: reload data in background, don't await to avoid freezing
     cargarPlanificacion().catch(()=>{});
