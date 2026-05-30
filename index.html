@@ -40,7 +40,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .logo-red{color:var(--rojo);}
 .sync-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 10px;width:80px;justify-content:center;transition:background .2s;}
 .sync-pill:active{background:rgba(255,255,255,0.15);}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:#ff6666;flex-shrink:0;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0;}
 .sync-dot.ok{background:#4ade80;box-shadow:0 0 6px #4ade80;}
 .sync-dot.warn{background:#f59f00;}
 .sync-dot.working{background:#f59f00;animation:pulseDot 0.9s ease-in-out infinite;}
@@ -199,6 +199,8 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
 .empty svg{width:44px;height:44px;color:var(--gris4);margin-bottom:10px;}
 .empty-t{font-weight:600;font-size:14px;margin-bottom:5px;}
 .empty-s{font-size:12px;color:var(--gris3);line-height:1.5;}
+.search-server-btn{display:block;text-align:center;padding:14px 16px;margin:16px auto;max-width:300px;background:var(--gris7);border:1.5px dashed var(--azul);border-radius:var(--rs);color:var(--azul);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;}
+.search-server-btn:active{background:var(--azul);color:var(--blanco);}
 
 /* FRASE */
 .frase-item{background:var(--gris7);border:1.5px solid var(--gris5);border-radius:var(--rs);padding:9px 12px;margin-bottom:6px;cursor:pointer;font-size:12px;line-height:1.5;transition:all .15s;}
@@ -1696,7 +1698,7 @@ function runSplash() {
       setSyncStatus('ok');
       renderStats(); renderRecent(); checkAlertasInicio();
       iniciarRealtime();
-    } catch(e) { console.error('Background sync error:', e); }
+    } catch(e) { console.error('Background sync error:', e); setSyncStatus('err'); }
   };
 
   const syncAll = async () => {
@@ -1709,14 +1711,13 @@ function runSplash() {
     renderPlanif();
     setProgress(90, 'CARGANDO INSTALACIONES...');
     await leerRemotasSupabase();
+    setSyncStatus('ok');
     finishSplash();
     iniciarRealtime();
   };
 
   const doSplashContinue = async (cfg) => {
     if(hasLocalData) {
-      setProgress(100, 'CARGANDO...');
-      await new Promise(r=>setTimeout(r,300));
       finishSplash();
       syncInBackground();
       return;
@@ -1746,11 +1747,12 @@ window.onload = () => {
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/teleman2/sw.js').catch(()=>{});
   }
+  // Load localStorage FIRST so hasLocalData works
+  S.intervenciones = getLS('t2-iv') || [];
+  S.centros = getLS('t2-ct') || [];
   // Run splash screen
   runSplash();
   initTestModeUI();
-  S.intervenciones = getLS('t2-iv') || [];
-  S.centros = getLS('t2-ct') || [];
   S.planificacion = getLS('t2-pl') || [];
   S.borradores = getLS('t2-bo') || {};
   Object.keys(S.borradores).forEach(k=>{ if(!S.borradores[k]||typeof S.borradores[k]!=='object') delete S.borradores[k]; });
@@ -4224,7 +4226,11 @@ function renderHistorial(f='') {
     return [iv.centro,iv.alias,iv.tdc,iv.vyp,iv.zona,iv.poblacion,iv.tec1,iv.resultado].join(' ').toUpperCase().includes(f.toUpperCase());
   });
   document.getElementById('histSub').textContent=`${S.intervenciones.length} INTERVENCIONES · ${list.length} MOSTRADAS`;
-  if(!list.length){el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6M9 16h6M17 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-4z"/></svg><div class="empty-t">${f?'SIN RESULTADOS':'SIN INTERVENCIONES'}</div><div class="empty-s">${f?'':'Importa tu historial desde Ajustes'}</div></div>`;return;}
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6M9 16h6M17 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-4z"/></svg><div class="empty-t">${f?'SIN RESULTADOS':'SIN INTERVENCIONES'}</div><div class="empty-s">${f?'':'Importa tu historial desde Ajustes'}</div></div>`;
+    if(f) el.innerHTML+=`<div class="search-server-btn" onclick="buscarHistorialServidor('${f.replace(/'/g,"\\'")}')">🔍 Buscar '${f}' en el servidor…</div>`;
+    return;
+  }
   el.innerHTML=list.slice(0,100).map(iv=>{
     const res=iv.resultado||iv.RESULTADO||'';
     const bc=res==='CORRECTO'?'badge-green':res?'badge-orange':'badge-gray';
@@ -4242,6 +4248,7 @@ function renderHistorial(f='') {
       <div class="li-meta"><span>TDC: ${iv.tdc||iv.TDC||'—'}</span><span>${iv.tec1||iv.TECNICOS||''}</span>${res?`<span class="badge ${bc}">${res}</span>`:''}</div>
     </div>`;
   }).join('');
+  if(f) el.innerHTML+=`<div class="search-server-btn" onclick="buscarHistorialServidor('${f.replace(/'/g,"\\'")}')">🔍 Buscar '${f}' en el servidor…</div>`;
 }
 
 function limpiarFiltrosHistorial() {
@@ -4252,6 +4259,43 @@ function limpiarFiltrosHistorial() {
 }
 
 function filtrarHistorial(){renderHistorial(document.getElementById('histSearch')?.value||'');}
+
+async function buscarHistorialServidor(texto) {
+  const btn = document.querySelector('.search-server-btn');
+  if(btn) btn.innerHTML = '⏳ Buscando…';
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.from('intervenciones').select('*').or(`centro.ilike.%${texto}%,alias.ilike.%${texto}%,tdc.ilike.%${texto}%,vyp.ilike.%${texto}%`).order('fecha', {ascending:false});
+    if(error) throw new Error(error.message);
+    const el = document.getElementById('histList');
+    if(data && data.length) {
+      el.innerHTML = data.map(iv => {
+        const res = iv.resultado||'';
+        const bc = res==='CORRECTO'?'badge-green':res?'badge-orange':'badge-gray';
+        const lc = colorResultado(res);
+        const _id = iv.int_id||iv.centro||'';
+        return `<div class="li ${lc}"
+          onclick="showInterv('${_id}','${(iv.centro||'').replace(/'/g,"\\'")}')"
+          oncontextmenu="event.preventDefault();editarInformeAuth('${_id}')"
+          ondblclick="editarInformeAuth('${_id}')"
+          ontouchstart="startLongPress('${_id}',event)"
+          ontouchend="cancelLongPress()"
+          ontouchmove="cancelLongPress()">
+          <div class="li-top"><span class="li-id">${iv.centro||'—'}</span><span class="li-fecha">${fmtFecha(iv.fecha)}</span></div>
+          <div class="li-alias">${iv.alias||'SIN ALIAS'}</div>
+          <div class="li-meta"><span>TDC: ${iv.tdc||'—'}</span><span>${iv.tec1||''}</span>${res?`<span class="badge ${bc}">${res}</span>`:''}</div>
+        </div>`;
+      }).join('');
+      document.getElementById('histSub').textContent = `${data.length} RESULTADOS DEL SERVIDOR`;
+    } else {
+      if(btn) btn.innerHTML = '❌ No se encontraron registros en el servidor';
+      else el.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6M9 16h6M17 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-4-4z"/></svg><div class="empty-t">NO ENCONTRADO</div><div class="empty-s">No se encontraron registros en el servidor</div></div>`;
+    }
+  } catch(e) {
+    console.warn('Error buscando en servidor:', e.message);
+    if(btn) btn.innerHTML = '❌ Error al buscar';
+  }
+}
 
 function colorResultado(res) {
   if(!res) return 'gris';
@@ -4656,100 +4700,69 @@ function renderStatsPage() {
   }
 
   const now=new Date();
-  const mesActual=now.toISOString().slice(0,7);
-  const dia16=new Date(now.getFullYear(),now.getMonth()>0?now.getMonth()-1:11,16);
-  const dia15=new Date(now.getFullYear(),now.getMonth(),15);
-
-  // Solo intervenciones nuevas tienen baremos estructurados
-  const totalPts = (iv) => {
-    if(!Array.isArray(iv.baremos)) return 0;
-    return iv.baremos.reduce((a,b) => {
-      // Try pts field first, then look up in config baremos by code
-      const pts = parseFloat(b.pts) || 
-                  parseFloat(S.baremos.find(x=>x.cod===b.cod)?.pts) || 0;
-      return a + pts * (parseFloat(b.ud)||1);
-    }, 0);
-  };
-
-  const calcStats = (lista) => {
-    const mes = lista.filter(iv => (String(iv.fecha)||'').startsWith(mesActual));
-    const periodo = lista.filter(iv => {
-      const f = new Date(iv.fecha); return f >= dia16 && f <= dia15;
+  const meses=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const y=d.getFullYear();
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    meses.push({
+      key:`${y}-${mm}`,
+      label:d.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).toUpperCase()
     });
-    const ptsMes = mes.reduce((a,iv) => a + totalPts(iv), 0);
-    const ptsPeriodo = periodo.reduce((a,iv) => a + totalPts(iv), 0);
-    const diasPeriodo = Math.max(1, Math.ceil((dia15-dia16)/(1000*60*60*24)));
-    const ivConPts = periodo.filter(iv => totalPts(iv) > 0);
-    return {
-      total: lista.length,
-      mes: mes.length,
-      periodo: periodo.length,
-      ptsMes: ptsMes.toFixed(2),
-      ptsPeriodo: ptsPeriodo.toFixed(2),
-      ptsDia: (ptsPeriodo / diasPeriodo).toFixed(2),
-      ivConPts: ivConPts.length,
-    };
+  }
+
+  const totalPts=(iv)=>{
+    if(!Array.isArray(iv.baremos)) return 0;
+    return iv.baremos.reduce((a,b)=>{
+      const pts=parseFloat(b.pts)||parseFloat(S.baremos.find(x=>x.cod===b.cod)?.pts)||0;
+      return a+pts*(parseFloat(b.ud)||1);
+    },0);
   };
 
-  const miNombre = S.miNombre || '';
-  const miInterv = miNombre
-    ? S.intervenciones.filter(iv => (iv.tec1||iv.TECNICOS||'').toUpperCase().includes(miNombre.toUpperCase().split(' ')[0]))
-    : [];
-  const myS = calcStats(miInterv);
-  const allS = calcStats(S.intervenciones);
+  if(S.valorPunto===undefined) S.valorPunto=parseFloat(getLS('t2-valor-punto'))||0;
 
-  // Periodo label
-  const periodoLabel = `${dia16.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})} — ${dia15.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'})}`;
-  const mesLabel = now.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).toUpperCase();
+  const calcMeses=(lista)=>{
+    return meses.map(m=>{
+      const ivs=lista.filter(iv=>(String(iv.fecha)||'').startsWith(m.key));
+      const pts=ivs.reduce((a,iv)=>a+totalPts(iv),0);
+      return {n:ivs.length,pts};
+    });
+  };
 
-  // By zone - only my zones
-  const byZona = {};
-  miInterv.forEach(iv => {
-    const z = iv.zona||iv.ZONA||'SIN ZONA';
-    if(!byZona[z]) byZona[z] = {n:0, pts:0};
-    byZona[z].n++;
-    byZona[z].pts += totalPts(iv);
-  });
+  const miNombre=S.miNombre||'';
+  const miInterv=miNombre?S.intervenciones.filter(iv=>(iv.tec1||iv.TECNICOS||'').toUpperCase().includes(miNombre.toUpperCase().split(' ')[0])):[];
+  const misMeses=calcMeses(miInterv);
+  const equipoMeses=calcMeses(S.intervenciones);
+
+  window.cambioValor=(val)=>{
+    S.valorPunto=parseFloat(val)||0;
+    setLS('t2-valor-punto',S.valorPunto);
+    renderStatsPage();
+  };
+
+  const renderTabla=(titulo,data)=>{
+    const totalP=data.reduce((a,m)=>a+m.pts,0);
+    const totalEur=data.reduce((a,m)=>a+m.pts*S.valorPunto,0);
+    return `<div class="stats-period">
+      <div class="stats-period-title">${titulo}</div>
+      ${meses.map((m,i)=>`
+      <div class="stats-row"><span class="stats-row-label">${m.label}</span><span class="stats-row-val">${data[i].n} interv. · ${data[i].pts.toFixed(2)} pts · ${(data[i].pts*S.valorPunto).toFixed(2)}€</span></div>
+      `).join('')}
+      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:8px 0;"></div>
+      <div class="stats-row"><span class="stats-row-label" style="font-weight:700;">TOTAL 6 MESES</span><span class="stats-row-val">${totalP.toFixed(2)} pts · ${totalEur.toFixed(2)}€</span></div>
+    </div>`;
+  };
 
   document.getElementById('statsContent').innerHTML = `
-    <div class="stats-period">
-      <div class="stats-period-title">MIS INTERVENCIONES — ${miNombre||'SIN NOMBRE'}</div>
-      <div class="stats-big">${myS.total}</div>
-      <div class="stats-big-label">TOTAL HISTORIAL</div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
-      <div class="stats-row"><span class="stats-row-label">${mesLabel}</span><span class="stats-row-val">${myS.mes} interv.</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS ${mesLabel.split(' ')[0]}</span><span class="stats-row-val">${myS.ptsMes} pts</span></div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
-      <div class="stats-row"><span class="stats-row-label">PERÍODO ${periodoLabel}</span><span class="stats-row-val">${myS.periodo} interv.</span></div>
-      <div class="stats-row" style="background:rgba(204,0,0,0.2);border-radius:6px;padding:6px 8px;margin-top:4px;">
-        <span class="stats-row-label" style="font-weight:700;">PUNTOS PERÍODO</span>
-        <span class="stats-row-val" style="font-size:18px;color:#ff6666;">${myS.ptsPeriodo} pts</span>
-      </div>
-      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${myS.ptsDia} pts</span></div>
-      <div class="stats-row"><span class="stats-row-label">INTERV. CON BAREMOS</span><span class="stats-row-val">${myS.ivConPts}</span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--gris2);border-radius:8px;margin-bottom:12px;">
+      <span style="font-size:13px;font-weight:500;">VALOR DEL PUNTO</span>
+      <input type="number" step="0.01" min="0" value="${S.valorPunto}" onchange="cambioValor(this.value)" style="width:100px;padding:6px 8px;border:1px solid var(--gris4);border-radius:6px;background:var(--negro3);color:var(--blanco);font-size:14px;">
+      <span style="font-size:13px;color:var(--gris4);">€/pt</span>
     </div>
-    <div class="stats-period" style="background:var(--gris1);">
-      <div class="stats-period-title">EQUIPO COMPLETO</div>
-      <div class="stats-big">${allS.total}</div>
-      <div class="stats-big-label">TOTAL HISTORIAL</div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
-      <div class="stats-row"><span class="stats-row-label">${mesLabel}</span><span class="stats-row-val">${allS.mes} interv.</span></div>
-      <div class="stats-row"><span class="stats-row-label">PUNTOS ${mesLabel.split(' ')[0]}</span><span class="stats-row-val">${allS.ptsMes} pts</span></div>
-      <div class="div" style="border-color:rgba(255,255,255,0.1);margin:10px 0;"></div>
-      <div class="stats-row"><span class="stats-row-label">PERÍODO ${periodoLabel}</span><span class="stats-row-val">${allS.periodo} interv.</span></div>
-      <div class="stats-row" style="background:rgba(204,0,0,0.2);border-radius:6px;padding:6px 8px;margin-top:4px;">
-        <span class="stats-row-label" style="font-weight:700;">PUNTOS PERÍODO</span>
-        <span class="stats-row-val" style="font-size:18px;color:#ff6666;">${allS.ptsPeriodo} pts</span>
-      </div>
-      <div class="stats-row"><span class="stats-row-label">MEDIA PTS/DÍA</span><span class="stats-row-val">${allS.ptsDia} pts</span></div>
-    </div>
-    ${Object.keys(byZona).length ? `
-    <div class="card"><div class="card-head"><div class="card-title">MIS ZONAS</div></div>
-      <div class="card-body">${Object.entries(byZona).sort((a,b)=>b[1].n-a[1].n).map(([z,d])=>`
-        <div class="dr"><div class="dr-l">${z}</div>
-        <div class="dr-v">${d.n} interv.</div></div>`).join('')}
-      </div>
-    </div>` : ''}`;
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${miNombre?renderTabla('MIS INTERVENCIONES — '+miNombre,misMeses):''}
+      ${renderTabla('EQUIPO COMPLETO',equipoMeses)}
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════
@@ -5379,19 +5392,12 @@ async function generarPDFviaEdge(d, esModificado=false) {
 }
 
 async function leerHistorialSupabase() {
+  // Solo descargar últimas 30 intervenciones (el historial completo se consulta en oficina)
   try {
     const sb = getSB();
-    let allData = [];
-    let from = 0;
-    const pageSize = 1000;
-    while(true) {
-      const { data, error } = await sb.from('intervenciones').select('*').order('fecha', {ascending:false}).range(from, from+pageSize-1);
-      if(error) throw new Error(error.message);
-      if(!data?.length) break;
-      allData = [...allData, ...data];
-      if(data.length < pageSize) break;
-      from += pageSize;
-    }
+    const { data, error } = await sb.from('intervenciones').select('*').order('fecha', {ascending:false}).limit(300);
+    if(error) throw new Error(error.message);
+    const allData = data || [];
     if(allData.length) {
       S.intervenciones = allData.map(r=>({
         intId:      r.int_id||'',
@@ -5430,6 +5436,9 @@ async function leerHistorialSupabase() {
 //  LEER PARQUE DE REMOTAS DESDE DRIVE
 // ═══════════════════════════════════════════════════
 async function leerRemotasSupabase() {
+  // Cache 24h: si ya tenemos centros y el timestamp es reciente, no descargar
+  const cacheTs = parseInt(localStorage.getItem('t2-ct-ts') || '0');
+  if(S.centros.length > 0 && cacheTs > Date.now() - 86400000) return true;
   try {
     const sb = getSB();
     let allCentros = [];
@@ -5468,6 +5477,7 @@ async function leerRemotasSupabase() {
         Comentario:         c.comentario||'',
       }));
       setLS('t2-ct', S.centros);
+      localStorage.setItem('t2-ct-ts', Date.now().toString());
       checkAlertasInicio();
       renderCentroSelects();
       return true;
@@ -5844,7 +5854,7 @@ function onPillClick() {
 }
 
 function setSyncStatus(status) {
-  // kept for compatibility
+  // always ok — pill siempre verde
 }
 
 // ═══════════════════════════════════════════════════

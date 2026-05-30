@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg:     #f2f2f2;
@@ -258,6 +259,7 @@ html, body { height:100%; background:var(--bg); color:var(--text); font-family:v
     <button class="sb-btn" id="sb-manual" onclick="openNuevoManual()"><span style="font-family:sans-serif;font-style:normal;">✏️</span> VyP manual</button>
     <button class="sb-btn" id="sb-agenda" onclick="openNuevoAgenda()"><span style="font-family:sans-serif;font-style:normal;">📆</span> Añadir agenda</button>
     <button class="sb-btn" id="sb-vacaciones" onclick="abrirGestionVacaciones()"><span style="font-family:sans-serif;font-style:normal;">🏖</span> Vacaciones</button>
+    <button class="sb-btn" id="sb-reportes" onclick="setView('reportes')"><span style="font-family:sans-serif;font-style:normal;">📊</span> Reportes</button>
     <div class="sb-section">Mes</div>
     <div style="padding:4px 12px;display:flex;align-items:center;gap:6px;">
       <button class="cal-nav" onclick="calPrev()" style="flex-shrink:0;">‹</button>
@@ -492,6 +494,8 @@ const sb = createClient(SB_URL, SB_KEY);
 let planificacion = [];
 let intervenciones = [];
 let tecnicos = [];
+let _baremos = [];
+let _valorPunto = parseFloat(localStorage.getItem('t2-valor-punto-planif')) || 0;
 let currentView = 'calendario';
 let calYear, calMonth, selectedWeekDate = new Date();
 
@@ -663,7 +667,7 @@ async function initApp() {
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
-  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda(), cargarVacaciones()]);
+  await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarBaremos(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda(), cargarVacaciones()]);
   setView('calendario');
   iniciarRealtime();
 }
@@ -683,7 +687,7 @@ async function cargarPlanificacion() {
 
 async function cargarIntervenciones() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/intervenciones?select=int_id,centro,fecha,resultado,resolucion,tdc,tec1,tec2,motivo,vyp&order=fecha.desc&limit=2000`, {
+    const res = await fetch(`${SB_URL}/rest/v1/intervenciones?select=int_id,centro,fecha,resultado,resolucion,tdc,tec1,tec2,motivo,vyp,baremos&order=fecha.desc&limit=2000`, {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     const text = await res.text();
@@ -692,6 +696,19 @@ async function cargarIntervenciones() {
   } catch(e) {
     console.warn('cargarIntervenciones error:', e.message);
     intervenciones = [];
+  }
+}
+
+async function cargarBaremos() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/baremos?select=cod,pts&limit=500`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    _baremos = await res.json();
+    if(!Array.isArray(_baremos)) _baremos = [];
+  } catch(e) {
+    console.warn('cargarBaremos error:', e.message);
+    _baremos = [];
   }
 }
 
@@ -1263,7 +1280,7 @@ function iniciarRealtime() {
 // ─── VIEWS ───────────────────────────────────────────
 function setView(v) {
   currentView = v;
-  ['calendario','lista','importar','agenda','manual'].forEach(id => {
+  ['calendario','lista','importar','agenda','manual','reportes'].forEach(id => {
     const btn = document.getElementById('sb-'+id);
     if(btn) btn.classList.toggle('active', id===v);
   });
@@ -1278,6 +1295,7 @@ function renderCurrentView() {
   else if(currentView==='lista') renderLista();
   else if(currentView==='importar') renderImportar();
   else if(currentView==='agenda') renderAgenda();
+  else if(currentView==='reportes') renderReportes();
 }
 
 // ─── COLORES ─────────────────────────────────────────
@@ -2506,6 +2524,95 @@ function toast(msg, type='ok') {
   el.className = 'show ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+function totalPts(iv) {
+  if(!Array.isArray(iv.baremos)) return 0;
+  return iv.baremos.reduce((a,b) => {
+    const pts = parseFloat(b.pts) || parseFloat((_baremos.find(x=>x.cod===b.cod)||{}).pts) || 0;
+    return a + pts * (parseFloat(b.ud)||1);
+  }, 0);
+}
+
+function renderReportes() {
+  const now = new Date();
+  const meses = [];
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const y = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    meses.push({ key: y+'-'+mm, label: d.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).toUpperCase() });
+  }
+  const mesSel = localStorage.getItem('t2-reporte-mes-planif') || meses[5].key;
+
+  window.cambioValorP=(val)=>{ _valorPunto=parseFloat(val)||0; localStorage.setItem('t2-valor-punto-planif',_valorPunto); renderReportes(); };
+  window.selMesR=(key)=>{ localStorage.setItem('t2-reporte-mes-planif',key); renderReportes(); };
+  window.descargarR=()=>{
+    const key = localStorage.getItem('t2-reporte-mes-planif') || meses[5].key;
+    const ivs = intervenciones.filter(iv=>(String(iv.fecha)||'').startsWith(key));
+    const data = ivs.map((iv,i)=>({
+      '#':i+1, FECHA:iv.fecha||'', CENTRO:iv.centro||'', TDC:iv.tdc||'',
+      PUNTOS: totalPts(iv), EUROS: totalPts(iv)*_valorPunto
+    }));
+    const tP = data.reduce((a,r)=>a+r.PUNTOS,0);
+    const tE = data.reduce((a,r)=>a+r.EUROS,0);
+    data.push({FECHA:'',CENTRO:'',TDC:'',PUNTOS:'',EUROS:''});
+    data.push({FECHA:'TOTAL',CENTRO:(data.length-2)+' intervenciones',TDC:'',PUNTOS:tP,EUROS:tE});
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{wch:5},{wch:12},{wch:30},{wch:15},{wch:10},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Reporte');
+    XLSX.writeFile(wb,'reporte_'+key+'.xlsx');
+  };
+
+  const ivs = intervenciones.filter(iv=>(String(iv.fecha)||'').startsWith(mesSel));
+  const tP = ivs.reduce((a,iv)=>a+totalPts(iv),0);
+  const tE = tP * _valorPunto;
+  const label = meses.find(m=>m.key===mesSel)?.label || mesSel;
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;">MES</span>
+      <select onchange="selMesR(this.value)" class="filter-select">
+        ${meses.map(m=>'<option value="'+m.key+'"'+(m.key===mesSel?' selected':'')+'>'+m.label+'</option>').join('')}
+      </select>
+      <span style="font-size:13px;font-weight:700;margin-left:8px;">VALOR PUNTO</span>
+      <input type="number" step="0.01" min="0" value="${_valorPunto}" onchange="cambioValorP(this.value)" class="filter-select" style="width:90px;">
+      <span style="font-size:12px;color:var(--text3);">€/pt</span>
+      <button class="btn btn-red" onclick="descargarR()" style="margin-left:auto;">DESCARGAR EXCEL</button>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="padding:12px 16px;background:var(--bg3);font-weight:700;font-size:14px;border-bottom:1px solid var(--border);">${label} · ${ivs.length} intervenciones · ${tP.toFixed(2)} pts · ${tE.toFixed(2)}€</div>
+      <div style="max-height:500px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:var(--bg4);position:sticky;top:0;">
+            <th style="padding:8px 10px;text-align:left;">#</th>
+            <th style="padding:8px 10px;text-align:left;">FECHA</th>
+            <th style="padding:8px 10px;text-align:left;">CENTRO</th>
+            <th style="padding:8px 10px;text-align:left;">TDC</th>
+            <th style="padding:8px 10px;text-align:right;">PUNTOS</th>
+            <th style="padding:8px 10px;text-align:right;">EUROS</th>
+          </tr></thead>
+          <tbody>${ivs.map((iv,i)=>`
+            <tr style="border-top:1px solid var(--border);">
+              <td style="padding:6px 10px;">${i+1}</td>
+              <td style="padding:6px 10px;">${iv.fecha||''}</td>
+              <td style="padding:6px 10px;">${iv.centro||''}</td>
+              <td style="padding:6px 10px;">${iv.tdc||''}</td>
+              <td style="padding:6px 10px;text-align:right;">${totalPts(iv).toFixed(2)}</td>
+              <td style="padding:6px 10px;text-align:right;">${(totalPts(iv)*_valorPunto).toFixed(2)}€</td>
+            </tr>`).join('')}
+          </tbody>
+          <tfoot><tr style="background:var(--bg3);font-weight:700;">
+            <td style="padding:8px 10px;" colspan="2">TOTAL</td>
+            <td style="padding:8px 10px;">${ivs.length} interv.</td>
+            <td style="padding:8px 10px;"></td>
+            <td style="padding:8px 10px;text-align:right;">${tP.toFixed(2)}</td>
+            <td style="padding:8px 10px;text-align:right;">${tE.toFixed(2)}€</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>`;
 }
 </script>
 </body>
