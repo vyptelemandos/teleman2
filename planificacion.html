@@ -1828,6 +1828,13 @@ function verDetalle(id) {
 
   // Footer buttons
   let footer = '';
+  // VyP button — for all states
+  if(p.vyp_storage_path) {
+    footer += `<button class="btn btn-gray" onclick="abrirVyPPlanif('${id}')" style="margin-left:8px;">📄 Ver VyP</button>`;
+  } else if(p.vyp_drive_id || p.vypDriveId) {
+    const driveId = p.vyp_drive_id || p.vypDriveId;
+    footer += `<a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-gray" style="margin-left:8px;text-decoration:none;">📄 Ver VyP</a>`;
+  }
   const color = getColor(p);
   if(color === 'done') {
     footer += '<div style="font-size:12px;color:var(--green);padding:4px 0;">✓ Trabajo completado — no se puede modificar</div>';
@@ -2122,6 +2129,18 @@ async function notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, anterior) {
   } catch(e) { console.warn('notificarTDCDuplicadoWeb:', e.message); }
 }
 
+async function abrirVyPPlanif(id) {
+  const p = planificacion.find(x => x.id === id);
+  if (!p || !p.vyp_storage_path) return;
+  try {
+    const { data } = await sb.storage.from('documents').createSignedUrl(p.vyp_storage_path, 60*60*24);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  } catch(e) {
+    const { data: { publicUrl } } = sb.storage.from('documents').getPublicUrl(p.vyp_storage_path);
+    window.open(publicUrl, '_blank');
+  }
+}
+
 async function subirVyPSupabase(file, datos) {
   try {
     const safeCentro = String(datos.centro || 'SIN_CENTRO').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -2129,14 +2148,15 @@ async function subirVyPSupabase(file, datos) {
     const yyyy = now.getFullYear().toString();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const filename = `vyp_${datos.vyp || 'sin_vyp'}.pdf`;
-    const path = `${yyyy}/${mm}/${safeCentro}/${filename}`;
+    const path = `vyp/${yyyy}/${mm}/${safeCentro}/${filename}`;
 
     const { data, error } = await sb.storage
-      .from('photos')
+      .from('documents')
       .upload(path, file, { contentType: 'application/pdf', upsert: true });
 
     if (error) {
       console.warn('[VYP] Error subiendo PDF:', error.message);
+      toast('Error subiendo PDF VyP: '+error.message, 'err');
       return null;
     }
 
@@ -2145,7 +2165,10 @@ async function subirVyPSupabase(file, datos) {
       .update({ vyp_storage_path: path })
       .eq('id', datos.id);
 
-    if (updateError) console.warn('[VYP] Error guardando ruta:', updateError.message);
+    if (updateError) {
+      console.warn('[VYP] Error guardando ruta:', updateError.message);
+      toast('Error guardando ruta VyP: '+updateError.message, 'err');
+    }
     return path;
   } catch(e) {
     console.warn('[VYP] Error general:', e.message);
@@ -2276,7 +2299,36 @@ async function _confirmarImport() {
   const tecnico = document.getElementById('f-tecnico')?.value||'';
 
   if(!centro||!fecha) { toast('Centro y fecha obligatorios','err'); return; }
-  if(planificacion.find(p=>p.vyp && p.vyp===vyp && p.estado!=='CANCELADO')) { toast('VyP ya existe, saltando','warn'); r.skipped=true; _importIdx++; _mostrarFormulario(); return; }
+
+  // Comprobar VyP duplicado
+  const existente = planificacion.find(p => p.vyp && p.vyp===vyp && p.estado!=='CANCELADO');
+  if(existente) {
+    if(existente.vyp_storage_path) {
+      toast('VyP ya tiene PDF, saltando','warn');
+      r.skipped=true;
+    } else {
+      // Existe pero sin PDF → solo re-subir el PDF
+      logImport(`VyP ${vyp} ya existe, subiendo PDF pendiente...`, 'ok');
+      r.done = true;
+      if(r.fileObj) {
+        await subirVyPSupabase(r.fileObj, {fecha: existente.fecha, vyp, centro: existente.centro, id: existente.id});
+        // Si estaba COMPLETADO, volver a PENDIENTE
+        if(existente.estado==='COMPLETADO') {
+          fetch(`${SB_URL}/rest/v1/planificacion?id=eq.${existente.id}`, {
+            method:'PATCH',
+            headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},
+            body: JSON.stringify({estado:'PENDIENTE'})
+          }).catch(()=>{});
+        }
+      }
+      logImport(`VyP ${vyp} PDF subido ✓`, 'ok');
+      cargarPlanificacion().catch(()=>{});
+    }
+    r.done = true;
+    _importIdx++;
+    _mostrarFormulario();
+    return;
+  }
 
   // Comprobar TDC duplicado (solo tickets 7-8 dígitos)
   const tdcEl = document.getElementById('f-tdc') || document.querySelector('input[id="f-tdc"]');
@@ -2291,7 +2343,6 @@ async function _confirmarImport() {
       const ant = dupData[0];
       const msg = `⚠️ TDC ${tdc} ya asignado a VyP ${ant.vyp}\n${ant.centro}${ant.alias?' — '+ant.alias:''} · ${ant.fecha}\n\n¿Continuar igualmente?`;
       if(!confirm(msg)) { document.querySelectorAll('#formContainer button').forEach(b=>b.disabled=false); return; }
-      // Notificar por email en background
       notificarTDCDuplicadoWeb(tdc, vyp, centro, fecha, ant).catch(()=>{});
     }
   }
@@ -2330,9 +2381,9 @@ async function _confirmarImport() {
 
     logImport(`VyP ${vyp||'?'} añadido ✓`, 'ok');
     r.done = true;
-    if(r.fileObj) subirVyPSupabase(r.fileObj, {fecha: body.fecha, vyp: body.vyp, centro: body.centro, id: body.id}).catch(()=>{});
-
-    // Non-blocking: reload data in background, don't await to avoid freezing
+    if(r.fileObj) {
+      await subirVyPSupabase(r.fileObj, {fecha: body.fecha, vyp: body.vyp, centro: body.centro, id: body.id});
+    }
     cargarPlanificacion().catch(()=>{});
     if(zona) autoAsignarZona(fecha, zona, tecnico, true).catch(()=>{});
 

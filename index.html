@@ -3165,7 +3165,7 @@ function renderPlanif() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
             </div>
             <div class="planif-actions">
-              ${p.vyp_drive_id ? `<a href="https://drive.google.com/file/d/${p.vyp_drive_id}/view" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;">📄 VyP</a>` : ''}
+              ${p.vyp ? (p.vyp_storage_path ? `<a class="btn btn-gray btn-sm" style="text-decoration:none;cursor:pointer;" onclick="event.stopPropagation();abrirVyP('${p.id}')">📄 VyP</a>` : p.vyp_drive_id ? `<a href="https://drive.google.com/file/d/${p.vyp_drive_id}/view" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;">📄 VyP</a>` : `<span class="btn btn-gray btn-sm" style="opacity:0.4;cursor:default;" title="VyP sin PDF subido">📄 VyP</span>`) : ''}
               <button class="btn btn-gray btn-sm" style="flex:1;background:var(--gris2);color:#fff;border-color:var(--gris2);" onclick="closeAllModals();iniciarDesde('${p.id}')">📝 Iniciar informe</button>
               ${coord?`<a href="https://maps.google.com/?q=${coord}" target="_blank" class="btn btn-gray btn-sm" style="text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>GPS</a>`:''}
             </div>
@@ -3516,9 +3516,15 @@ async function showPlanifDetalle(id) {
   }
 
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">`;
-  if(p.vyp_drive_id || p.vypDriveId) {
-    const driveId = p.vyp_drive_id || p.vypDriveId;
-    html+=`<a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-gray" style="text-decoration:none;text-align:center;padding:14px 8px;font-size:14px;">📄 Ver VyP</a>`;
+  if(p.vyp) {
+    if(p.vyp_storage_path) {
+      html+=`<a class="btn btn-gray" style="text-decoration:none;text-align:center;padding:14px 8px;font-size:14px;cursor:pointer;" onclick="abrirVyP('${p.id}')">📄 Ver VyP</a>`;
+    } else if(p.vyp_drive_id || p.vypDriveId) {
+      const driveId = p.vyp_drive_id || p.vypDriveId;
+      html+=`<a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-gray" style="text-decoration:none;text-align:center;padding:14px 8px;font-size:14px;">📄 Ver VyP</a>`;
+    } else {
+      html+=`<span class="btn btn-gray" style="text-align:center;padding:14px 8px;font-size:14px;opacity:0.4;">📄 VyP sin PDF</span>`;
+    }
   } else {
     html+=`<div></div>`;
   }
@@ -3872,16 +3878,22 @@ async function importarVyPs(files) {
 
       // Comprobar duplicado solo si hay conexión
       try {
-        const res = await fetch(`${SB_URL}/rest/v1/planificacion?vyp=eq.${datos.vyp}&estado=neq.CANCELADO&select=id`, {
+        const res = await fetch(`${SB_URL}/rest/v1/planificacion?vyp=eq.${datos.vyp}&estado=neq.CANCELADO&select=id,vyp_storage_path`, {
           headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
           signal: AbortSignal.timeout(3000)
         });
         const existe = await res.json();
-        if(existe && existe.length > 0) { _importVyPStats.dup++; continue; }
+        if(existe && existe.length > 0) {
+          if(existe[0].vyp_storage_path) { _importVyPStats.dup++; continue; }
+          datos._existingId = existe[0].id;
+        }
       } catch(e) {
         // Sin conexión — comprobar solo en local
         const existe = S.planificacion.find(p => p.vyp === datos.vyp && p.estado !== 'CANCELADO');
-        if(existe) { _importVyPStats.dup++; continue; }
+        if(existe) {
+          if(existe.vyp_storage_path) { _importVyPStats.dup++; continue; }
+          datos._existingId = existe.id;
+        }
       }
 
       datos.telefono = zonas[datos.zona] || '';
@@ -4038,6 +4050,19 @@ function saltarVyP() {
   mostrarVyPUno();
 }
 
+async function abrirVyP(id) {
+  const p = S.planificacion.find(x => x.id === id);
+  if (!p || !p.vyp_storage_path) return;
+  try {
+    const sb = getSB();
+    const { data } = await sb.storage.from('documents').createSignedUrl(p.vyp_storage_path, 60*60*24);
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+  } catch(e) {
+    const { data: { publicUrl } } = sb.storage.from('documents').getPublicUrl(p.vyp_storage_path);
+    window.open(publicUrl, '_blank');
+  }
+}
+
 async function subirVyPSupabase(file, datos) {
   try {
     const safeCentro = String(datos.centro || 'SIN_CENTRO').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -4045,25 +4070,28 @@ async function subirVyPSupabase(file, datos) {
     const yyyy = now.getFullYear().toString();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const filename = `vyp_${datos.vyp || 'sin_vyp'}.pdf`;
-    const path = `${yyyy}/${mm}/${safeCentro}/${filename}`;
+    const path = `vyp/${yyyy}/${mm}/${safeCentro}/${filename}`;
 
     const sb = getSB();
     const { data, error } = await sb.storage
-      .from('photos')
+      .from('documents')
       .upload(path, file, { contentType: 'application/pdf', upsert: true });
 
     if (error) {
       console.warn('[VYP] Error subiendo PDF:', error.message);
+      toast('Error subiendo PDF VyP: '+error.message, 'err');
       return null;
     }
 
-    // Guardar ruta en Supabase
     const { error: updateError } = await sb
       .from('planificacion')
       .update({ vyp_storage_path: path })
       .eq('id', datos.id);
 
-    if (updateError) console.warn('[VYP] Error guardando ruta:', updateError.message);
+    if (updateError) {
+      console.warn('[VYP] Error guardando ruta:', updateError.message);
+      toast('Error guardando ruta VyP: '+updateError.message, 'err');
+    }
     return path;
   } catch(e) {
     console.warn('[VYP] Error general:', e.message);
@@ -4145,6 +4173,18 @@ async function añadirVyPActual() {
   };
 
   try {
+    // Si ya existe en DB (sin PDF) → solo re-subir PDF
+    if(d._existingId) {
+      if(d._file) {
+        await subirVyPSupabase(d._file, {fecha: d.fecha, vyp: d.vyp, centro: d.centro, id: d._existingId});
+      }
+      _importVyPStats.ok++;
+      toast('VyP PDF re-subido ✓','ok');
+      _importVyPIdx++;
+      mostrarVyPUno();
+      return;
+    }
+
     // Comprobar TDC duplicado (solo tickets 8 dígitos)
     const tdcDup = await comprobarTDCDuplicado(d.tdc, d.vyp, d.centro, d.fecha);
     if(tdcDup) {
@@ -4171,13 +4211,18 @@ async function añadirVyPActual() {
       setLS('t2-pl', S.planificacion);
       _importVyPStats.ok++;
       crearEventoCalendario(planifEntry);
-      // Upload PDF to Drive in background
-      if(d._file) subirVyPSupabase(d._file, d).catch(()=>{});
+      if(d._file) subirVyPSupabase(d._file, {fecha: d.fecha, vyp: d.vyp, centro: d.centro, id: payload.id}).catch(()=>{});
     } else {
       _importVyPStats.err++;
     }
   } catch(e) {
     // Sin conexión — guardar solo en local
+    if(d._existingId) {
+      _importVyPStats.ok++;
+      _importVyPIdx++;
+      mostrarVyPUno();
+      return;
+    }
     const planifEntry = {...payload, coord:'', calEventId:null};
     S.planificacion.push(planifEntry);
     setLS('t2-pl', S.planificacion);
@@ -5708,6 +5753,7 @@ async function leerPlanificacionSupabase() {
         tecnico_asignado:r.tecnico_asignado||'',
         calEventId:      r.cal_event_id||null,
         vyp_drive_id:    r.vyp_drive_id||null,
+        vyp_storage_path: r.vyp_storage_path||null,
         tdc_duplicado:   r.tdc_duplicado||false,
       }));
       setLS('t2-pl', S.planificacion);
