@@ -3144,7 +3144,7 @@ function renderPlanif() {
         ${items.map(p => {
           const c = findCentro(p.centro);
           const batDate = c ? parseFecha(c.Fechasus) : null;
-          const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>5;
+          const batViej = batDate && (Date.now()-batDate)/(1000*60*60*24*365)>4;
           const tieneBat = detectarBaterias(p.trabajo);
           const coord = c?.Coord || p.coord || '';
           const borderColor = isAtrasado2d ? 'var(--rojo)' : isAtrasadoAyer ? 'var(--naranja)' : 'var(--gris2)';
@@ -3159,7 +3159,7 @@ function renderPlanif() {
                 <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
                   ${tdcDupBadge}
                   ${tieneBat?`<span class="badge badge-orange">🔋 BATERÍAS${c?.Bat_Tipo?' · '+c.Bat_Tipo:''}</span>`:''}
-                  ${batViej?`<span class="badge badge-orange">🔋 BAT. +5 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
+                  ${batViej?`<span class="badge badge-orange">🔋 BAT. +4 AÑOS (${c?.Bat_Modelo||'?'})</span>`:''}
                 </div>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gris4)" stroke-width="2" style="flex-shrink:0;margin-left:8px;"><path d="M9 18l6-6-6-6"/></svg>
@@ -3455,7 +3455,7 @@ async function showPlanifDetalle(id) {
     } catch(e) {}
   }
   const batDate=c?parseFecha(c.Fechasus):null;
-  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
+  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>4;
   const tieneBat=detectarBaterias(p.trabajo);
 
   const drBig = (l,v) => `<div class="dr"><div class="dr-l">${l}</div><div class="dr-v" style="font-size:16px;font-weight:600;">${v}</div></div>`;
@@ -3476,7 +3476,7 @@ async function showPlanifDetalle(id) {
   }
   if(coord) html+=`<div class="dr"><div class="dr-l">GPS</div><div class="dr-v"><a href="https://maps.google.com/?q=${coord}" target="_blank" style="color:var(--rojo);">📍 Abrir en Maps</a></div></div>`;
   if(tieneBat) html+=`<div class="alert alert-warn" style="margin-top:8px;">🔋 El trabajo indica CAMBIO DE BATERÍAS. ${c?.Bat_Modelo?'Modelo actual: '+c.Bat_Modelo:''}</div>`;
-  if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 5 años. Valorar sustitución.</div>`;
+  if(batViej) html+=`<div class="alert alert-warn" style="margin-top:4px;">🔋 Baterías con más de 4 años. Valorar sustitución.</div>`;
   // Check for incomplete centre data
   if(c) {
     const vacio = v => !v || ['DESCONOCIDO','DESCONOCIDA','-','N/A',''].includes((v||'').toString().toUpperCase().trim());
@@ -4533,7 +4533,7 @@ function centroHtml(c,esNorte=false) {
   const alias=c.Alias||c.alias||'';
   const muni=c.Municipio||c.municipio||'';
   const batDate=parseFecha(c.Fechasus);
-  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
+  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>4;
   return `<div class="li" onclick="showCentro('${nombre.replace(/'/g,"\\'")}')">
     <div class="li-top"><span class="li-id">${nombre}</span><div style="display:flex;gap:4px;">${batViej?'<span class="badge badge-orange">🔋</span>':''}${esNorte?'<span class="badge badge-blue">NORTE</span>':''}</div></div>
     <div class="li-alias">${alias}</div>
@@ -4558,7 +4558,7 @@ function showCentro(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
   document.getElementById('mCentroTitle').textContent=nombre;
   const batDate=parseFecha(c.Fechasus);
-  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>5;
+  const batViej=batDate&&(Date.now()-batDate)/(1000*60*60*24*365)>4;
   const anosStr=batDate?`${Math.floor((Date.now()-batDate)/(1000*60*60*24*365))} años`:'';
   const dr=(l,v)=>v?`<div class="dr"><div class="dr-l">${l}</div><div class="dr-v">${v}</div></div>`:'';
   let html='';
