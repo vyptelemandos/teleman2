@@ -3536,12 +3536,51 @@ async function showPlanifDetalle(id) {
   html+=`<button class="btn btn-gray" style="padding:14px 8px;font-size:14px;${btnInformeStyle}" ${btnInformeOnclick}>📋 Rellenar informe</button>`;
   html+=`</div>`;
 
+  html+=`<button class="btn btn-gray" style="width:100%;padding:14px;font-size:14px;" onclick="closeAllModals();mostrarHistorialCentro('${p.centro}')">📋 Historial del centro</button>`;
+
   html+=`<button class="btn btn-gray" style="width:100%;padding:14px;font-size:14px;color:var(--rojo);" onclick="closeAllModals();pedirMotivoCancelacion('${id}')">✕ Cancelar trabajo</button>`;
 
   // Reuse modalInterv for this
   document.getElementById('mIntervTitle').textContent=`${p.centro} — ${p.alias||c?.Alias||''}`;
   document.getElementById('mIntervBody').innerHTML=html;
   openModal('modalInterv');
+}
+
+async function mostrarHistorialCentro(centro) {
+  document.getElementById('mIntervTitle').textContent=`Historial — ${centro}`;
+  document.getElementById('mIntervBody').innerHTML='<div style="text-align:center;padding:30px;color:var(--gris4);font-size:14px;">Cargando historial...</div>';
+  openModal('modalInterv');
+  try {
+    const sb = getSB();
+    const { data, error } = await sb.from('intervenciones')
+      .select('*')
+      .ilike('centro', `%${centro}%`)
+      .order('fecha', { ascending: false });
+    if(error) throw error;
+    const intervs = data || [];
+    let html='';
+    if(!intervs.length) {
+      html='<div style="text-align:center;padding:30px;color:var(--gris4);font-size:14px;">Sin intervenciones previas en este centro</div>';
+    } else {
+      html=`<div style="font-size:12px;color:var(--gris4);margin-bottom:8px;">${intervs.length} intervenciones</div>`;
+      for(const iv of intervs) {
+        const tecs = [iv.tec1,iv.tec2].filter(Boolean).join(' · ');
+        html+=`<div style="background:var(--fondo2);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px;">
+          <div style="font-weight:600;">${iv.fecha||'?'} ${iv.tdc?'— TDC '+iv.tdc:''}</div>
+          <div style="color:var(--gris4);margin-top:2px;">${iv.motivo||'—'}</div>
+          <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:${iv.resultado==='OK'?'#d4edda':'#fff3cd'};color:${iv.resultado==='OK'?'#155724':'#856404'};">${iv.resultado||'Pendiente'}</span>
+            ${tecs?`<span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--fondo);color:var(--gris4);">${tecs}</span>`:''}
+          </div>
+          ${iv.resolucion?`<div style="color:var(--gris3);font-size:11px;margin-top:4px;border-top:1px solid var(--linea);padding-top:4px;">${iv.resolucion}</div>`:''}
+        </div>`;
+      }
+    }
+    html+=`<button class="btn btn-gray" style="width:100%;padding:14px;font-size:14px;margin-top:8px;" onclick="closeModal('modalInterv')">Cerrar</button>`;
+    document.getElementById('mIntervBody').innerHTML=html;
+  } catch(e) {
+    document.getElementById('mIntervBody').innerHTML=`<div style="text-align:center;padding:30px;color:var(--rojo);font-size:14px;">Error al cargar: ${e.message}</div>`;
+  }
 }
 
 function editarPlanif(id) {
@@ -3885,6 +3924,7 @@ async function importarVyPs(files) {
         const existe = await res.json();
         if(existe && existe.length > 0) {
           if(existe[0].vyp_storage_path) { _importVyPStats.dup++; continue; }
+          // Existe pero sin PDF → marcar para re-subir
           datos._existingId = existe[0].id;
         }
       } catch(e) {
