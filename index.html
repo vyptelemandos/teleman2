@@ -582,7 +582,7 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
       <label style="display:flex;align-items:center;gap:8px;background:var(--negro3);border-radius:10px;padding:12px;cursor:pointer;color:var(--gris3);font-size:13px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         Añadir foto
-        <input type="file" id="f-fotos" accept="image/*" multiple capture="environment" style="display:none" onchange="onFotosChange(this)">
+        <input type="file" id="f-fotos" accept="image/*" multiple style="display:none" onchange="onFotosChange(this)">
       </label>
     </div>
 
@@ -1267,6 +1267,49 @@ function getSB() {
   return sbClient;
 }
 
+// ── INDEXED DB (fotos) ──
+let _dbInstance;
+function _getDB() {
+  return new Promise((resolve, reject) => {
+    if(_dbInstance) return resolve(_dbInstance);
+    const req = indexedDB.open('Teleman2Photos', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');
+    };
+    req.onsuccess = e => { _dbInstance = e.target.result; resolve(_dbInstance); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+async function _dbPut(key, blob) {
+  const db = await _getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(blob, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+async function _dbGet(key) {
+  const db = await _getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readonly');
+    const req = tx.objectStore('photos').get(key);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+async function _dbDel(key) {
+  const db = await _getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+let _photoKeyCounter = 0;
+function _nextPhotoKey() { return 'p' + Date.now() + '_' + (++_photoKeyCounter); }
 
 function iniciarRealtime() {
   try {
@@ -1794,12 +1837,15 @@ const navMap = {
   'p-ajustes':null,'p-vale':null,'p-miaera':null
 };
 
+let _pages, _navBtns;
 function goPage(id) {
   S._miAreaDesbloqueada = false;
   const restricted = document.getElementById('miAreaRestringida');
   if(restricted) restricted.style.display = 'none';
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
+  if(!_pages) _pages=document.querySelectorAll('.page');
+  if(!_navBtns) _navBtns=document.querySelectorAll('.nb');
+  _pages.forEach(p=>p.classList.remove('on'));
+  _navBtns.forEach(n=>n.classList.remove('on'));
   document.getElementById(id)?.classList.add('on');
   if(navMap[id]) document.getElementById(navMap[id])?.classList.add('on');
   document.getElementById('scrollArea').scrollTop=0;
@@ -2136,19 +2182,24 @@ async function enviarPendientesAhora() {
     setTimeout(() => setStatusBar(null, null), 3000);
   } catch(e) {
     setStatusBar('ENVIADO', 'err');
-    toast('ERROR AL ENVIAR: ' + e.message.slice(0,50), 'err');
+    toast('Error al enviar. Inténtalo de nuevo.', 'err');
   }
 }
-let _fotosActuales = []; // [{file, dataUrl, name}]
+let _fotosActuales = []; // [{file, dataUrl, name, dbKey}]
+let _blobUrls = [];
+
+function _revokeBlobUrls() {
+  _blobUrls.forEach(u => URL.revokeObjectURL(u));
+  _blobUrls = [];
+}
 
 function onFotosChange(input) {
   const files = Array.from(input.files);
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      // Comprimir imagen antes de guardar
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         const canvas = document.createElement('canvas');
         const MAX = 1200;
         let w = img.width, h = img.height;
@@ -2158,9 +2209,12 @@ function onFotosChange(input) {
         }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-        _fotosActuales.push({ file, dataUrl, name: file.name });
-        renderFotosPreview();
+        canvas.toBlob(async blob => {
+          const dbKey = _nextPhotoKey();
+          await _dbPut(dbKey, blob);
+          _fotosActuales.push({ file, dataUrl: '', name: file.name, dbKey });
+          renderFotosPreview();
+        }, 'image/jpeg', 0.75);
       };
       img.src = e.target.result;
     };
@@ -2169,23 +2223,35 @@ function onFotosChange(input) {
   input.value = '';
 }
 
-function renderFotosPreview() {
+async function renderFotosPreview() {
   const el = document.getElementById('fotosPreview');
   if(!el) return;
-  el.innerHTML = _fotosActuales.map((f, i) => `
-    <div style="position:relative;width:72px;height:72px;">
-      <img src="${f.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;">
+  _revokeBlobUrls();
+  const items = [];
+  for(let i = 0; i < _fotosActuales.length; i++) {
+    const f = _fotosActuales[i];
+    let src = f.dataUrl;
+    if(!src && f.dbKey) {
+      const blob = await _dbGet(f.dbKey);
+      if(blob) { src = URL.createObjectURL(blob); _blobUrls.push(src); }
+    }
+    items.push(`<div style="position:relative;width:72px;height:72px;">
+      <img src="${src||''}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;">
       <button onclick="eliminarFoto(${i})" style="position:absolute;top:-6px;right:-6px;background:var(--rojo);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
-    </div>
-  `).join('');
+    </div>`);
+  }
+  el.innerHTML = items.join('');
 }
 
 function eliminarFoto(i) {
+  const f = _fotosActuales[i];
+  if(f && f.dbKey) _dbDel(f.dbKey);
   _fotosActuales.splice(i, 1);
   renderFotosPreview();
 }
 
-function resetFotos() {
+async function resetFotos() {
+  for(const f of _fotosActuales) { if(f.dbKey) await _dbDel(f.dbKey); }
   _fotosActuales = [];
   renderFotosPreview();
 }
@@ -2218,18 +2284,24 @@ async function subirFotosSupabase(d, intId) {
       
       console.log('[FASE1] Subiendo foto', i + 1, path);
       
-      const base64Data = foto.dataUrl.split(',')[1];
-      const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let j = 0; j < binaryString.length; j++) {
-        bytes[j] = binaryString.charCodeAt(j);
+      let blob;
+      if(foto.dataUrl) {
+        const base64Data = foto.dataUrl.split(',')[1];
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let j = 0; j < binaryString.length; j++) {
+          bytes[j] = binaryString.charCodeAt(j);
+        }
+        blob = new Blob([bytes], { type: 'image/jpeg' });
+      } else if(foto.dbKey) {
+        blob = await _dbGet(foto.dbKey);
       }
-      const blob = new Blob([bytes], { type: foto.file?.type || 'image/jpeg' });
+      if(!blob) continue;
       
       const { data, error } = await sb.storage
         .from('photos')
         .upload(path, blob, { 
-          contentType: foto.file?.type || 'image/jpeg',
+          contentType: blob.type || 'image/jpeg',
           upsert: true
         });
       
@@ -2322,7 +2394,7 @@ function recogerFormulario() {
     nBaterias: document.getElementById('f-baterias')?.checked ? (parseInt(document.getElementById('f-nbaterias')?.value)||0) : 0,
     equiposElectronicos: document.getElementById('f-equipos-electronicos')?.checked||false,
     nEquiposElectronicos: document.getElementById('f-equipos-electronicos')?.checked ? (parseInt(document.getElementById('f-nequipos')?.value)||0) : 0,
-    fotos: _fotosActuales.map(f => ({name: f.name, dataUrl: f.dataUrl})),
+    fotos: _fotosActuales.map(f => ({name: f.name, dbKey: f.dbKey})),
     _planifId: S._planifId || null,
     ts: Date.now(),
   };
@@ -2358,7 +2430,9 @@ function cargarBorrador(id) {
   // Restore fotos if saved in borrador
   _fotosActuales = [];
   if(d.fotos && d.fotos.length) {
-    d.fotos.forEach(f => _fotosActuales.push({name: f.name, dataUrl: f.dataUrl, file: null}));
+    for(const f of d.fotos) {
+      _fotosActuales.push({name: f.name, dbKey: f.dbKey, dataUrl: f.dataUrl||'', file: null});
+    }
     renderFotosPreview();
     toast(`${d.fotos.length} FOTO(S) RESTAURADAS`, 'ok');
   } else {
@@ -2887,7 +2961,7 @@ async function generarInforme() {
     nuevoInforme();
   } catch(e) {
     console.error('Error generando informe:', e);
-    toast('ERROR INESPERADO: ' + (e.message||''), 'err');
+    toast('Error inesperado. Vuelve a intentarlo.', 'err');
   } finally {
     window._generando = false;
     setGenBtn(false);
@@ -4343,7 +4417,11 @@ function limpiarFiltrosHistorial() {
   renderHistorial();
 }
 
-function filtrarHistorial(){renderHistorial(document.getElementById('histSearch')?.value||'');}
+let _debounceHist;
+function filtrarHistorial(){
+  clearTimeout(_debounceHist);
+  _debounceHist=setTimeout(()=>renderHistorial(document.getElementById('histSearch')?.value||''),250);
+}
 
 async function buscarHistorialServidor(texto) {
   const btn = document.querySelector('.search-server-btn');
@@ -4552,7 +4630,11 @@ function filtrarIncompletos() {
   document.getElementById('centrosSub').innerHTML = `<span style="color:var(--rojo);font-weight:600;">${incompletos.length} INSTALACIONES INCOMPLETAS</span> · <span style="cursor:pointer;text-decoration:underline;" onclick="renderCentros()">Ver todas</span>`;
 }
 
-function filtrarCentros(){renderCentros(document.getElementById('centroSearch').value);}
+let _debounceCentros;
+function filtrarCentros(){
+  clearTimeout(_debounceCentros);
+  _debounceCentros=setTimeout(()=>renderCentros(document.getElementById('centroSearch').value),250);
+}
 
 function showCentro(nombre) {
   const c=S.centros.find(x=>String(x.Nombre||x.nombre||'')===nombre); if(!c) return;
@@ -5450,7 +5532,7 @@ async function generarValeA1viaEdge(d) {
     return true;
   } catch(e) {
     console.error('generarValeA1viaEdge error:', e);
-    toast('ERROR VALE A1: ' + e.message.slice(0,50), 'err');
+    toast('Error al generar Vale A1. Revisa los datos.', 'err');
     return false;
   }
 }
@@ -5471,7 +5553,7 @@ async function generarPDFviaEdge(d, esModificado=false) {
     return true;
   } catch(e) {
     console.error('generarPDFviaEdge error:', e);
-    toast('ERROR PDF: ' + e.message.slice(0,60), 'err');
+    toast('Error al generar PDF. Revisa los datos.', 'err');
     return false;
   }
 }
@@ -5736,7 +5818,7 @@ async function migrarASupabase() {
 
   } catch(e) {
     console.error('Error en migración:', e);
-    toast('ERROR EN MIGRACIÓN: '+e.message,'err');
+    toast('Error al migrar datos. Inténtalo de nuevo.', 'err');
   }
 }
 
@@ -6410,10 +6492,12 @@ function hoy(){
   const dd=String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${dd}`;
 }
-function v(id){return document.getElementById(id)?.value||'';}
-function vu(id){return (document.getElementById(id)?.value||'').toUpperCase().trim();}
+const _elCache={};
+function _el(id){return _elCache[id]||(_elCache[id]=document.getElementById(id));}
+function v(id){return _el(id)?.value||'';}
+function vu(id){return (_el(id)?.value||'').toUpperCase().trim();}
 function sv(id,val){
-  const el=document.getElementById(id);
+  const el=_el(id);
   if(!el) return;
   // For selects, add option if not present
   if(el.tagName==='SELECT' && val) {
