@@ -579,11 +579,16 @@ body{background:var(--gris5);color:var(--negro);font-family:'Ubuntu',sans-serif;
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--gris3);font-weight:600;margin-bottom:6px;">FOTOS (OPCIONAL)</div>
       <div id="fotosPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
-      <label style="display:flex;align-items:center;gap:8px;background:var(--negro3);border-radius:10px;padding:12px;cursor:pointer;color:var(--gris3);font-size:13px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        Añadir foto
-        <input type="file" id="f-fotos" accept="image/*" multiple style="display:none" onchange="onFotosChange(this)">
-      </label>
+      <div style="display:flex;gap:8px;">
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--negro3);border-radius:10px;padding:12px;cursor:pointer;color:var(--gris3);font-size:13px;">
+          📷 Cámara
+          <input type="file" accept="image/*" multiple capture="environment" style="display:none" onchange="onFotosChange(this)">
+        </label>
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--negro3);border-radius:10px;padding:12px;cursor:pointer;color:var(--gris3);font-size:13px;">
+          🖼️ Galería
+          <input type="file" accept="image/*" multiple style="display:none" onchange="onFotosChange(this)">
+        </label>
+      </div>
     </div>
 
     <!-- ACCIONES -->
