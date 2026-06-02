@@ -493,6 +493,7 @@ const sb = createClient(SB_URL, SB_KEY);
 
 let planificacion = [];
 let intervenciones = [];
+let _histIntervs = [];
 let tecnicos = [];
 let _baremos = [];
 let _valorPunto = parseFloat(localStorage.getItem('t2-valor-punto-planif')) || 0;
@@ -662,12 +663,31 @@ document.addEventListener('DOMContentLoaded', () => {
   if(!_appInited) { _appInited = true; initApp(); }
 });
 
+function computeHistIntervs() {
+  const yyyy = new Date().getFullYear();
+  const normTdc = t => String(t||'').trim().replace(/^T-?/i,'');
+  const pyps = new Set();
+  const ptdcs = new Set();
+  planificacion.forEach(p => {
+    if(p.vyp) pyps.add(String(p.vyp).trim());
+    if(p.tdc) ptdcs.add(normTdc(p.tdc));
+  });
+  _histIntervs = intervenciones.filter(iv => {
+    const f = String(iv.fecha||'');
+    if(!f.startsWith('2026') && !f.startsWith(String(yyyy))) return false;
+    if(iv.vyp && pyps.has(String(iv.vyp).trim())) return false;
+    if(iv.tdc && ptdcs.has(normTdc(iv.tdc))) return false;
+    return true;
+  });
+}
+
 // ─── INIT ────────────────────────────────────────────
 async function initApp() {
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
   await Promise.all([cargarPlanificacion(), cargarIntervenciones(), cargarBaremos(), cargarTecnicos(), cargarSolicitantes(), cargarZonasDia(), cargarFestivos(), cargarAgenda(), cargarVacaciones()]);
+  computeHistIntervs();
   setView('calendario');
   iniciarRealtime();
 }
@@ -683,6 +703,7 @@ async function cargarPlanificacion() {
     console.warn('cargarPlanificacion error:', e.message);
     planificacion = [];
   }
+  computeHistIntervs();
 }
 
 async function cargarIntervenciones() {
@@ -697,6 +718,7 @@ async function cargarIntervenciones() {
     console.warn('cargarIntervenciones error:', e.message);
     intervenciones = [];
   }
+  computeHistIntervs();
 }
 
 async function cargarBaremos() {
@@ -1425,6 +1447,21 @@ function renderCalendario() {
         }).join('');
       }).join('');
 
+      // Historical interventions (without planificacion record)
+      const histDia = _histIntervs.filter(iv => {
+        if(filtroTec) {
+          const t1 = (iv.tec1||iv.tecnico_asignado||'').trim();
+          const t2 = (iv.tec2||'').trim();
+          if(t1!==filtroTec && t2!==filtroTec) return false;
+        }
+        return (iv.fecha||'') === dateStr;
+      });
+      const histHtml = histDia.length ? '<div style="margin:6px 0;border-top:2px dashed #aaa;"></div>' + histDia.map(iv => {
+        const tec = (iv.tec1||'').split(' ')[0];
+        const idAttr = String(iv.int_id||iv.vyp||'').replace(/['"]/g,'');
+        return '<div class="cal-event ev-done" ondblclick="event.stopPropagation();verDetalleHist(\''+idAttr+'\')">'+(iv.centro||'')+(tec?' · '+tec:'')+'</div>';
+      }).join('') : '';
+
       // Vacation events for this day
       const vacsDia = getVacacionesDia(dateStr).filter(v => !filtroTec || v.tecnico === filtroTec);
       const vacsHtml = vacsDia.map(v => {
@@ -1448,6 +1485,7 @@ function renderCalendario() {
         vacsHtml+
         agItems.map(a=>'<div class="cal-event" style="background:#e0f7fa;color:#006064;border-left:3px solid #00bcd4;" ondblclick="event.stopPropagation();verDetalleAgenda(\''+a.id+'\')\"">'+(a.hora_ini?a.hora_ini+' ':'')+a.descripcion+'</div>').join('')+
         eventosHtml+
+        histHtml+
       '</div>';
     }
     return rowHtml;
@@ -1716,12 +1754,12 @@ function calcAvisoHistorico() {
   return pendientesAnteriores.length;
 }
 
-function statsBar(items, label, highlight) {
+function statsBar(items, label, highlight, extraDone) {
   const pending  = items.filter(p=>getColor(p)==='pending').length;
   const late     = items.filter(p=>getColor(p)==='late').length;
-  const done     = items.filter(p=>getColor(p)==='done').length;
+  const done     = items.filter(p=>getColor(p)==='done').length + (extraDone||0);
   const cancelled= items.filter(p=>getColor(p)==='cancelled').length;
-  const total    = items.length;
+  const total    = items.length + (extraDone||0);
   const bg = highlight ? '#f0f0f0' : '#f8f8f8';
   const fw = highlight ? '700' : '600';
   const pill = (color, num, lbl) =>
@@ -1748,9 +1786,15 @@ function renderDualStats() {
   const filtroTec = document.getElementById('filtroTecnico')?.value || '';
   const planifFiltrada = filtroTec ? planificacion.filter(p=>p.tecnico_asignado===filtroTec) : planificacion;
   const semItems = planifFiltrada.filter(p=>p.fecha>=wr.ini && p.fecha<=wr.fin);
+  // Add historical interventions as done items
+  const histFiltradas = filtroTec ? _histIntervs.filter(iv => {
+    const t1 = (iv.tec1||'').trim();
+    const t2 = (iv.tec2||'').trim();
+    return t1===filtroTec || t2===filtroTec;
+  }) : _histIntervs;
   renderEstadoChip();
   return '<div style="display:flex;gap:10px;margin-bottom:12px;">' +
-    statsBar(planifFiltrada, 'Histórico total', false) +
+    statsBar(planifFiltrada, 'Histórico total', false, histFiltradas.length) +
     statsBar(semItems, semLabel, true) +
     '</div>';
 }
@@ -1844,6 +1888,25 @@ function verDetalle(id) {
   }
   document.getElementById('modalDetalleFooter').innerHTML = footer;
 
+  openModal('modalDetalle');
+}
+
+function verDetalleHist(idAttr) {
+  const iv = _histIntervs.find(x => String(x.int_id||x.vyp||'') === idAttr);
+  if(!iv) return;
+  const dr = (l,v) => `<div class="dr-row"><div class="dr-label">${l}</div><div class="dr-val">${v||'—'}</div></div>`;
+  let html = '<span class="badge badge-green" style="margin-bottom:14px;display:inline-block;">✓ Realizado</span>';
+  html += dr('Fecha', iv.fecha);
+  html += dr('Centro', iv.centro);
+  html += dr('VyP', iv.vyp);
+  html += dr('TDC', iv.tdc);
+  html += dr('Técnico', (iv.tec1||'') + (iv.tec2?' + '+iv.tec2:''));
+  html += dr('Motivo', iv.motivo);
+  html += dr('Resultado', iv.resultado);
+  html += dr('Resolución', iv.resolucion);
+  document.getElementById('modalDetalleTitle').textContent = `${iv.centro||''} — ${iv.vyp||'Histórico'}`;
+  document.getElementById('modalDetalleBody').innerHTML = html;
+  document.getElementById('modalDetalleFooter').innerHTML = '<button class="btn btn-gray" onclick="closeModal(\'modalDetalle\')">Cerrar</button>';
   openModal('modalDetalle');
 }
 
