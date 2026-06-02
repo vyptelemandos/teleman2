@@ -4211,6 +4211,20 @@ async function subirVyPSupabase(file, datos) {
       console.warn('[VYP] Error guardando ruta:', updateError.message);
       toast('Error guardando ruta VyP: '+updateError.message, 'err');
     }
+
+    // Copia a Telegram
+    try {
+      const { data: tgCfg } = await sb.from('config_app').select('clave,valor').in('clave',['tg_bot_token','tg_backup_chat']);
+      const tg = {}; (tgCfg||[]).forEach(r => tg[r.clave] = r.valor);
+      if (tg.tg_bot_token && tg.tg_backup_chat) {
+        const fd = new FormData();
+        fd.append('chat_id', tg.tg_backup_chat);
+        fd.append('document', file, filename);
+        fd.append('caption', `📄 VyP: ${datos.vyp||'?'} - ${datos.centro||'?'}`);
+        fetch(`https://api.telegram.org/bot${tg.tg_bot_token}/sendDocument`, { method:'POST', body:fd }).catch(()=>{});
+      }
+    } catch(e) { console.warn('[VYP-TG]', e.message); }
+
     return path;
   } catch(e) {
     console.warn('[VYP] Error general:', e.message);
