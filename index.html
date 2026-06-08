@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Teleman2">
 <link rel="manifest" href="manifest.json">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <title>Teleman2</title>
@@ -3706,6 +3706,7 @@ async function guardarEdicionPlanif(id) {
   if(idx<0) return;
   const nuevoTdc = v('mv-tdc');
   const tdcCambio = nuevoTdc !== (S.planificacion[idx].tdc||'');
+  const tecnicoAsignado = v('mv-tecnico-asignado');
 
   S.planificacion[idx] = {
     ...S.planificacion[idx],
@@ -3717,13 +3718,14 @@ async function guardarEdicionPlanif(id) {
     coord: v('mv-coord'),
     trabajo: vu('mv-trabajo'),
     solicitante: solicitanteVal,
+    tecnico_asignado: tecnicoAsignado,
     ...(tdcCambio ? {tdc_duplicado: false} : {})
   };
   setLS('t2-pl', S.planificacion);
 
   // Actualizar en Supabase
   const sb = getSB();
-  await sb.from('planificacion').update({
+  const { error: sbError } = await sb.from('planificacion').update({
     centro, fecha,
     hora: v('mv-hora'),
     vyp: v('mv-vyp'),
@@ -3732,8 +3734,15 @@ async function guardarEdicionPlanif(id) {
     coord: v('mv-coord'),
     trabajo: vu('mv-trabajo'),
     solicitante: solicitanteVal,
+    tecnico_asignado: tecnicoAsignado,
     ...(tdcCambio ? {tdc_duplicado: false} : {})
   }).eq('id', id);
+  if(sbError) {
+    console.error('❌ Supabase error al actualizar planificación:', sbError.message);
+    toast('Error al guardar en Supabase: '+sbError.message, 'err');
+  } else {
+    console.log('✅ Planificación actualizada en Supabase OK');
+  }
 
   closeModal('modalNuevoVyP');
   // Restaurar modal a modo añadir
