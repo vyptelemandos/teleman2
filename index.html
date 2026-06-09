@@ -1553,10 +1553,12 @@ function addModeloConfig() {
 function removeModeloConfig(i) {
   confirmar('modelo'+i, 'BORRAR', () => {
     const modelos = getLS('t2-modelos') || [];
+    const nombre = modelos[i];
     modelos.splice(i, 1);
     setLS('t2-modelos', modelos);
     actualizarSelectModelos(modelos);
     renderModelosConfig();
+    if(nombre) getSB().from('modelos_remota').delete().eq('nombre', nombre).then().catch(()=>{});
   });
 }
 
@@ -2020,7 +2022,6 @@ function getCentroSelectVal(selId, manualId) {
 
 function onBateriasCheck(cb) {
   autosave();
-  // Mostrar/ocultar campo de nº baterías para Vale A1
   const valeChk = document.getElementById('f-vale');
   const batWrap = document.getElementById('valeA1BatWrap');
   if(cb.checked) {
@@ -2032,6 +2033,7 @@ function onBateriasCheck(cb) {
     if(c) {
       c.Fechasus = hoy();
       setLS('t2-ct', S.centros);
+      actualizarFechasusEnSupabase(centro).catch(()=>{});
       toast(`🔋 FECHA BATERÍAS ACTUALIZADA EN ${centro} ✓`, 'ok');
     } else {
       toast('CENTRO NO ENCONTRADO EN BBDD — ACTUALIZA MANUALMENTE', 'warn');
@@ -4760,7 +4762,7 @@ function editarCentro(nombre) {
   renderCentroSelects(); openModal('modalNuevoCentro');
 }
 
-function altaCentro() {
+async function altaCentro() {
   const nombre = vu('nc-nombre');
   if(!nombre){toast('NÚMERO DE CENTRO OBLIGATORIO','err');return;}
   const idx = S.centros.findIndex(x=>String(x.Nombre||x.nombre||'')===nombre);
@@ -4783,6 +4785,8 @@ function altaCentro() {
   };
   if(idx>=0) S.centros[idx]=c; else S.centros.push(c);
   setLS('t2-ct',S.centros);
+  localStorage.setItem('t2-ct-ts', Date.now().toString());
+  await escribirCentroSupabase(c);
   
   closeModal('modalNuevoCentro'); renderCentros();
   toast(idx>=0?'CENTRO ACTUALIZADO ✓':'CENTRO DADO DE ALTA ✓','ok');
@@ -4992,10 +4996,12 @@ function addSolicitanteConfig() {
 function removeSolicitanteConfig(i) {
   confirmar('sol'+i, 'BORRAR', () => {
     const sols = getLS('t2-solicitantes') || [];
+    const nombre = sols[i];
     sols.splice(i, 1);
     setLS('t2-solicitantes', sols);
     renderSolicitantesConfig();
     actualizarSelectSolicitantes();
+    if(nombre) getSB().from('solicitantes').delete().eq('nombre', nombre).then().catch(()=>{});
   });
 }
 
@@ -5028,10 +5034,12 @@ function addTecnicoConfig() {
 function removeTecnicoConfig(i) {
   confirmar('tec'+i, 'BORRAR', () => {
     const tecnicos = getLS('t2-tec') || [];
+    const nombre = tecnicos[i];
     tecnicos.splice(i, 1);
     setLS('t2-tec', tecnicos);
     renderTecnicosConfig();
     actualizarSelectTecnicos(tecnicos);
+    if(nombre) getSB().from('tecnicos').delete().eq('nombre', nombre).then().catch(()=>{});
   });
 }
 
@@ -5142,17 +5150,21 @@ async function sincronizarTecnicos() {
 }
 
 function editMaterialConfig(i, val) {
+  const old = S.materiales[i];
   S.materiales[i] = val.toUpperCase().trim();
   setLS('t2-mat', S.materiales);
   renderMaterialesOptions();
+  if(old && old.cod) getSB().from('materiales').update({cod: val.toUpperCase().trim()}).eq('cod', old.cod).then().catch(()=>{});
 }
 
 function removeMaterialConfig(i) {
   confirmar('mat'+i, 'BORRAR', () => {
+    const mat = S.materiales[i];
     S.materiales.splice(i, 1);
     setLS('t2-mat', S.materiales);
     renderMaterilesConfig();
     renderMaterialesOptions();
+    if(mat && (mat.cod||mat)) getSB().from('materiales').delete().eq('cod', mat.cod||mat).then().catch(()=>{});
   });
 }
 
@@ -5166,10 +5178,18 @@ function renderBaremosEditList() {
     </div>`).join('');
 }
 
-function updateBaremoPts(i,val) { S.baremos[i].pts=parseFloat(val)||0; setLS('t2-bar',S.baremos); renderBaremosOptions(); }
+function updateBaremoPts(i,val) {
+  S.baremos[i].pts=parseFloat(val)||0;
+  setLS('t2-bar',S.baremos);
+  renderBaremosOptions();
+  const b = S.baremos[i];
+  if(b && b.cod) getSB().from('baremos').update({pts: b.pts}).eq('cod', b.cod).then().catch(()=>{});
+}
 function removeBaremoConfig(i) {
   confirmar('baremo'+i, 'BORRAR', () => {
+    const b = S.baremos[i];
     S.baremos.splice(i,1); setLS('t2-bar',S.baremos); renderBaremosEditList(); renderBaremosOptions();
+    if(b && b.cod) getSB().from('baremos').delete().eq('cod', b.cod).then().catch(()=>{});
   });
 }
 function addBaremoConfig() {
@@ -5433,7 +5453,6 @@ async function subirHistorial() {
 
 async function enviarPendientes() {
   if(!S.auth) { toast('CONECTA DRIVE PRIMERO','warn'); return; }
-  // Find all interventions with driveFileId (pending)
   const pendientes = S.intervenciones.filter(iv => iv.driveFileId && !iv.enviado);
   if(!pendientes.length) { toast('NO HAY INFORMES PENDIENTES DE ENVÍO','warn'); return; }
   toast(`MOVIENDO ${pendientes.length} INFORMES A PROCESADOS...`,'warn');
@@ -5443,6 +5462,12 @@ async function enviarPendientes() {
     if(ok) { iv.enviado = true; movidos++; }
   }
   setLS('t2-iv', S.intervenciones);
+  try {
+    const sb = getSB();
+    for(const iv of pendientes.filter(p => p.enviado)) {
+      await sb.from('intervenciones').update({enviado: true}).eq('int_id', iv.intId);
+    }
+  } catch(e) { console.warn('SB enviarPendientes error:', e.message); }
   toast(`${movidos} INFORMES MOVIDOS A PROCESADOS ✓`,'ok');
 }
 
@@ -6102,11 +6127,13 @@ function importarHistorial(input) {
 function importarRemota(input) {
   const file=input.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=e=>{
+  reader.onload=async e=>{
     const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
     const ws=wb.Sheets[wb.SheetNames[0]];
     S.centros=XLSX.utils.sheet_to_json(ws,{defval:''});
     setLS('t2-ct',S.centros);
+    localStorage.setItem('t2-ct-ts', Date.now().toString());
+    for(const c of S.centros) await escribirCentroSupabase(c);
     renderCentros(); checkAlertasInicio();
     document.getElementById('centrosSub').textContent=`${S.centros.length} INSTALACIONES`;
     toast(`${S.centros.length} INSTALACIONES IMPORTADAS ✓`,'ok');
