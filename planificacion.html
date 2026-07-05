@@ -1885,6 +1885,7 @@ function verDetalle(id) {
   } else if(p.estado !== 'CANCELADO') {
     footer += `<button class="btn btn-gray" onclick="confirmarCancelar('${id}')" style="margin-left:8px;">Cancelar trabajo</button>`;
     footer += `<button class="btn btn-red" style="margin-left:8px;" onclick="confirmarEditar('${id}')">Editar</button>`;
+    footer += `<button class="btn btn-red" style="margin-left:8px;background:#b91c1c;border-color:#b91c1c;font-weight:700;" onclick="confirmarBorrar('${id}')">🗑️</button>`;
   }
   document.getElementById('modalDetalleFooter').innerHTML = footer;
 
@@ -1925,6 +1926,35 @@ async function cancelarPlanif(id, motivo = '') {
   closeModal('modalDetalle');
   renderCurrentView();
   toast('Trabajo cancelado','warn');
+}
+
+// ═══════════════════════════════════════════════════
+//  BORRAR PLANIFICACIÓN (elimina permanentemente)
+// ═══════════════════════════════════════════════════
+function confirmarBorrar(id) {
+  const p = planificacion.find(x => x.id === id);
+  if (!p) return;
+  const respuesta = prompt(
+    `⚠️ BORRAR PERMANENTEMENTE\n\nCentro: ${p.centro}\nFecha: ${p.fecha||''} ${p.hora||''}\nVyP: ${p.vyp||'—'}\n\nEsto eliminará el trabajo como si nunca hubiera existido.\nNO se puede deshacer.\n\nEscribe BORRAR para confirmar:`
+  );
+  if (respuesta === null) return;
+  if (respuesta.trim().toUpperCase() !== 'BORRAR') {
+    toast('Debes escribir BORRAR para confirmar', 'err');
+    return;
+  }
+  borrarPlanif(id);
+}
+
+async function borrarPlanif(id) {
+  try {
+    await sb.from('planificacion').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Error borrando en Supabase:', e.message);
+  }
+  await cargarPlanificacion();
+  closeModal('modalDetalle');
+  renderCurrentView();
+  toast('🗑️ Trabajo eliminado permanentemente');
 }
 
 function confirmarEditar(id) {
